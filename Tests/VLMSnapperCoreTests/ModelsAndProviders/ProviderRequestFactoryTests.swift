@@ -32,6 +32,7 @@ struct ProviderRequestFactoryTests {
 
     @Test("Gemini asks newer offered models for low thinking at temperature zero", arguments: [
         ("gemini-3.5-flash", "low"),
+        ("gemini-flash-latest", "low"),
         ("gemini-2.5-flash", nil),
         ("gemma-4-31b-it", nil),
     ] as [(String, String?)])

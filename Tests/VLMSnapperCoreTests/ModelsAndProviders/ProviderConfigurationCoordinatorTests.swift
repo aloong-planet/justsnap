@@ -56,11 +56,15 @@ struct ProviderConfigurationCoordinatorTests {
 
     @Test("a validated key saves only the listed models the app offers, in listed order", arguments: [
         (ProviderID.gemini, [
-            "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest", "gemini-4-argon",
+            "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest",
+            "gemini-pro-latest", "gemini-4-argon",
             "gemini-3.1-pro-preview-customtools", "gemini-2.5-flash-preview-tts", "gemini-3-pro-image-preview",
             "gemini-3.5-transcribe", "gemini-2.5-computer-use-preview-10-2025", "gemma-4-31b-it",
             "gemini-omni-flash-preview", "gemini-embedding-001", "lyria-3.5",
-        ], ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest", "gemini-4-argon"]),
+        ], [
+            "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest",
+            "gemini-pro-latest", "gemini-4-argon",
+        ]),
         (.openAI, [
             "gpt-5.5", "gpt-4.1-2025-04-14", "gpt-5.5-pro", "gpt-5-mini", "o3",
             "text-embedding-3-small", "gpt-6-astra", "gpt-5-chat-latest",
