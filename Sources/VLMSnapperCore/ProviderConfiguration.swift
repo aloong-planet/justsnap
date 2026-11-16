@@ -204,13 +204,7 @@ public actor ProviderConfigurationCoordinator: ProviderSetupConfiguring, Operati
             try await saveMetadata(state)
             throw error
         }
-        var seenModelIDs = Set<String>()
-        let models = modelIDs.compactMap { modelID -> ProviderModelState? in
-            guard !modelID.isEmpty, seenModelIDs.insert(modelID).inserted else {
-                return nil
-            }
-            return ProviderModelState(id: modelID)
-        }
+        let models = Self.offeredModels(modelIDs, of: provider)
         let configuration = ProviderConfiguration(
             models: models,
             fetchedAt: now(),
@@ -313,12 +307,11 @@ public actor ProviderConfigurationCoordinator: ProviderSetupConfiguring, Operati
             try Task.checkCancellation()
             let modelIDs = try await modelLister.listModels(provider: provider, apiKey: credential.apiKey)
             try Task.checkCancellation()
-            var seen = Set<String>()
+            let models = Self.offeredModels(modelIDs, of: provider)
             state.configurations[provider] = ProviderConfiguration(
-                models: modelIDs.filter { !$0.isEmpty && seen.insert($0).inserted }
-                    .map { ProviderModelState(id: $0) },
-                fetchedAt: now(), selectedModelID: pending?.configuration.selectedModelID.flatMap {
-                    modelIDs.contains($0) ? $0 : nil
+                models: models,
+                fetchedAt: now(), selectedModelID: pending?.configuration.selectedModelID.flatMap { selectedModelID in
+                    models.contains { $0.id == selectedModelID } ? selectedModelID : nil
                 }
             )
             if pending?.restoreCurrentProvider == true, state.currentProvider == nil,
@@ -363,13 +356,7 @@ public actor ProviderConfigurationCoordinator: ProviderSetupConfiguring, Operati
             provider: provider,
             apiKey: credential.apiKey
         )
-        var seenModelIDs = Set<String>()
-        let models = modelIDs.compactMap { modelID -> ProviderModelState? in
-            guard !modelID.isEmpty, seenModelIDs.insert(modelID).inserted else {
-                return nil
-            }
-            return ProviderModelState(id: modelID)
-        }
+        let models = Self.offeredModels(modelIDs, of: provider)
         var state = try await loadMetadata()
         let previousSelection = state.configurations[provider]?.selectedModelID
         let refreshed = ProviderConfiguration(
@@ -563,13 +550,38 @@ public actor ProviderConfigurationCoordinator: ProviderSetupConfiguring, Operati
         try await saveMetadata(state)
     }
 
+    /// The listed models the app offers (v1-core::REQ-016), without duplicates, in listed order.
+    private static func offeredModels(_ modelIDs: [String], of provider: ProviderID) -> [ProviderModelState] {
+        var seenModelIDs = Set<String>()
+        return modelIDs.compactMap { modelID -> ProviderModelState? in
+            guard !modelID.isEmpty,
+                  ProviderModelRules.isOffered(provider: provider, modelID: modelID),
+                  seenModelIDs.insert(modelID).inserted else {
+                return nil
+            }
+            return ProviderModelState(id: modelID)
+        }
+    }
+
     private func beginConfigurationMutation(for provider: ProviderID) throws -> UUID {
         try beginActivity(.credential(provider))
     }
 
+    /// A cache saved before the offered-model rules is read through them, and a selected model
+    /// they exclude is cleared (v1-core::REQ-016/AC-05).
     private func loadMetadata() async throws -> ProviderMetadataState {
-        do { return try await metadataStore.load() }
+        var state: ProviderMetadataState
+        do { state = try await metadataStore.load() }
         catch { throw ProviderPersistenceError.metadataUnavailable }
+        for (provider, configuration) in state.configurations {
+            let offered = { ProviderModelRules.isOffered(provider: provider, modelID: $0) }
+            state.configurations[provider] = ProviderConfiguration(
+                models: configuration.models.filter { offered($0.id) },
+                fetchedAt: configuration.fetchedAt,
+                selectedModelID: configuration.selectedModelID.flatMap { offered($0) ? $0 : nil }
+            )
+        }
+        return state
     }
 
     private func readCredential(for provider: ProviderID) async throws -> ProviderCredential? {

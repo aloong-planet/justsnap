@@ -155,7 +155,7 @@ VLMSnapper 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和
 适用范围：每次提取文字与截图翻译请求，含当前结果重跑与历史操作重跑；遵循 ADR-0011、ADR-0017。设置随签名应用发布，不随账户、界面或远端配置改变。OpenAI 模型 ID 带 `-YYYY-MM-DD` 快照后缀时，按去掉后缀后的 ID 取设置。
 
 - v1-core::REQ-015/AC-01：DeepSeek 的每个请求都发送 `thinking: {"type": "disabled"}` 和 `temperature: 0`。
-- v1-core::REQ-015/AC-02：Gemini 请求的 `temperature` 为 `0`。ID 以 `gemini-2.` 开头的模型不发送 `thinkingConfig`；其余符合 v1-core::REQ-016/AC-02 的模型发送 `thinkingConfig.thinkingLevel: "low"`。
+- v1-core::REQ-015/AC-02：Gemini 请求的 `temperature` 为 `0`。ID 以 `gemini-2.` 开头的模型不发送 `thinkingConfig`；其余符合 v1-core::REQ-016/AC-02 ID 规则的模型发送 `thinkingConfig.thinkingLevel: "low"`。
 - v1-core::REQ-015/AC-03：OpenAI 的 `gpt-5.1`、`gpt-5.2`、`gpt-5.4`、`gpt-5.4-mini`、`gpt-5.4-nano`、`gpt-5.5`、`gpt-5.6-luna`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-6-luna`、`gpt-6-sol`、`gpt-6.1-terra` 发送 `reasoning.effort: "none"` 和 `temperature: 0`。
 - v1-core::REQ-015/AC-04：OpenAI 的 `gpt-5` 发送 `reasoning.effort: "minimal"`，不发送 `temperature`。
 - v1-core::REQ-015/AC-05：OpenAI 的 `gpt-6-astra`、`gpt-6.1-sol` 发送 `reasoning.effort: "low"`，不发送 `temperature`。
@@ -263,10 +263,10 @@ VLMSnapper 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和
 适用范围：验证新 Key、手动与自动刷新、故障恢复和模型不可用刷新取得的列表，以及读取已保存的模型列表缓存；遵循 ADR-0011、ADR-0017。列表仍按完整分页获取，取得完整列表后才过滤；缓存只写过滤后的模型，格式不变。
 
 - v1-core::REQ-016/AC-01：DeepSeek 只保留 `/models` 中 `input_modalities` 含 `image`、且 `output_modalities` 含 `text` 的模型；缺少任一字段的模型不保留。
-- v1-core::REQ-016/AC-02：Gemini 只保留 ID 为 `gemini-` 紧接版本号（数字，可再带 `.` 与数字）再接 `-` 的模型，以及 `gemini-flash-latest`、`gemini-flash-lite-latest`、`gemini-pro-latest`；ID 含 `tts`、`image`、`transcribe`、`customtools` 或 `computer-use` 的不保留。
+- v1-core::REQ-016/AC-02：Gemini 只保留同时满足两条的模型。ID 规则：ID 为 `gemini-` 紧接版本号（数字，可再带 `.` 与数字）再接 `-`，或为 `gemini-flash-latest`、`gemini-flash-lite-latest`、`gemini-pro-latest`，且不含 `tts`、`image`、`transcribe`、`customtools` 或 `computer-use`。生成方法：`/models` 中的 `supportedGenerationMethods` 含 `generateContent`；只列 `bidiGenerateContent` 的 Live API 模型和缺少该字段的模型不保留。
 - v1-core::REQ-016/AC-03：OpenAI 只保留 ID（带 `-YYYY-MM-DD` 快照后缀时为去掉后缀后的 ID）在 v1-core::REQ-015/AC-03–06 中列出的模型；其余模型，包括 `*-pro`，不保留。
 - v1-core::REQ-016/AC-04：模型选择框、Provider 是否可用的判断和“当前模型从列表消失”的判断都使用过滤后的列表；当前模型不在过滤后的列表中时，按上文规则立即清除并要求重新选择。
-- v1-core::REQ-016/AC-05：读取早于本过滤写下的缓存时，Gemini 与 OpenAI 的缓存按 AC-02、AC-03 过滤，当前模型被滤掉时按 AC-04 清除；DeepSeek 缓存没有模态字段，原样保留到下一次成功刷新，再按 AC-01 过滤。不为此在启动或截图前新增列表刷新。
+- v1-core::REQ-016/AC-05：读取早于本过滤写下的缓存时，Gemini 缓存按 AC-02 的 ID 规则过滤，OpenAI 缓存按 AC-03 过滤，当前模型被滤掉时按 AC-04 清除。缓存不存生成方法与模态字段：Gemini 缓存里符合 ID 规则的模型和 DeepSeek 缓存原样保留到下一次成功刷新，再按 AC-02、AC-01 过滤。不为此在启动或截图前新增列表刷新。
 
 ### 8. 错误、限流与取消
 

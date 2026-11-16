@@ -10,7 +10,7 @@ struct ProviderSetupSessionTests {
     /// Validates and selects a model at the clock's time, so moving the clock is what ages the cache.
     func configure(_ provider: ProviderID, on coordinator: ProviderConfigurationCoordinator) async throws {
         _ = try await coordinator.validateAndSaveKey("fixture-key", for: provider)
-        _ = try await coordinator.selectModel("model", for: provider)
+        _ = try await coordinator.selectModel(fixtureModelID(for: provider), for: provider)
     }
 
     @Test("real coordinator capture state makes configuration read-only until release")

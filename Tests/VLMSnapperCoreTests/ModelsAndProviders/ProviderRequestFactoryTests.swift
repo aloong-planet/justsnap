@@ -21,6 +21,64 @@ struct ProviderRequestFactoryTests {
         #expect(instruction.lowercased().contains("json"))
     }
 
+    @Test("DeepSeek requests disable thinking at temperature zero", arguments: [ProviderOperation.extractText, .translate(targetLanguage: "fr")])
+    func deepSeekRequestsDisableThinking(operation: ProviderOperation) throws {
+        let json = try requestBody(provider: .deepSeek, modelID: "deepseek-flash", operation: operation)
+        let thinking = try #require(json["thinking"] as? [String: Any])
+        #expect(thinking.count == 1)
+        #expect(thinking["type"] as? String == "disabled")
+        #expect(json["temperature"] as? Int == 0)
+    }
+
+    @Test("Gemini asks newer offered models for low thinking at temperature zero", arguments: [
+        ("gemini-3.5-flash", "low"),
+        ("gemini-2.5-flash", nil),
+        ("gemma-4-31b-it", nil),
+    ] as [(String, String?)])
+    func geminiThinkingLevelFollowsModel(modelID: String, expectedLevel: String?) throws {
+        let generationConfig = try #require(
+            requestBody(provider: .gemini, modelID: modelID)["generationConfig"] as? [String: Any]
+        )
+        #expect(generationConfig["temperature"] as? Int == 0)
+        if let expectedLevel {
+            let thinkingConfig = try #require(generationConfig["thinkingConfig"] as? [String: Any])
+            #expect(thinkingConfig.count == 1)
+            #expect(thinkingConfig["thinkingLevel"] as? String == expectedLevel)
+        } else {
+            #expect(generationConfig["thinkingConfig"] == nil)
+        }
+    }
+
+    @Test("OpenAI sends each model its built-in reasoning effort and temperature", arguments: [
+        "gpt-5.1", "gpt-5.2", "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.5",
+        "gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-6-luna", "gpt-6-sol", "gpt-6.1-terra",
+        "gpt-5.1-2025-11-13",
+    ].map { ($0, "none", true) } + [
+        ("gpt-5", "minimal", false),
+        ("gpt-6-astra", "low", false),
+        ("gpt-6.1-sol", "low", false),
+    ] + ["gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o", "gpt-4o-mini", "gpt-4o-mini-2024-07-18"].map {
+        ($0, nil, true)
+    } + [
+        ("o3", nil, false),
+        ("gpt-5.5-pro", nil, false),
+    ] as [(String, String?, Bool)])
+    func openAIReasoningFollowsModel(modelID: String, expectedEffort: String?, sendsTemperature: Bool) throws {
+        let json = try requestBody(provider: .openAI, modelID: modelID)
+        if let expectedEffort {
+            let reasoning = try #require(json["reasoning"] as? [String: Any])
+            #expect(reasoning.count == 1)
+            #expect(reasoning["effort"] as? String == expectedEffort)
+        } else {
+            #expect(json["reasoning"] == nil)
+        }
+        if sendsTemperature {
+            #expect(json["temperature"] as? Int == 0)
+        } else {
+            #expect(json["temperature"] == nil)
+        }
+    }
+
     @Test("translation requests ask for identified sentence pairs rather than whole-document ordering", arguments: ProviderID.allCases)
     func translationRequestsRequirePairs(provider: ProviderID) throws {
         let request = try ProviderRequestFactory().makeRequest(provider: provider, modelID: "vision",
@@ -184,5 +242,18 @@ struct ProviderRequestFactoryTests {
             textPart["text"] as? String
                 == "VLMSnapper extraction prompt v1. Transcribe all visible text from the image. Preserve reading order and useful Markdown structure. Return exactly one JSON object with this shape: {\"source\":\"<transcribed Markdown>\"}. Do not use other field names or include text outside the JSON object."
         )
+    }
+
+    private func requestBody(
+        provider: ProviderID,
+        modelID: String,
+        operation: ProviderOperation = .extractText
+    ) throws -> [String: Any] {
+        let request = try ProviderRequestFactory().makeRequest(
+            provider: provider, modelID: modelID, apiKey: "fixture",
+            originalPNG: Data([1]), operation: operation
+        )
+        let body = try #require(request.httpBody)
+        return try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
     }
 }

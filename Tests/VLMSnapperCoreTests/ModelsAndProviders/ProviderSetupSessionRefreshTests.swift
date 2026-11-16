@@ -246,7 +246,7 @@ extension ProviderSetupSessionTests {
         #expect(snapshot.failure == nil)
         #expect(snapshot.modelRefreshFailure == nil)
         #expect(snapshot.phase == .ready)
-        #expect(snapshot.selectedModelID == "model")
+        #expect(snapshot.selectedModelID == fixtureModelID(for: provider))
 
         await lister.finishHeld()
         await refresh.value

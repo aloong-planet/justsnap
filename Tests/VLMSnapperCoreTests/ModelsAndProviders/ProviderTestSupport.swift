@@ -32,18 +32,28 @@ extension IdleSetupBoundary {
     }
 }
 
+/// The model a scripted list offers for a Provider unless a test lists others.
+func fixtureModelID(for provider: ProviderID) -> String {
+    switch provider {
+    case .deepSeek: "model"
+    case .openAI: "gpt-4.1"
+    case .gemini: "gemini-3.5-flash"
+    }
+}
+
 /// Answers model-list requests as a test scripts them, and records who asked.
 actor ScriptedModelLister: ProviderModelListing {
     private(set) var requests: [ProviderID] = []
     private(set) var keys: [String] = []
-    private var models: [String]
+    private var models: [String]?
     private var error: (any Error)?
     private var nextError: (any Error)?
     private var holdsNext: Bool
     private var held: CheckedContinuation<Void, Never>?
     private var heldWaiters: [CheckedContinuation<Void, Never>] = []
 
-    init(models: [String] = ["model"], holdingNext: Bool = false, failingNext nextError: (any Error)? = nil) {
+    /// Without `models`, each Provider lists its `fixtureModelID(for:)`.
+    init(models: [String]? = nil, holdingNext: Bool = false, failingNext nextError: (any Error)? = nil) {
         self.models = models
         holdsNext = holdingNext
         self.nextError = nextError
@@ -82,7 +92,7 @@ actor ScriptedModelLister: ProviderModelListing {
             throw nextError
         }
         if let error { throw error }
-        return models
+        return models ?? [fixtureModelID(for: provider)]
     }
 }
 

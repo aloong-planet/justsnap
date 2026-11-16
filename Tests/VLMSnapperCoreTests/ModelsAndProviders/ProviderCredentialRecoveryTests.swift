@@ -229,7 +229,7 @@ extension ProviderConfigurationCoordinatorTests {
         )
         let metadataStore = MemoryMetadataStore(state: pendingState)
         let coordinator = memoryCoordinator(
-            lister: StaticModelLister(models: ["fresh-model"]),
+            lister: StaticModelLister(models: ["gemini-3.5-flash"]),
             credentials: credentialStore,
             metadata: metadataStore,
             now: { Date(timeIntervalSince1970: 1_787_731_200) }
@@ -237,7 +237,7 @@ extension ProviderConfigurationCoordinatorTests {
 
         let reconciled = try await coordinator.reconcileCredentialState(for: .gemini)
 
-        #expect(reconciled.configurations[.gemini]?.models.map(\.id) == ["fresh-model"])
+        #expect(reconciled.configurations[.gemini]?.models.map(\.id) == ["gemini-3.5-flash"])
         #expect(reconciled.configurations[.gemini]?.selectedModelID == nil)
         #expect(reconciled.configurations[.gemini]?.fetchedAt == Date(timeIntervalSince1970: 1_787_731_200))
         #expect(reconciled.pendingReplacements[.gemini] == nil)
