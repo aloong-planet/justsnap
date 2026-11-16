@@ -188,6 +188,8 @@ extension ProviderApplicationTests {
                 await fixture.credentials.replaceCredential(
                     ProviderCredential(generation: UUID(), apiKey: "fixture-recovery-key"), for: .openAI
                 )
+                // An OpenAI list offers only allowlisted IDs (v1-core::REQ-016/AC-03).
+                await fixture.http.listModels(["gpt-4.1"])
                 await fixture.http.pause()
                 model.providerSettingsConfiguration().onSelectProvider(.openAI)
                 try await eventually {
@@ -216,7 +218,7 @@ extension ProviderApplicationTests {
                 await fixture.http.release()
                 try await eventually {
                     !model.credentialEditor.isLoading && model.providerSnapshot.activity == nil
-                        && model.providerSnapshot.availableModelIDs == ["fixture-vision"]
+                        && model.providerSnapshot.availableModelIDs == ["gpt-4.1"]
                 }
                 #expect(model.credentialEditor.value == "fixture-recovery-key")
                 #expect(await fixture.http.imageRequests.count == 2)
