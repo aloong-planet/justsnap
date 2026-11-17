@@ -90,7 +90,7 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 ## Implementation Decisions
 
 - A single URL is plain text that, with surrounding whitespace removed, contains no whitespace and is an absolute URL whose scheme is followed by `//`, such as `https://…` or `file://…`.
-- Clipboard decision order, evaluated once per paste: (1) image data present and plain text empty or a single URL → image; (2) any other plain text → text clipboard; (3) image data present → image, or unreadable when it cannot be decoded as a bitmap; (4) nothing usable → empty clipboard.
+- Clipboard decision order, evaluated once per paste, on the plain text with surrounding whitespace removed (text that is only whitespace counts as empty): (1) image data present and plain text empty or a single URL → image; (2) any other plain text → text clipboard; (3) image data present → image, or unreadable when it cannot be decoded as a bitmap; (4) nothing usable → empty clipboard.
 - A Pasted Image becomes an ordinary Managed Capture File and its records ordinary history records: the history database's format does not change, and no record stores whether it came from a paste (ADR-0006).
 - The paste shortcut is stored like the capture shortcut, as its own preference.
 - A paste request is a model request under the app's single owner-token mutual exclusion with captures and Provider credential jobs (v1-core Implementation Decisions). The paste result box is not part of the capture interface (ADR-0019).
