@@ -54,6 +54,109 @@ struct ProviderConfigurationCoordinatorTests {
         #expect(state.pendingReplacements[.openAI] == nil)
     }
 
+    @Test("a validated key saves only the listed models the app offers, in listed order", arguments: [
+        (ProviderID.gemini, [
+            "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest",
+            "gemini-pro-latest", "gemini-4-argon",
+            "gemini-3.1-pro-preview-customtools", "gemini-2.5-flash-preview-tts", "gemini-3-pro-image-preview",
+            "gemini-3.5-transcribe", "gemini-2.5-computer-use-preview-10-2025", "gemma-4-31b-it",
+            "gemini-omni-flash-preview", "gemini-embedding-001", "lyria-3.5",
+        ], [
+            "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest",
+            "gemini-pro-latest", "gemini-4-argon",
+        ]),
+        (.openAI, [
+            "gpt-5.5", "gpt-4.1-2025-04-14", "gpt-5.5-pro", "gpt-5-mini", "o3",
+            "text-embedding-3-small", "gpt-6-astra", "gpt-5-chat-latest",
+        ], ["gpt-5.5", "gpt-4.1-2025-04-14", "gpt-6-astra"]),
+        // DeepSeek is filtered by the modalities in its own list, not by ID.
+        (.deepSeek, ["deepseek-flash", "deepseek-v4-pro"], ["deepseek-flash", "deepseek-v4-pro"]),
+    ])
+    func validatedKeySavesOfferedModels(provider: ProviderID, listed: [String], offered: [String]) async throws {
+        let metadataStore = MemoryMetadataStore()
+        let coordinator = memoryCoordinator(lister: StaticModelLister(models: listed), metadata: metadataStore)
+
+        let configuration = try await coordinator.validateAndSaveKey("candidate-secret", for: provider)
+
+        #expect(configuration.models.map(\.id) == offered)
+        #expect(try await metadataStore.load().configurations[provider] == configuration)
+    }
+
+    enum ListRefreshPath: CaseIterable, Sendable { case refresh, recovery }
+
+    @Test("a refreshed list saves only the offered models and drops a selection they exclude",
+          arguments: ListRefreshPath.allCases)
+    func refreshedListSavesOfferedModels(path: ListRefreshPath) async throws {
+        let generation = UUID()
+        let reference = Date(timeIntervalSince1970: 1_787_731_200)
+        let previous = ProviderConfiguration(
+            models: [ProviderModelState(id: "gpt-5.5-pro"), ProviderModelState(id: "gpt-5.5")],
+            fetchedAt: Date(timeIntervalSince1970: 1_787_600_000),
+            selectedModelID: "gpt-5.5-pro"
+        )
+        let metadataStore = MemoryMetadataStore(state: path == .refresh
+            ? ProviderMetadataState(configurations: [.openAI: previous], currentProvider: .openAI)
+            : ProviderMetadataState(pendingReplacements: [.openAI: PendingProviderReplacement(
+                previousGeneration: nil, nextGeneration: generation, configuration: previous
+            )]))
+        let coordinator = memoryCoordinator(
+            lister: StaticModelLister(models: ["gpt-5.5-pro", "gpt-5.5", "o3"]),
+            credentials: MemoryCredentialStore(credentials: [
+                .openAI: ProviderCredential(generation: generation, apiKey: "saved-secret"),
+            ]),
+            metadata: metadataStore,
+            now: { reference }
+        )
+
+        switch path {
+        case .refresh: _ = try await coordinator.refreshModels(for: .openAI)
+        case .recovery: _ = try await coordinator.reconcileCredentialState(for: .openAI)
+        }
+
+        #expect(try await metadataStore.load().configurations[.openAI] == ProviderConfiguration(
+            models: [ProviderModelState(id: "gpt-5.5")], fetchedAt: reference, selectedModelID: nil
+        ))
+    }
+
+    @Test("a model cache saved before the filters is read through the offered-model rules")
+    func unfilteredCacheIsReadThroughOfferedModelRules() async throws {
+        let fetchedAt = Date(timeIntervalSince1970: 1_787_600_000)
+        let deepSeek = ProviderConfiguration(
+            models: [ProviderModelState(id: "deepseek-v4-pro"), ProviderModelState(id: "deepseek-flash")],
+            fetchedAt: fetchedAt, selectedModelID: "deepseek-flash"
+        )
+        let metadataStore = MemoryMetadataStore(state: ProviderMetadataState(
+            configurations: [
+                .openAI: ProviderConfiguration(
+                    models: [ProviderModelState(id: "gpt-5-pro"), ProviderModelState(id: "gpt-4.1")],
+                    fetchedAt: fetchedAt, selectedModelID: "gpt-5-pro"
+                ),
+                .gemini: ProviderConfiguration(
+                    models: [
+                        ProviderModelState(id: "gemma-4-31b-it"),
+                        ProviderModelState(id: "gemini-3.5-flash", visionCompatibility: .verified),
+                    ],
+                    fetchedAt: fetchedAt, selectedModelID: "gemini-3.5-flash"
+                ),
+                .deepSeek: deepSeek,
+            ],
+            currentProvider: .openAI
+        ))
+        let coordinator = memoryCoordinator(metadata: metadataStore)
+
+        let state = try await coordinator.configurationState()
+
+        #expect(state.configurations[.openAI] == ProviderConfiguration(
+            models: [ProviderModelState(id: "gpt-4.1")], fetchedAt: fetchedAt, selectedModelID: nil
+        ))
+        #expect(state.configurations[.gemini] == ProviderConfiguration(
+            models: [ProviderModelState(id: "gemini-3.5-flash", visionCompatibility: .verified)],
+            fetchedAt: fetchedAt, selectedModelID: "gemini-3.5-flash"
+        ))
+        #expect(state.configurations[.deepSeek] == deepSeek)
+        #expect(state.currentProvider == .openAI)
+    }
+
     @Test("the saved API key can be loaded for inline editing")
     func savedAPIKeyCanBeLoadedForInlineEditing() async throws {
         let credentialStore = MemoryCredentialStore(
@@ -270,15 +373,15 @@ struct ProviderConfigurationCoordinatorTests {
     @Test("configuring another provider never replaces a remembered current provider")
     func configuringAnotherProviderDoesNotReplaceRememberedCurrentProvider() async throws {
         let metadataStore = MemoryMetadataStore()
-        let coordinator = memoryCoordinator(lister: StaticModelLister(models: ["model"]), metadata: metadataStore)
+        let coordinator = memoryCoordinator(lister: ScriptedModelLister(), metadata: metadataStore)
 
         _ = try await coordinator.validateAndSaveKey("openai-key", for: .openAI)
-        _ = try await coordinator.selectModel("model", for: .openAI)
+        _ = try await coordinator.selectModel(fixtureModelID(for: .openAI), for: .openAI)
         _ = try await coordinator.validateAndSaveKey("gemini-key", for: .gemini)
-        _ = try await coordinator.selectModel("model", for: .gemini)
+        _ = try await coordinator.selectModel(fixtureModelID(for: .gemini), for: .gemini)
         let replacement = try await coordinator.validateAndSaveKey("replacement-key", for: .gemini)
 
-        #expect(replacement.selectedModelID == "model")
+        #expect(replacement.selectedModelID == fixtureModelID(for: .gemini))
         let state = try await coordinator.configurationState()
         #expect(state.currentProvider == .openAI)
         #expect(state.configurations[.openAI]?.isUsable == true)

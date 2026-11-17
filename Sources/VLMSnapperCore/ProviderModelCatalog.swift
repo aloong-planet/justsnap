@@ -48,7 +48,7 @@ public struct OfficialProviderModelLister: ProviderModelListing {
         if provider != .gemini {
             return try await listOpenAICompatibleModels(provider: provider, apiKey: apiKey)
         }
-        var models: [String] = []
+        var models: [GeminiModel] = []
         var pageToken: String?
         var followedTokens = Set<String>()
         repeat {
@@ -77,18 +77,16 @@ public struct OfficialProviderModelLister: ProviderModelListing {
             } catch {
                 throw ProviderModelListError.invalidResponse
             }
-            let normalizedNames = page.models.map { model in
-                model.name.hasPrefix("models/")
-                    ? String(model.name.dropFirst("models/".count))
-                    : model.name
-            }
-            guard normalizedNames.allSatisfy({ !$0.isEmpty }) else {
+            guard page.models.allSatisfy({ !$0.id.isEmpty }) else {
                 throw ProviderModelListError.invalidResponse
             }
-            models.append(contentsOf: normalizedNames)
+            models.append(contentsOf: page.models)
             pageToken = page.nextPageToken
         } while pageToken != nil
-        return models
+        // v1-core::REQ-016/AC-02: the app streams with generateContent, which Live API
+        // models, listing only bidiGenerateContent, do not serve.
+        return models.filter { $0.supportedGenerationMethods?.contains("generateContent") == true }
+            .map(\.id)
     }
 
     private func listOpenAICompatibleModels(
@@ -118,11 +116,17 @@ public struct OfficialProviderModelLister: ProviderModelListing {
         } catch {
             throw ProviderModelListError.invalidResponse
         }
-        let modelIDs = page.data.map(\.id)
-        guard modelIDs.allSatisfy({ !$0.isEmpty }) else {
+        guard page.data.allSatisfy({ !$0.id.isEmpty }) else {
             throw ProviderModelListError.invalidResponse
         }
-        return modelIDs
+        guard provider == .deepSeek else {
+            return page.data.map(\.id)
+        }
+        // v1-core::REQ-016/AC-01: DeepSeek offers only models that take images and return text.
+        return page.data.filter { model in
+            model.inputModalities?.contains("image") == true
+                && model.outputModalities?.contains("text") == true
+        }.map(\.id)
     }
 
     private static func validateStatus(_ statusCode: Int) throws {
@@ -142,6 +146,11 @@ private struct GeminiModelPage: Decodable {
 
 private struct GeminiModel: Decodable {
     let name: String
+    let supportedGenerationMethods: [String]?
+
+    var id: String {
+        name.hasPrefix("models/") ? String(name.dropFirst("models/".count)) : name
+    }
 }
 
 private struct OpenAICompatibleModelPage: Decodable {
@@ -150,4 +159,12 @@ private struct OpenAICompatibleModelPage: Decodable {
 
 private struct OpenAICompatibleModel: Decodable {
     let id: String
+    let inputModalities: [String]?
+    let outputModalities: [String]?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case inputModalities = "input_modalities"
+        case outputModalities = "output_modalities"
+    }
 }

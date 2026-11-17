@@ -298,9 +298,11 @@ actor FixtureHTTP: ProviderHTTPDataLoading, ProviderHTTPStreaming {
     func data(for request: URLRequest) async -> ProviderHTTPResponse {
         requests.append(request)
         if isPaused { await withCheckedContinuation { waiter = $0 } }
-        // Shape from https://api-docs.deepseek.com/api/list-models/ (2026-09-07).
+        // Shape from the DeepSeek /models response of 2026-11-17, listing an image-to-text model.
         // The identifier is deliberately synthetic; no live credential is used.
-        let models = listedModels.map { #"{"id":"\#($0)","object":"model","owned_by":"deepseek"}"# }
+        let models = listedModels.map {
+            #"{"id":"\#($0)","object":"model","owned_by":"deepseek","input_modalities":["text","image"],"output_modalities":["text"]}"#
+        }
         return ProviderHTTPResponse(
             data: Data(#"{"object":"list","data":[\#(models.joined(separator: ","))]}"#.utf8),
             statusCode: status

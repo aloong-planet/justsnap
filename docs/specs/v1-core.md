@@ -147,8 +147,20 @@ VLMSnapper 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和
 - 图片没有文字时，提取结果为空；翻译的原文和译文都为空，不生成图片描述或猜测内容。该操作仍作为成功记录保存并允许重新执行。
 - 混合语言图片允许返回多个 BCP-47 源语言。源语言与目标语言相同时仍为成功，不追加第二次请求。
 - 目标语言使用完整、可搜索的标准列表，优先展示简体中文、英语、日语、韩语、西班牙语、法语、德语、葡萄牙语、意大利语、俄语和阿拉伯语；不提供繁体中文和手动输入。显示方式遵循 v1-core::REQ-013/AC-03、v1-core::REQ-013/AC-04。
-- 内置提示词使用英文并带版本号；温度使用 Provider 可表达的最小值或 `0`，推理/思考模式关闭或降至最低，不提供高级参数 UI。
+- 内置提示词使用英文并带版本号；思考与温度设置遵循 v1-core::REQ-015，不提供高级参数 UI。
 - 每次显式操作恰好产生一个 Provider 请求。失败后不自动重试、切换 Provider/模型、改用非流式请求或降级为其他处理方式。
+
+#### v1-core::REQ-015 请求关闭或压低模型思考
+
+适用范围：每次提取文字与截图翻译请求，含当前结果重跑与历史操作重跑；遵循 ADR-0011、ADR-0017。设置随签名应用发布，不随账户、界面或远端配置改变。OpenAI 模型 ID 带 `-YYYY-MM-DD` 快照后缀时，按去掉后缀后的 ID 取设置。
+
+- v1-core::REQ-015/AC-01：DeepSeek 的每个请求都发送 `thinking: {"type": "disabled"}` 和 `temperature: 0`。
+- v1-core::REQ-015/AC-02：Gemini 请求的 `temperature` 为 `0`。ID 以 `gemini-2.` 开头的模型不发送 `thinkingConfig`；其余符合 v1-core::REQ-016/AC-02 ID 规则的模型发送 `thinkingConfig.thinkingLevel: "low"`。
+- v1-core::REQ-015/AC-03：OpenAI 的 `gpt-5.1`、`gpt-5.2`、`gpt-5.4`、`gpt-5.4-mini`、`gpt-5.4-nano`、`gpt-5.5`、`gpt-5.6-luna`、`gpt-5.6-sol`、`gpt-5.6-terra`、`gpt-6-luna`、`gpt-6-sol`、`gpt-6.1-terra` 发送 `reasoning.effort: "none"` 和 `temperature: 0`。
+- v1-core::REQ-015/AC-04：OpenAI 的 `gpt-5` 发送 `reasoning.effort: "minimal"`，不发送 `temperature`。
+- v1-core::REQ-015/AC-05：OpenAI 的 `gpt-6-astra`、`gpt-6.1-sol` 发送 `reasoning.effort: "low"`，不发送 `temperature`。
+- v1-core::REQ-015/AC-06：OpenAI 的 `gpt-4.1`、`gpt-4.1-mini`、`gpt-4.1-nano`、`gpt-4o`、`gpt-4o-mini` 不发送 `reasoning`，发送 `temperature: 0`。
+- v1-core::REQ-015/AC-07：AC-02–06 都不覆盖的 Gemini 或 OpenAI 模型不发送任何思考参数；OpenAI 同时不发送 `temperature`。
 
 ### 6. 流式返回与结果框
 
@@ -223,7 +235,7 @@ VLMSnapper 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和
 ### 7. Provider 配置与模型发现
 
 - v1 只支持 OpenAI、Gemini、DeepSeek 官方端点，不允许自定义 Base URL，不接入本地模型。
-- 每个 Provider 独立保存 API Key、完整模型列表缓存和当前模型；应用另有一个全局当前 Provider。
+- 每个 Provider 独立保存 API Key、按 v1-core::REQ-016 过滤后的模型列表缓存和当前模型；应用另有一个全局当前 Provider。
 - 设置中心的 Provider 页面使用单开折叠卡片直接展示全部配置与测试操作，不再通过“配置/修改”按钮打开独立面板。显式目标 Provider 优先展开，其次展开全局当前 Provider，否则展开 DeepSeek；切换卡片时只关闭前一张卡片，不改变任何 Provider 配置。
 - Provider 内容区居中且最大宽度为 `850pt`；卡片头最小高度为 `54pt`，Provider 标记为 `29×29pt`，API Key 与模型选择字段高 `32pt`。空间足够时 API Key 与模型选择并列，较窄时保持原顺序纵向排列，不裁切或把操作推出窗口。
 - Provider 卡片标记按已确认设计使用 DeepSeek `DS`、OpenAI `OA`、Gemini `G`，而不是统一芯片图标。字母为居中的 `10pt`、800 字重；底板圆角 `8pt`。浅色使用灰字 `#8a929d` / 浅蓝底 `#e6efff`，深色使用灰字 `#858d98` / 蓝底 `#283e60`。标记不随界面语言或操作强调色改变；旁边仍显示完整 Provider 名称。这是用户明确选择的身份字母标记，不扩展为其他动作图标的字符替代规则。
@@ -245,6 +257,16 @@ VLMSnapper 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和
 - 尚未提交的 Key 草稿只属于当前管理中心窗口会话，切换卡片或关闭管理中心即清除。已经提交的验证属于应用级操作，关闭管理中心不会取消；提交时的 Key 只保留在内存中：成功安全存储后立即清除，失败后保留到用户修改、清空、移除配置或应用终止，不写入普通配置或日志。重新打开管理中心时，同一 Provider 重新连接到正在验证、待选择模型、已配置或验证失败的真实状态。
 - API Key 按 ADR-0001 存入 Apple Keychain；稳定应用身份按 ADR-0005 使用 `com.loong.vlmsnapper`。
 - API Key 验证成功但 Apple Keychain 写入失败时，Provider 不得被标记为已配置；应保留当前输入并显示本地安全存储错误，不得误报为 Provider 临时不可用。
+
+#### v1-core::REQ-016 模型列表只保留能提取和翻译的模型
+
+适用范围：验证新 Key、手动与自动刷新、故障恢复和模型不可用刷新取得的列表，以及读取已保存的模型列表缓存；遵循 ADR-0011、ADR-0017。列表仍按完整分页获取，取得完整列表后才过滤；缓存只写过滤后的模型，格式不变。
+
+- v1-core::REQ-016/AC-01：DeepSeek 只保留 `/models` 中 `input_modalities` 含 `image`、且 `output_modalities` 含 `text` 的模型；缺少任一字段的模型不保留。
+- v1-core::REQ-016/AC-02：Gemini 只保留同时满足两条的模型。ID 规则：ID 为 `gemini-` 紧接版本号（数字，可再带 `.` 与数字）再接 `-`，或为 `gemini-flash-latest`、`gemini-flash-lite-latest`、`gemini-pro-latest`，且不含 `tts`、`image`、`transcribe`、`customtools` 或 `computer-use`。生成方法：`/models` 中的 `supportedGenerationMethods` 含 `generateContent`；只列 `bidiGenerateContent` 的 Live API 模型和缺少该字段的模型不保留。
+- v1-core::REQ-016/AC-03：OpenAI 只保留 ID（带 `-YYYY-MM-DD` 快照后缀时为去掉后缀后的 ID）在 v1-core::REQ-015/AC-03–06 中列出的模型；其余模型，包括 `*-pro`，不保留。
+- v1-core::REQ-016/AC-04：模型选择框、Provider 是否可用的判断和“当前模型从列表消失”的判断都使用过滤后的列表；当前模型不在过滤后的列表中时，按上文规则立即清除并要求重新选择。
+- v1-core::REQ-016/AC-05：读取早于本过滤写下的缓存时，Gemini 缓存按 AC-02 的 ID 规则过滤，OpenAI 缓存按 AC-03 过滤，当前模型被滤掉时按 AC-04 清除。缓存不存生成方法与模态字段：Gemini 缓存里符合 ID 规则的模型和 DeepSeek 缓存原样保留到下一次成功刷新，再按 AC-02、AC-01 过滤。不为此在启动或截图前新增列表刷新。
 
 ### 8. 错误、限流与取消
 
@@ -414,7 +436,7 @@ VLMSnapper 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和
     重试按钮及请求选择见 v1-core::REQ-002/AC-07–08，窗口生命周期见 v1-core::REQ-002/AC-09，成功提交、失败、保存失败、目标消失、重复点击、切换记录及删除清理见 v1-core::REQ-002/AC-10–17。原图失效见 v1-core::REQ-002/AC-04；普通窗口铺满屏幕见 v1-core::US-001/AC-17。
 27. 用户从首次引导进入 Provider 设置后只验证 Key、尚未选择模型：停留在当前 Provider 卡片，不返回引导；选择有效模型后自动返回引导并显示完成状态。用户提前关闭设置中心时，直接返回引导并保留实际配置进度。
 28. 用户在已配置 Provider 输入新 Key 并点击验证：先持久记录旧凭据作废，再接受替换并移除旧 Key、旧模型缓存及该 Provider 的当前模型；验证、模型列表获取或后续安全存储失败不恢复旧配置。若作废记录无法持久化，则拒绝本次替换、不发请求、保留原配置并提示安全存储错误；存储恢复后重开可读取原配置。作废已经持久化但旧条目删除失败时，重开只允许清除明确已作废的旧条目，不能把它当作遗留凭据恢复。
-29. 用户验证新 Key 后，Provider 返回的完整模型列表仍含旧模型：保留旧模型选择；列表不含旧模型：进入待选择模型。两种情况都不因该 Provider 可用而抢占另一个全局当前 Provider。
+29. 用户验证新 Key 后，按 v1-core::REQ-016 过滤后的模型列表仍含旧模型：保留旧模型选择；列表不含旧模型：进入待选择模型。两种情况都不因该 Provider 可用而抢占另一个全局当前 Provider。
 30. 用户移除非当前 Provider：只清除该 Provider；用户移除全局当前 Provider：同时清空全局当前选择，不自动切换到其他可用 Provider，下一次截图按缺少当前 Provider 的流程进入引导。
 31. 用户在截图冻结、选区或模型请求进行中进入 Provider 页面：所有卡片仍可查看，但 API Key、验证、清空、模型选择、刷新、设为当前和移除配置全部只读；活动结束后恢复。
 
@@ -448,6 +470,8 @@ VLMSnapper 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和
 59. 结果框显示期间应用准备退出或安装更新：取消请求；有未保存结果时在遮罩上确认，选择取消则保持原样（v1-core::REQ-012/AC-07）。
 60. 用户删除同一截图的其中一条记录：其余记录的原图仍可用；删除最后一条时文件才被删除；批量删除中有记录在开始前被跳过时文件保留；最后一条记录的数据库删除未成功时文件已删除，记录保留且原图不可用，再删一次即可清除（v1-core::REQ-014）。
 61. 模型返回超长文字、长 URL、双向文字或形如链接、HTML、Markdown 的内容：只作文字排版，正文内滚动并换行，不加载网络、不打开链接；右键菜单不提供会打开其他 App 的项（v1-core::REQ-010/AC-11）。
+62. 用户升级后，原先选中的 Gemini 或 OpenAI 模型不在过滤后的列表中：读取缓存时即清除当前模型，该 Provider 进入待选择模型；它若是全局当前 Provider，下一次截图按第 1 条进入引导（v1-core::REQ-016/AC-04、AC-05）。
+63. 模型拒绝应用为它发送的思考或温度参数（Provider 改变了规则）：本次请求按无效请求失败，不去掉参数重试、不换模型（§5，第 9 条）；规则随新版本更新。
 
 ## Implementation Decisions
 
@@ -471,7 +495,7 @@ VLMSnapper 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和
 - 语言缩写由语言代码推导，不进入本地化字典；悬停和列表中的语言名按生效界面语言本地化。
 - 删除记录前查询其他记录是否引用同一受管理截图（路径与 SHA-256 都相同），有引用时跳过文件删除；无引用时沿用先删文件、再删记录的顺序。
 - 独立结果窗口及其工作区视图、从历史打开结果窗口的路径一并移除；历史详情的双栏视图保留。
-- 相关架构决策：ADR-0001 至 ADR-0015。其中 ADR-0006 修订 ADR-0002 早期的截图路径描述，当前实现以 ADR-0006 为准；ADR-0013 修订 ADR-0010 的遮罩显示时序；ADR-0015（提议）修订 ADR-0010 中模型任务开始后的行为与冻结帧释放时机。
+- 相关架构决策：ADR-0001 至 ADR-0015 及 ADR-0017。其中 ADR-0006 修订 ADR-0002 早期的截图路径描述，当前实现以 ADR-0006 为准；ADR-0013 修订 ADR-0010 的遮罩显示时序；ADR-0015（提议）修订 ADR-0010 中模型任务开始后的行为与冻结帧释放时机。
 
 ## Testing Decisions
 
@@ -520,7 +544,7 @@ v1-core::REQ-007–009 按用户 2026-10-29 的要求只运行截图相关测试
 
 ### Seam 2：Provider 适配器契约
 
-DeepSeek JSON 模式必须在实际发送的 system/user 提示词中明确要求 JSON 并提供格式示例；只设置请求体的 `response_format` 不足以满足接口契约。提取与翻译均验证这一请求前提。模型出现在账户列表中不表示它支持图片：截至 2026-09-24，官方能力表标注 `deepseek-v4-pro` 不支持视觉，`deepseek-flash` 支持视觉；不得通过把空输出当作成功或自动切换模型绕过不兼容。固定模型的烟测结果不得外推到其他模型。
+DeepSeek JSON 模式必须在实际发送的 system/user 提示词中明确要求 JSON 并提供格式示例；只设置请求体的 `response_format` 不足以满足接口契约。提取与翻译均验证这一请求前提。Gemini 与 OpenAI 的账户列表不声明图片能力，出现在列表中不表示模型支持图片；DeepSeek 只保留 `/models` 声明图片输入与文字输出的模型（v1-core::REQ-016/AC-01）。截至 2026-09-24，官方能力表标注 `deepseek-v4-pro` 不支持视觉，`deepseek-flash` 支持视觉；不得通过把空输出当作成功或自动切换模型绕过不兼容。固定模型的烟测结果不得外推到其他模型。
 
 真实模型回归属于验证前提，不增加产品功能：本地回归提供显式指定 Provider 与模型的联网模式，并与离线结果分开报告。联网模式复用生产请求、流解析和最终结果校验，使用不含用户数据、具有独立已知文字真值的固定 PNG；提取与翻译各执行一次，不自动重试、回退或修改 App 配置、历史、凭据。已知有文字的样本返回空白、错误文字、缺失译文或不完整终态必须使门禁失败，HTTP 200、结束标志或解码完成不能代替最终结果断言。提取按行内 Markdown 解析后的文字与真值比较，翻译片段的原文按纯文本比较；仅归一化空白，不忽略大小写、标点或额外文字。该样本判据不改变“无文字图片允许空成功”的产品要求。
 
@@ -572,4 +596,6 @@ DeepSeek JSON 模式必须在实际发送的 system/user 提示词中明确要�
 
 Pending: 发布前必须使用当前官方文档与真实账户契约测试确认 OpenAI 和 DeepSeek 的图片请求体大小计算与限制，并写入签名版本化 Provider 配置；无法确认时，对应 Provider 不得标记为发布就绪。
 
-Pending: `deepseek-v4-flash-vision-exp` 只有在当前账户的官方完整模型列表返回精确 ID，且真实密钥契约测试覆盖图片输入、流式结构、取消、超时、截断、错误映射和 usage 全部通过后才可发布；否则 DeepSeek 入口保持不可用或不随该版本发布，遵循 ADR-0011。
+Pending: DeepSeek 只有在真实密钥契约测试覆盖图片输入、流式结构、取消、超时、截断、错误映射和 usage 全部通过后才可发布；否则 DeepSeek 入口保持不可用或不随该版本发布，遵循 ADR-0011。
+
+Pending: OpenAI 的 v1-core::REQ-015/AC-03–06 只有官方文档依据；OpenAI 真实密钥门禁对提取与翻译都通过前，OpenAI 不得标记为发布就绪（ADR-0017）。

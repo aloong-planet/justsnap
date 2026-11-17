@@ -51,10 +51,9 @@ public struct ProviderRequestFactory: Sendable {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": modelID,
             "stream": true,
-            "temperature": 0,
             "input": [[
                 "role": "user",
                 "content": [
@@ -69,6 +68,14 @@ public struct ProviderRequestFactory: Sendable {
                 "format": structuredFormat(for: operation),
             ],
         ]
+        if let setting = ProviderModelRules.openAISetting(modelID: modelID) {
+            if let reasoningEffort = setting.reasoningEffort {
+                body["reasoning"] = ["effort": reasoningEffort]
+            }
+            if setting.sendsTemperature {
+                body["temperature"] = 0
+            }
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         return request
     }
@@ -91,6 +98,14 @@ public struct ProviderRequestFactory: Sendable {
         request.httpMethod = "POST"
         request.setValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var generationConfig: [String: Any] = [
+            "temperature": 0,
+            "responseMimeType": "application/json",
+            "responseJsonSchema": structuredSchema(for: operation),
+        ]
+        if let thinkingLevel = ProviderModelRules.geminiThinkingLevel(modelID: modelID) {
+            generationConfig["thinkingConfig"] = ["thinkingLevel": thinkingLevel]
+        }
         let body: [String: Any] = [
             "contents": [[
                 "role": "user",
@@ -104,11 +119,7 @@ public struct ProviderRequestFactory: Sendable {
                     ],
                 ],
             ]],
-            "generationConfig": [
-                "temperature": 0,
-                "responseMimeType": "application/json",
-                "responseJsonSchema": structuredSchema(for: operation),
-            ],
+            "generationConfig": generationConfig,
         ]
         let serializedBody = try JSONSerialization.data(withJSONObject: body)
         guard serializedBody.count < geminiMaximumBodyBytes else {
@@ -136,6 +147,7 @@ public struct ProviderRequestFactory: Sendable {
             "model": modelID,
             "stream": true,
             "stream_options": ["include_usage": true],
+            "thinking": ["type": "disabled"],
             "temperature": 0,
             "response_format": ["type": "json_object"],
             "messages": [[
