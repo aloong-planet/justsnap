@@ -136,6 +136,9 @@ final class VLMSnapperApplicationDelegate: NSObject, NSApplicationDelegate {
         model.onProviderConfigurationCompleted = { [weak self] in
             self?.completeProviderSettingsFromOnboardingIfNeeded()
         }
+        model.onCloseMenuPanel = { [weak self] in
+            self?.menuController?.hideForCapture()
+        }
         model.onRetireCaptureSources = { [weak self] in
             self?.menuController?.hideForCapture()
             self?.managementController?.hideForCapture()

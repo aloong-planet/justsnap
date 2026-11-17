@@ -230,6 +230,24 @@ struct PersistedOperationWorkspaceRunnerTests {
         #expect(await history.outcomes == [.failed(normalizedErrorCode: "incomplete_response")])
     }
 
+    @Test("a request body over the limit keeps the failed record and reaches the caller with both sizes")
+    func oversizedBodyKeepsRecordAndSizes() async throws {
+        let history = RunnerHistoryProbe()
+        let runner = makeRunner(
+            history: history,
+            provider: RunnerProviderProbe(error: ProviderAdapterError.requestBodyTooLarge(actualBytes: 24_300_000, limitBytes: 20_000_000))
+        )
+
+        await #expect(throws: OperationWorkspaceRunFailure(
+            code: "image_too_large",
+            requestBodyOverLimit: RequestBodyOverLimit(actualBytes: 24_300_000, limitBytes: 20_000_000)
+        )) {
+            _ = try await extract(on: runner, providerID: "gemini")
+        }
+
+        #expect(await history.outcomes == [.failed(normalizedErrorCode: "image_too_large")])
+    }
+
     @Test("a provider cancellation persists canceled instead of failed")
     func providerCancellationPersistsCanceled() async throws {
         let history = RunnerHistoryProbe()

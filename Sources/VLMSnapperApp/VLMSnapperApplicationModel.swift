@@ -46,6 +46,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
     private(set) var settings = GeneralSettingsSnapshot()
     private(set) var captureShortcut = GlobalShortcut.defaultCapture
     private(set) var shortcutFailure: ShortcutSettingsFailure?
+    private(set) var pasteShortcut: GlobalShortcut? = .defaultPaste
+    private(set) var pasteShortcutFailure: ShortcutSettingsFailure?
 
     var onSnapshotChange: (@MainActor () -> Void)?
     var onNavigate: (@MainActor (ManagementCenterDestination) -> Void)?
@@ -53,10 +55,12 @@ final class VLMSnapperApplicationModel: ObservableObject {
     var onOpenProviderSettingsFromOnboarding: (@MainActor () -> Void)?
     var onProviderConfigurationCompleted: (@MainActor () -> Void)?
     var onRetireCaptureSources: (@MainActor () -> Void)?
+    var onCloseMenuPanel: (@MainActor () -> Void)?
 
     private let defaults: UserDefaults
     private let dependencies: ApplicationModelDependencies
     private let shortcutStore: UserDefaultsGlobalShortcutStore
+    private let pasteShortcutStore: UserDefaultsGlobalShortcutStore
     private let languageStore: UserDefaultsApplicationLanguageStore
     private let providerCoordinator: ProviderConfigurationCoordinator
     private lazy var workflow = ApplicationWorkflow(coordinator: providerCoordinator)
@@ -108,12 +112,14 @@ final class VLMSnapperApplicationModel: ObservableObject {
     /// A request that never reached the session, such as with no usable model; shown like its failure.
     private var localResultFailures: [WorkspaceOperationKind: String] = [:]
     private var workspaceProviderSummary: String?
+    private var workspaceProviderName = ""
     /// The language of the record in the translation slot; a rerun keeps it.
     private var workspaceTargetLanguageCode: String?
     private var confirmedSelectionFrame: CGRect?
     private var confirmedSelectionScreen: NSScreen?
     private lazy var captureToolbarState = CaptureToolbarState(targetLanguageCode: selectedTargetLanguageCode)
     private var shortcutCoordinator: GlobalShortcutCoordinator?
+    private var pasteShortcutCoordinator: GlobalShortcutCoordinator?
     private var cleanupTask: Task<Void, Never>?
     private lazy var resultBoxController = CaptureResultBoxPanelController(
         actions: CaptureResultBoxActions(
@@ -127,6 +133,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
             Task { await self.requestCaptureExit(generation: generation) }
         }
     )
+    /// The paste result box, outside any capture (clipboard-paste, ADR-0019).
+    private lazy var pasteController = makePasteController()
     private lazy var updateDriver = dependencies.makeUpdateDriver { [weak self] event in
         await self?.receiveUpdateEvent(event)
     }
@@ -155,6 +163,11 @@ final class VLMSnapperApplicationModel: ObservableObject {
         self.defaults = defaults
         self.dependencies = dependencies
         shortcutStore = UserDefaultsGlobalShortcutStore(defaults: defaults)
+        pasteShortcutStore = UserDefaultsGlobalShortcutStore(
+            defaults: defaults,
+            keyPrefix: "pasteShortcut",
+            defaultShortcut: .defaultPaste
+        )
         self.languageStore = languageStore
         let credentialStore = dependencies.credentialStore
         let metadataStore = FileProviderMetadataStore(
@@ -277,14 +290,15 @@ final class VLMSnapperApplicationModel: ObservableObject {
             ) as? Bool ?? true,
             updateState: updateState,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
         try await updateCoordinator.start(
             automaticallyChecks: settings.automaticallyChecksForUpdates
         )
-        let shortcut = GlobalShortcutCoordinator(
-            backend: try dependencies.makeShortcutBackend()
-        ) { [weak self] in
+        let shortcutBackend = try dependencies.makeShortcutBackend()
+        let shortcut = GlobalShortcutCoordinator(backend: shortcutBackend) { [weak self] in
             self?.capture(from: .shortcut)
         }
         let preferredShortcut = shortcutStore.load()
@@ -301,6 +315,28 @@ final class VLMSnapperApplicationModel: ObservableObject {
             }
         }
         shortcutCoordinator = shortcut
+        let paste = GlobalShortcutCoordinator(backend: shortcutBackend) { [weak self] in
+            self?.pasteFromClipboard()
+        }
+        let preferredPasteShortcut = pasteShortcutStore.load()
+        // A paste shortcut equal to the capture shortcut is a conflict (clipboard-paste::REQ-001/AC-04).
+        for candidate in [preferredPasteShortcut, .defaultPaste] where candidate != captureShortcut {
+            do {
+                try paste.replaceShortcut(with: candidate)
+                pasteShortcut = candidate
+                break
+            } catch {
+                if pasteShortcutFailure == nil { pasteShortcutFailure = shortcutSettingsFailure(for: error) }
+            }
+        }
+        if paste.currentShortcut == nil {
+            // Nothing could be registered, e.g. a capture shortcut of ⌥⇧V stored before paste existed.
+            pasteShortcut = nil
+            pasteShortcutFailure = .unset
+        } else if paste.currentShortcut != preferredPasteShortcut, pasteShortcutFailure == nil {
+            pasteShortcutFailure = .conflict
+        }
+        pasteShortcutCoordinator = paste
         refreshShortcutSettings()
         startAutomaticCleanupLoop()
         publish()
@@ -317,6 +353,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
             captureShortcut: GlobalShortcutDisplayFormatter.string(
                 for: captureShortcut
             ),
+            pasteShortcut: pasteShortcut.map(GlobalShortcutDisplayFormatter.string(for:)),
             callbacks: menuCallbacks()
         )
     }
@@ -371,6 +408,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             },
             onShortcutChange: { [weak self] shortcut in
                 self?.changeShortcut(shortcut)
+            },
+            onPasteShortcutChange: { [weak self] shortcut in
+                self?.changePasteShortcut(shortcut)
             },
             onOpenLoginItemSettings: { [weak self] in
                 Task { await self?.loginCoordinator.openSystemSettings() }
@@ -432,6 +472,11 @@ final class VLMSnapperApplicationModel: ObservableObject {
     private func menuCallbacks() -> MenuBarCallbacks {
         MenuBarCallbacks(
             onCapture: { [weak self] in self?.capture(from: .menu) },
+            onPaste: { [weak self] in
+                // The panel closes at once, whatever the paste then shows (clipboard-paste::REQ-001/AC-02).
+                self?.onCloseMenuPanel?()
+                self?.pasteFromClipboard()
+            },
             onOpenRecent: { [weak self] id in
                 Task { await self?.openRecentHistoryItem(id) }
             },
@@ -601,7 +646,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: settings.retentionShorteningRecordCount,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
         publish()
     }
@@ -617,7 +664,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: settings.retentionShorteningRecordCount,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
         publish()
     }
@@ -634,7 +683,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: settings.retentionShorteningRecordCount,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
         publish()
     }
@@ -671,6 +722,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
             guard await closeResultSessionForExit() else { return false }
             await cancelCapture(generation: activeCaptureGeneration)
         }
+        guard await pasteController.prepareForTermination() else { return false }
         for task in credentialTasks.values { task.cancel() }
         credentialTasks.removeAll()
         credentialEditor.terminate()
@@ -687,6 +739,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
         cleanupTask?.cancel()
         cleanupTask = nil
         shortcutCoordinator?.unregister()
+        pasteShortcutCoordinator?.unregister()
     }
 
     private func exportDiagnostics() async {
@@ -725,7 +778,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: settings.retentionShorteningRecordCount,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
         publish()
     }
@@ -959,19 +1014,43 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: count,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
     }
 
     private func changeShortcut(_ shortcut: GlobalShortcut) {
         guard let shortcutCoordinator else { return }
         do {
+            // The paste shortcut is taken (clipboard-paste::REQ-001/AC-04).
+            guard shortcut != pasteShortcutCoordinator?.currentShortcut else {
+                throw GlobalShortcutRegistrationError.conflict
+            }
             try shortcutCoordinator.replaceShortcut(with: shortcut)
             shortcutStore.save(shortcut)
             captureShortcut = shortcut
             shortcutFailure = nil
         } catch {
             shortcutFailure = shortcutSettingsFailure(for: error)
+        }
+        refreshShortcutSettings()
+        publish()
+    }
+
+    private func changePasteShortcut(_ shortcut: GlobalShortcut) {
+        guard let pasteShortcutCoordinator else { return }
+        do {
+            guard shortcut != shortcutCoordinator?.currentShortcut else {
+                throw GlobalShortcutRegistrationError.conflict
+            }
+            try pasteShortcutCoordinator.replaceShortcut(with: shortcut)
+            pasteShortcutStore.save(shortcut)
+            pasteShortcut = shortcut
+            pasteShortcutFailure = nil
+        } catch {
+            // While unset, only a recording that registers clears the notice (clipboard-paste::REQ-001/AC-04).
+            pasteShortcutFailure = pasteShortcut == nil ? .unset : shortcutSettingsFailure(for: error)
         }
         refreshShortcutSettings()
         publish()
@@ -987,7 +1066,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: settings.retentionShorteningRecordCount,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
     }
 
@@ -1023,19 +1104,86 @@ final class VLMSnapperApplicationModel: ObservableObject {
         } catch {}
     }
 
+    private func makePasteController() -> ClipboardPasteController {
+        ClipboardPasteController(environment: .init(
+            reader: dependencies.clipboardReader,
+            makeSession: { [unowned self] png in
+                OperationWorkspaceSession(
+                    originalPNG: png,
+                    runner: PersistedOperationWorkspaceRunner(
+                        screenshotStore: screenshotStore,
+                        historyStore: historyStore,
+                        provider: providerStreamer,
+                        visionCompatibility: providerCoordinator,
+                        modelListRefresh: providerCoordinator
+                    ),
+                    activeGate: operationGate
+                )
+            },
+            performRequest: { [unowned self] operation in
+                (try? await workflow.performOperation { await operation() }) ?? false
+            },
+            selection: { [unowned self] in providerSelection },
+            missingSelectionCode: { [unowned self] in
+                if case .pendingModel = providerReadiness {
+                    return ProviderAdapterError.modelUnavailable.normalizedCode
+                }
+                return ProviderAdapterError.providerUnavailable.normalizedCode
+            },
+            providerSummary: { [unowned self] in providerSummary(for: $0) },
+            providerName: { [unowned self] in providerName(for: $0) },
+            targetLanguageCode: { [unowned self] in selectedTargetLanguageCode },
+            targetLanguages: { [unowned self] in targetLanguageOptions },
+            changeTargetLanguage: { [unowned self] in changeTargetLanguage($0) },
+            copyText: { [unowned self] in dependencies.captureClipboard.write(text: $0) },
+            requestFinished: { [unowned self] session, operation in
+                await recordResultDiagnostic(session, operation: operation)
+                let snapshot = await session.snapshot()
+                await reloadProviderIfRequestChangedModels(operation == .extract ? snapshot.extract : snapshot.translate)
+                await refreshHistory()
+            },
+            refreshHistory: { [unowned self] in await refreshHistory() }
+        ))
+    }
+
+    /// Pastes the clipboard's image for Text Extraction (clipboard-paste::REQ-002, REQ-003).
+    func pasteFromClipboard() {
+        Task {
+            // Nothing while the capture interface is open, or while the box holds work.
+            guard captureRequest == nil, captureLease == nil, !pasteController.holdsWork else { return }
+            if case let .credential(provider) = await providerCoordinator.currentActivity() {
+                presentProviderPage(provider)
+                return
+            }
+            guard case .ready = providerReadiness else {
+                onShowOnboarding?()
+                return
+            }
+            guard captureRequest == nil, captureLease == nil else { return }
+            pasteController.paste()
+        }
+    }
+
+    private func presentProviderPage(_ provider: ProviderID) {
+        providerFocusRequest = ProviderSettingsFocusRequest(provider: provider)
+        publish()
+        onNavigate?(.providerSettings)
+        providerSettingsConfiguration().onSelectProvider(provider)
+    }
+
     private func capture(from source: CaptureEntryPoint = .menu) {
+        // A paste result box with a running request or an unsaved result keeps the screen
+        // (clipboard-paste::REQ-005/AC-07).
+        guard !pasteController.holdsWork else { return }
         Task {
             await workflow.capture(
                 from: source,
                 replacing: captureLease,
                 presentProvider: { [weak self] provider in
-                    guard let self else { return }
-                    self.providerFocusRequest = ProviderSettingsFocusRequest(provider: provider)
-                    self.publish()
-                    self.onNavigate?(.providerSettings)
-                    self.providerSettingsConfiguration().onSelectProvider(provider)
+                    self?.presentProviderPage(provider)
                 },
                 perform: { [self] lease in
+                    guard !pasteController.holdsWork else { return false }
                     guard permission == .ready, case .ready = providerReadiness else {
                         onShowOnboarding?()
                         return false
@@ -1171,6 +1319,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
                 resetResultSurfaces()
             }
             onRetireCaptureSources?()
+            await pasteController.closeForCapture()
             await retiredSelectionSession?.cancel()
             return true
         case .permissionRequired:
@@ -1492,6 +1641,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
         localResultFailures[operation] = nil
         if operation == .translate { workspaceTargetLanguageCode = targetLanguage }
         workspaceProviderSummary = providerSummary(for: selection)
+        workspaceProviderName = providerName(for: selection)
         runningResultOperation = operation
         refreshResultSurfaces()
         resultRunTask = Task { [weak self] in
@@ -1566,7 +1716,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
             ),
             providerSummary: workspaceProviderSummary ?? providerSummary,
             slot: resultSlot(operation),
-            retryAvailable: !hasUnsavedWorkspaceResult
+            retryAvailable: !hasUnsavedWorkspaceResult,
+            providerName: workspaceProviderName
         )
         if resultBoxController.state.presentation != presentation {
             resultBoxController.state.presentation = presentation
@@ -1744,14 +1895,17 @@ final class VLMSnapperApplicationModel: ObservableObject {
     }
 
     private func providerSummary(for selection: ProviderSelection) -> String {
-        let providerName = ProviderID(rawValue: selection.providerID).map {
+        "\(providerName(for: selection)) · \(selection.modelID)"
+    }
+
+    private func providerName(for selection: ProviderSelection) -> String {
+        ProviderID(rawValue: selection.providerID).map {
             switch $0 {
             case .deepSeek: "DeepSeek"
             case .openAI: "OpenAI"
             case .gemini: "Gemini"
             }
         } ?? selection.providerID
-        return "\(providerName) · \(selection.modelID)"
     }
 
     private var targetLanguageOptions: [TargetLanguageOption] {

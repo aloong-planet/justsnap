@@ -38,6 +38,22 @@ struct OperationWorkspaceSessionTests {
         #expect(snapshot.extract.sourceDelta.isEmpty)
     }
 
+    @Test("a request body over the limit leaves its sizes on the failed operation")
+    func oversizedBodySizesReachTheSlot() async throws {
+        let overLimit = RequestBodyOverLimit(actualBytes: 24_300_000, limitBytes: 20_000_000)
+        let session = makeSession(runner: WorkspaceRunnerProbe(runs: [
+            .thrown(OperationWorkspaceRunFailure(code: "image_too_large", requestBodyOverLimit: overLimit)),
+        ]))
+
+        await #expect(throws: OperationWorkspaceRunFailure.self) {
+            try await start(session)
+        }
+
+        let snapshot = await session.snapshot()
+        #expect(snapshot.extract.attempt == .failed(code: "image_too_large"))
+        #expect(snapshot.extract.requestBodyOverLimit == overLimit)
+    }
+
     @Test("a failed rerun keeps the previous success and discards partial text")
     func failedRerunKeepsPreviousSuccess() async throws {
         let previous = committed("Stable result")
@@ -318,6 +334,7 @@ private actor WorkspaceRunnerProbe: OperationWorkspaceRunning {
     enum Run: Sendable {
         case events([OperationWorkspaceRunEvent])
         case failure([OperationWorkspaceRunEvent])
+        case thrown(OperationWorkspaceRunFailure)
     }
 
     enum Failure: Error {
@@ -352,6 +369,8 @@ private actor WorkspaceRunnerProbe: OperationWorkspaceRunning {
             case let .failure(events):
                 events.forEach { continuation.yield($0) }
                 continuation.finish(throwing: Failure.failed)
+            case let .thrown(failure):
+                continuation.finish(throwing: failure)
             }
         }
     }

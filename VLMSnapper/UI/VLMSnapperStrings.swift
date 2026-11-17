@@ -111,6 +111,7 @@ enum VLMSnapperStrings {
     static var permissionBlocker: String { localized("onboarding.blocker.permission") }
     static var providerBlocker: String { localized("onboarding.blocker.provider") }
     static var menuCapture: String { localized("menu.capture") }
+    static var menuPaste: String { localized("menu.paste") }
     static var menuRecent: String { localized("menu.recent") }
     static var menuHistory: String { localized("menu.history") }
     static var menuSettings: String { localized("menu.settings") }
@@ -235,9 +236,21 @@ enum VLMSnapperStrings {
     static var languageSimplifiedChinese: String { localized("settings.language.zhHans") }
     static var languageEnglish: String { localized("settings.language.en") }
     static var shortcutTitle: String { localized("settings.shortcut.title") }
+    static var pasteShortcutTitle: String { localized("settings.pasteShortcut.title") }
     static var shortcutHint: String { localized("settings.shortcut.hint") }
     static var shortcutRecording: String { localized("settings.shortcut.recording") }
     static var shortcutConflict: String { localized("settings.shortcut.conflict") }
+    static var shortcutNotSet: String { localized("settings.shortcut.notSet") }
+    static var pasteShortcutUnset: String { localized("settings.pasteShortcut.unset") }
+
+    /// The notice under a shortcut recorder.
+    static func shortcutFailure(_ failure: ShortcutSettingsFailure) -> String {
+        switch failure {
+        case .conflict: shortcutConflict
+        case .unset: pasteShortcutUnset
+        case .invalid, .registrationFailed: shortcutInvalid
+        }
+    }
     static var shortcutInvalid: String { localized("settings.shortcut.invalid") }
     static var loginItemTitle: String { localized("settings.loginItem.title") }
     static var loginItemHint: String { localized("settings.loginItem.hint") }
@@ -268,6 +281,11 @@ enum VLMSnapperStrings {
     static var diagnosticsHint: String { localized("diagnostics.hint") }
     static var diagnosticsExport: String { localized("diagnostics.export") }
 
+    static var pasteTitle: String { localized("paste.title") }
+    static var pasteClipboardText: String { localized("paste.clipboardText") }
+    static var pasteClipboardEmpty: String { localized("paste.clipboardEmpty") }
+    static var pasteClipboardUnreadable: String { localized("paste.clipboardUnreadable") }
+
     static func providerName(_ provider: ProviderID) -> String {
         switch provider {
         case .deepSeek: "DeepSeek"
@@ -297,6 +315,22 @@ enum VLMSnapperStrings {
         default: "failure.unknown"
         }
         return localized(key)
+    }
+
+    /// The size check before sending rejected the request (v1-core §9, clipboard-paste::REQ-004/AC-04).
+    static func requestBodyOverLimit(
+        _ overLimit: RequestBodyOverLimit,
+        providerName: String,
+        fromPaste: Bool,
+        locale: Locale
+    ) -> String {
+        let size = { (bytes: Int) in Int64(bytes).formatted(.byteCount(style: .file).locale(locale)) }
+        return String(
+            format: localized(fromPaste ? "failure.imageTooLarge.paste" : "failure.imageTooLarge.capture"),
+            size(overLimit.actualBytes),
+            providerName,
+            size(overLimit.limitBytes)
+        )
     }
 
     static func localized(_ key: String) -> String {

@@ -376,8 +376,15 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
                     )
                 )
             }
+            var requestBodyOverLimit: RequestBodyOverLimit?
+            if case let .requestBodyTooLarge(actualBytes, limitBytes) = error as? ProviderAdapterError {
+                requestBodyOverLimit = RequestBodyOverLimit(actualBytes: actualBytes, limitBytes: limitBytes)
+            }
             continuation.finish(
-                throwing: OperationWorkspaceRunFailure(code: failureCode)
+                throwing: OperationWorkspaceRunFailure(
+                    code: failureCode,
+                    requestBodyOverLimit: requestBodyOverLimit
+                )
             )
         }
     }

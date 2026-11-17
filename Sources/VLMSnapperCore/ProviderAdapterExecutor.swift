@@ -86,6 +86,8 @@ public struct ProviderAdapterExecutor: Sendable {
                     await coordinator.fail(error)
                 } catch is ServerSentEventDecoderError {
                     await coordinator.fail(.incompleteResponse)
+                } catch let ProviderRequestFactoryError.requestBodyTooLarge(actualBytes, limitBytes) {
+                    await coordinator.fail(.requestBodyTooLarge(actualBytes: actualBytes, limitBytes: limitBytes))
                 } catch {
                     await coordinator.fail(.transport)
                 }

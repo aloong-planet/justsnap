@@ -96,6 +96,7 @@ final class ApplicationFixture {
     var queuedDisplayGeometries: [[CaptureDisplayGeometry]] = []
     var displayReads = 0
     let pasteboard = NSPasteboard.withUniqueName()
+    private(set) lazy var clipboardReader = FixtureClipboardReader(pasteboard: pasteboard)
     var permissionGranted = false
     var updates: FixtureUpdates?
     private(set) var dependencyConstructions = 0
@@ -137,7 +138,7 @@ final class ApplicationFixture {
             await historyImageLoader?.releaseAll()
             await http.release()
             await capture.release()
-            let answering = answerLeftoverOverlaySheets()
+            let answering = answerLeftoverSheets()
             _ = await model.prepareForTermination()
             answering.cancel()
             stopFixture(excluding: existingWindows) { model.stop() }
@@ -204,6 +205,7 @@ final class ApplicationFixture {
                 frozenDisplayCapturer: capture,
                 windowListing: windows,
                 captureClipboard: clipboard,
+                clipboardReader: clipboardReader,
                 captureImageSaver: imageSaver,
                 captureResultLossNotifier: resultLossNotifier,
                 displayMonitor: CaptureDisplayMonitor(
@@ -430,6 +432,18 @@ actor FixtureCapture: FrozenDisplayCapturing {
     }
 }
 
+/// The real clipboard reader over the fixture's private pasteboard, counting its reads.
+@MainActor
+final class FixtureClipboardReader: ClipboardImageReading {
+    private let reader: PasteboardClipboardImageReader
+    private(set) var reads = 0
+    init(pasteboard: NSPasteboard) { reader = PasteboardClipboardImageReader(pasteboard: pasteboard) }
+    func read() -> ClipboardSnapshot {
+        reads += 1
+        return reader.read()
+    }
+}
+
 /// Clipboard double: records the PNG written by Copy.
 @MainActor
 final class FixtureClipboard: CaptureImageClipboard {
@@ -534,20 +548,25 @@ actor FixtureUpdates: UpdateDriving {
 @MainActor
 final class FixtureShortcuts: GlobalShortcutRegistrationBackend {
     private(set) var activeRegistrations = 0
-    private var handler: (@MainActor @Sendable () -> Void)?
-    func fire() throws {
-        let registeredHandler = try #require(handler)
-        registeredHandler()
+    private var handlers: [(shortcut: GlobalShortcut, id: UUID, handler: @MainActor @Sendable () -> Void)] = []
+    /// Fires the handler registered for a shortcut, the default capture shortcut unless named.
+    func fire(_ shortcut: GlobalShortcut = .defaultCapture) throws {
+        let registered = try #require(handlers.last { $0.shortcut == shortcut })
+        registered.handler()
     }
+    func isRegistered(_ shortcut: GlobalShortcut) -> Bool { handlers.contains { $0.shortcut == shortcut } }
     func register(
         _ shortcut: GlobalShortcut,
         handler: @escaping @MainActor @Sendable () -> Void
     ) throws -> any GlobalShortcutRegistration {
+        // The system refuses a hot key this process already holds.
+        guard !isRegistered(shortcut) else { throw GlobalShortcutRegistrationError.conflict }
         activeRegistrations += 1
-        self.handler = handler
+        let id = UUID()
+        handlers.append((shortcut, id, handler))
         return FixtureRegistration { [weak self] in
             self?.activeRegistrations -= 1
-            self?.handler = nil
+            self?.handlers.removeAll { $0.id == id }
         }
     }
 }

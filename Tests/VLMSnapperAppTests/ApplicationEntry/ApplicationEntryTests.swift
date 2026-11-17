@@ -57,12 +57,12 @@ extension ProviderApplicationTests {
                 let secondary = fixture.application()
                 defer { secondary.stop() }
                 #expect(try await secondary.start() == .secondary)
-                #expect(fixture.shortcuts.activeRegistrations == 1)
+                #expect(fixture.shortcuts.activeRegistrations == 2)
                 #expect(fixture.dependencyConstructions == 1)
                 #expect(await application.prepareForTermination())
             }
             try await fixture.withApplication { _ in
-                #expect(fixture.shortcuts.activeRegistrations == 1)
+                #expect(fixture.shortcuts.activeRegistrations == 2)
             }
         }
     }
@@ -104,9 +104,9 @@ extension ProviderApplicationTests {
     func terminationPreparationDoesNotUnregisterBeforeExitIsCommitted() async throws {
         try await withFixture { fixture in
             try await fixture.withModel { model in
-                #expect(fixture.shortcuts.activeRegistrations == 1)
+                #expect(fixture.shortcuts.activeRegistrations == 2)
                 #expect(await model.prepareForTermination())
-                #expect(fixture.shortcuts.activeRegistrations == 1)
+                #expect(fixture.shortcuts.activeRegistrations == 2)
                 model.stop()
                 #expect(fixture.shortcuts.activeRegistrations == 0)
                 model.stop()

@@ -19,7 +19,8 @@ for (const relativePath of pages) {
 const toolbarPages = [
   "capture-overlay/prototype-toolbar-directions.html",
   "capture-overlay/prototype-snap-region.html",
-  "capture-overlay/prototype-result-box.html"
+  "capture-overlay/prototype-result-box.html",
+  "clipboard-paste/prototype-paste-result-box.html"
 ];
 
 for (const relativePath of toolbarPages) {

@@ -17,6 +17,7 @@ struct ProviderAdapterErrorTests {
             (.outputTruncated, "output_truncated"),
             (.imageInputUnsupported, "image_input_unsupported"),
             (.imageTooLarge, "image_too_large"),
+            (.requestBodyTooLarge(actualBytes: 21, limitBytes: 20), "image_too_large"),
             (.malformedOutput, "malformed_output"),
             (.incompleteResponse, "incomplete_response"),
             (.firstTextTimeout, "first_text_timeout"),

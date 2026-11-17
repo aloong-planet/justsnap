@@ -53,9 +53,22 @@ public enum OperationWorkspaceSessionError: Error, Equatable {
 
 public struct OperationWorkspaceRunFailure: Error, Equatable, Sendable {
     public let code: String
+    public let requestBodyOverLimit: RequestBodyOverLimit?
 
-    public init(code: String) {
+    public init(code: String, requestBodyOverLimit: RequestBodyOverLimit? = nil) {
         self.code = code
+        self.requestBodyOverLimit = requestBodyOverLimit
+    }
+}
+
+/// The request body size and the Provider's limit when the check before sending rejects it (v1-core §9).
+public struct RequestBodyOverLimit: Equatable, Sendable {
+    public let actualBytes: Int
+    public let limitBytes: Int
+
+    public init(actualBytes: Int, limitBytes: Int) {
+        self.actualBytes = actualBytes
+        self.limitBytes = limitBytes
     }
 }
 
@@ -123,6 +136,8 @@ public struct WorkspaceOperationSlot: Equatable, Sendable {
     public let translationDelta: String
     public let persistenceFailureCode: String?
     public let segments: [TranslationSegment]?
+    /// Set while `attempt` is the failure of a request body over the Provider's limit.
+    public let requestBodyOverLimit: RequestBodyOverLimit?
 
     public init(
         attempt: WorkspaceAttemptState = .neverStarted,
@@ -131,7 +146,8 @@ public struct WorkspaceOperationSlot: Equatable, Sendable {
         sourceDelta: String = "",
         translationDelta: String = "",
         persistenceFailureCode: String? = nil,
-        segments: [TranslationSegment]? = nil
+        segments: [TranslationSegment]? = nil,
+        requestBodyOverLimit: RequestBodyOverLimit? = nil
     ) {
         self.attempt = attempt
         self.committedResult = committedResult
@@ -140,6 +156,7 @@ public struct WorkspaceOperationSlot: Equatable, Sendable {
         self.translationDelta = translationDelta
         self.persistenceFailureCode = persistenceFailureCode
         self.segments = segments
+        self.requestBodyOverLimit = requestBodyOverLimit
     }
 }
 
@@ -436,12 +453,13 @@ public actor OperationWorkspaceSession {
                 )
                 throw CancellationError()
             }
-            let failureCode = (error as? OperationWorkspaceRunFailure)?.code
-                ?? "operation_failed"
+            let runFailure = error as? OperationWorkspaceRunFailure
+            let failureCode = runFailure?.code ?? "operation_failed"
             setSlot(
                 WorkspaceOperationSlot(
                     attempt: .failed(code: failureCode),
-                    committedResult: retained
+                    committedResult: retained,
+                    requestBodyOverLimit: runFailure?.requestBodyOverLimit
                 ),
                 for: kind
             )

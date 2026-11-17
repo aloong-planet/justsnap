@@ -34,3 +34,4 @@ Entries written under earlier rules keep their form until a change touches what 
 | [0016](0016-file-application-tests-by-module.md) | File the application tests by module | Accepted (2026-11-10) |
 | [0017](0017-allowlist-gemini-and-openai-models-with-built-in-thinking-settings.md) | Allowlist Gemini and OpenAI models with built-in thinking settings | Proposed |
 | [0018](0018-merge-prs-without-executable-changes-once-ci-passes.md) | Merge PRs without executable changes once CI passes | Accepted (2026-11-17) |
+| [0019](0019-show-paste-results-in-a-floating-result-box.md) | Show paste results in a floating result box | Proposed |

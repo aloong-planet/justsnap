@@ -12,6 +12,8 @@ public enum ProviderAdapterError: Error, Equatable, Sendable {
     case outputTruncated
     case imageInputUnsupported
     case imageTooLarge
+    /// The request body checked before sending is over the Provider's limit (v1-core §9).
+    case requestBodyTooLarge(actualBytes: Int, limitBytes: Int)
     case malformedOutput
     case incompleteResponse
     case firstTextTimeout
@@ -35,7 +37,7 @@ public extension ProviderAdapterError {
         case .contentBlocked: "content_blocked"
         case .outputTruncated: "output_truncated"
         case .imageInputUnsupported: "image_input_unsupported"
-        case .imageTooLarge: "image_too_large"
+        case .imageTooLarge, .requestBodyTooLarge: "image_too_large"
         case .malformedOutput: "malformed_output"
         case .incompleteResponse: "incomplete_response"
         case .firstTextTimeout: "first_text_timeout"

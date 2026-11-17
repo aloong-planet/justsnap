@@ -193,7 +193,10 @@ public struct MenuBarPanelView: View {
     private let provider: ProviderReadiness
     private let updateState: UpdateLifecycleState
     private let captureShortcut: String
+    /// Nil when the paste shortcut is unset; the button then shows no shortcut.
+    private let pasteShortcut: String?
     private let onCapture: () -> Void
+    private let onPaste: () -> Void
     private let onOpenRecent: (String) -> Void
     private let onNavigate: (ManagementCenterDestination) -> Void
     private let onCheckUpdates: () -> Void
@@ -205,7 +208,9 @@ public struct MenuBarPanelView: View {
         provider: ProviderReadiness = .missing,
         updateState: UpdateLifecycleState = .idle,
         captureShortcut: String = "⌥⇧S",
+        pasteShortcut: String? = "⌥⇧V",
         onCapture: @escaping () -> Void,
+        onPaste: @escaping () -> Void = {},
         onOpenRecent: @escaping (String) -> Void,
         onNavigate: @escaping (ManagementCenterDestination) -> Void,
         onCheckUpdates: @escaping () -> Void,
@@ -216,7 +221,9 @@ public struct MenuBarPanelView: View {
         self.provider = provider
         self.updateState = updateState
         self.captureShortcut = captureShortcut
+        self.pasteShortcut = pasteShortcut
         self.onCapture = onCapture
+        self.onPaste = onPaste
         self.onOpenRecent = onOpenRecent
         self.onNavigate = onNavigate
         self.onCheckUpdates = onCheckUpdates
@@ -235,28 +242,21 @@ public struct MenuBarPanelView: View {
             .padding(.horizontal, 14)
             .frame(height: 50)
 
-            MenuBarPanelActionButton(role: .primary, action: onCapture) {
-                ZStack {
-                    Label(VLMSnapperStrings.menuCapture, systemImage: VLMSnapperIcon.capture.rawValue)
-                        .font(.headline)
-                        .foregroundStyle(VLMSnapperTheme.primaryText)
-                    HStack {
-                        Spacer()
-                        Text(captureShortcut)
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
-                            .foregroundStyle(VLMSnapperTheme.secondaryText)
-                    }
-                    .padding(.horizontal, 12)
-                }
+            // Capture and Paste share the row equally (clipboard-paste::REQ-001/AC-01).
+            HStack(spacing: 8) {
+                primaryAction(
+                    VLMSnapperStrings.menuCapture,
+                    icon: .capture,
+                    shortcut: captureShortcut,
+                    action: onCapture
+                )
+                primaryAction(
+                    VLMSnapperStrings.menuPaste,
+                    icon: .paste,
+                    shortcut: pasteShortcut,
+                    action: onPaste
+                )
             }
-            .frame(height: MenuBarPanelMetrics.captureButtonHeight)
-            .background(VLMSnapperTheme.surface)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(VLMSnapperTheme.border.opacity(0.55), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .shadow(color: VLMSnapperTheme.shadow.opacity(0.10), radius: 3.5, y: 2)
             .padding(.horizontal, 10)
             if updateState.showsMenuNotice {
                 updateNotice
@@ -399,6 +399,40 @@ public struct MenuBarPanelView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .padding(.horizontal, 10)
         .padding(.top, 6)
+    }
+
+    private func primaryAction(
+        _ title: String,
+        icon: VLMSnapperIcon,
+        shortcut: String?,
+        action: @escaping () -> Void
+    ) -> some View {
+        MenuBarPanelActionButton(role: .primary, action: action) {
+            // Half-width buttons: this padding and gap leave room for the English "Capture" with its shortcut.
+            HStack(spacing: 4) {
+                Label(title, systemImage: icon.rawValue)
+                    .font(.headline)
+                    .foregroundStyle(VLMSnapperTheme.primaryText)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                if let shortcut {
+                    Text(shortcut)
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundStyle(VLMSnapperTheme.secondaryText)
+                        .fixedSize()
+                }
+            }
+            .padding(.horizontal, 8)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: MenuBarPanelMetrics.captureButtonHeight)
+        .background(VLMSnapperTheme.surface)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(VLMSnapperTheme.border.opacity(0.55), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .shadow(color: VLMSnapperTheme.shadow.opacity(0.10), radius: 3.5, y: 2)
     }
 
     @ViewBuilder

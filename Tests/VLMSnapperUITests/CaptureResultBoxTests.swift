@@ -149,6 +149,73 @@ struct CaptureResultBoxPresentationTests {
         }
     }
 
+    @Test(
+        "a request body over the limit names the request size, the Provider's limit and what to do",
+        arguments: [
+            (CaptureResultBoxPresentation.ImageSource.capture, EffectiveApplicationLanguage.simplifiedChinese,
+             "请求大小为 24.3 MB，超过 Gemini 允许的 20 MB。请缩小选区后重试。"),
+            (.paste, .simplifiedChinese, "请求大小为 24.3 MB，超过 Gemini 允许的 20 MB。请复制较小的图片后重新粘贴。"),
+            (.capture, .english, "The request is 24.3 MB, over the 20 MB Gemini allows. Select a smaller area and retry."),
+            (.paste, .english, "The request is 24.3 MB, over the 20 MB Gemini allows. Copy a smaller image and paste again."),
+        ]
+    )
+    func requestBodyOverLimit(source: CaptureResultBoxPresentation.ImageSource, language: EffectiveApplicationLanguage, message: String) {
+        LocalizationTestCoordinator.withExclusiveAccess {
+            VLMSnapperLocalization.configure(effectiveLanguage: language)
+            let value = CaptureResultBoxPresentation(
+                operation: .extract,
+                targetLanguageName: "简体中文",
+                providerSummary: "Gemini · vision",
+                slot: WorkspaceOperationSlot(
+                    attempt: .failed(code: "image_too_large"),
+                    requestBodyOverLimit: RequestBodyOverLimit(actualBytes: 24_300_000, limitBytes: 20_000_000)
+                ),
+                source: source,
+                providerName: "Gemini",
+                locale: Locale(identifier: "en_US")
+            )
+            #expect(value.body == .failure(message))
+            #expect(value.canRetry)
+        }
+    }
+
+    @Test(
+        "a clipboard without a usable image is titled Paste, says why, and has nothing to copy, retry or run",
+        arguments: [
+            (CaptureResultBoxPresentation.PasteClipboardProblem.text, "剪贴板里是文字。目前只能粘贴图片。"),
+            (.empty, "剪贴板里没有图片。复制一张图片后再粘贴。"),
+            (.unreadable, "剪贴板里的内容无法作为图片读取。"),
+        ]
+    )
+    func pasteClipboardProblem(problem: CaptureResultBoxPresentation.PasteClipboardProblem, message: String) {
+        LocalizationTestCoordinator.withExclusiveAccess {
+            VLMSnapperLocalization.configure(effectiveLanguage: .simplifiedChinese)
+            let value = CaptureResultBoxPresentation.pasteProblem(problem)
+            #expect(value.title == "粘贴")
+            #expect(value.body == .message(message))
+            #expect(value.providerSummary.isEmpty)
+            #expect(!value.canCopy)
+            #expect(!value.canRetry)
+            #expect(!value.showsProgress)
+            #expect(!value.showsOperations)
+        }
+    }
+
+    @Test("a pasted image's operations show the operation row; a capture's do not")
+    func operationRowBelongsToPaste() {
+        LocalizationTestCoordinator.withExclusiveAccess {
+            VLMSnapperLocalization.configure(effectiveLanguage: .simplifiedChinese)
+            let slot = WorkspaceOperationSlot(attempt: .preparing)
+            let paste = CaptureResultBoxPresentation(
+                operation: .extract, targetLanguageName: "简体中文", providerSummary: "DeepSeek · vision",
+                slot: slot, source: .paste
+            )
+            #expect(paste.showsOperations)
+            #expect(paste.title == "提取")
+            #expect(!presentation(.extract, slot).showsOperations)
+        }
+    }
+
     @Test("a canceled operation says so and can be retried, without earlier text")
     func canceled() {
         LocalizationTestCoordinator.withExclusiveAccess {

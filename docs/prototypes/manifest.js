@@ -84,5 +84,12 @@ window.PROTOTYPES = [
     id: "edit-menu",
     name: "Application Edit menu",
     path: "application-menu/prototype-edit-menu.html"
+  },
+  {
+    module: "clipboard-paste",
+    type: "ui",
+    id: "paste-result-box",
+    name: "Paste result box",
+    path: "clipboard-paste/prototype-paste-result-box.html"
   }
 ];

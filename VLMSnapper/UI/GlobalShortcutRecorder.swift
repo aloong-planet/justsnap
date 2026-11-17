@@ -3,11 +3,11 @@ import SwiftUI
 import VLMSnapperCore
 
 public struct GlobalShortcutRecorder: NSViewRepresentable {
-    private let shortcut: GlobalShortcut
+    private let shortcut: GlobalShortcut?
     private let onChange: (GlobalShortcut) -> Void
 
     public init(
-        shortcut: GlobalShortcut,
+        shortcut: GlobalShortcut?,
         onChange: @escaping (GlobalShortcut) -> Void
     ) {
         self.shortcut = shortcut
@@ -46,7 +46,7 @@ public struct GlobalShortcutRecorder: NSViewRepresentable {
 @MainActor
 public final class ShortcutRecorderNSView: NSView {
     var onChange: ((GlobalShortcut) -> Void)?
-    var shortcut = GlobalShortcut.defaultCapture {
+    var shortcut: GlobalShortcut? = .defaultCapture {
         didSet { refreshLabel() }
     }
 
@@ -128,7 +128,7 @@ public final class ShortcutRecorderNSView: NSView {
     private func refreshLabel() {
         label.stringValue = isRecording
             ? VLMSnapperStrings.shortcutRecording
-            : GlobalShortcutDisplayFormatter.string(for: shortcut)
+            : shortcut.map(GlobalShortcutDisplayFormatter.string(for:)) ?? VLMSnapperStrings.shortcutNotSet
         setAccessibilityLabel(label.stringValue)
     }
 }

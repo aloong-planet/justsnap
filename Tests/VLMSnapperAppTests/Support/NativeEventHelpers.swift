@@ -291,12 +291,12 @@ func waitForResultIdle(_ model: VLMSnapperApplicationModel) async throws {
     }
 }
 
-/// Answers a confirmation left on an overlay when a test fails midway, so teardown can finish.
+/// Answers a confirmation left on an overlay or a result box when a test fails midway, so teardown can finish.
 @MainActor
-func answerLeftoverOverlaySheets() -> Task<Void, Never> {
+func answerLeftoverSheets() -> Task<Void, Never> {
     Task { @MainActor in
         while !Task.isCancelled {
-            for window in NSApp.windows where window.level == .screenSaver {
+            for window in NSApp.windows {
                 if let sheet = window.attachedSheet {
                     window.endSheet(sheet, returnCode: .alertFirstButtonReturn)
                 }

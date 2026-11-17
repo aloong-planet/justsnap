@@ -49,6 +49,34 @@ struct ProviderAdapterExecutorTests {
         #expect(await transport.requestCount == 1)
     }
 
+    @Test("A request body over the Provider's limit fails with both sizes before anything is sent")
+    func oversizedBodyFailsBeforeSending() async throws {
+        let transport = RecordingStreamingTransport(result: ok(stream([])))
+        let executor = ProviderAdapterExecutor(
+            transport: transport,
+            requestFactory: ProviderRequestFactory(geminiMaximumBodyBytes: 100)
+        )
+
+        var thrown: (any Error)?
+        do {
+            for try await _ in executor.stream(
+                provider: .gemini, modelID: "gemini-2.5-flash", apiKey: "secret",
+                // 120 bytes of image alone encode to 160 base64 characters, over the 100-byte limit.
+                originalPNG: Data(repeating: 0x42, count: 120), operation: .extractText
+            ) {}
+        } catch {
+            thrown = error
+        }
+
+        guard case let .requestBodyTooLarge(actualBytes, limitBytes) = thrown as? ProviderAdapterError else {
+            Issue.record("expected requestBodyTooLarge, got \(String(describing: thrown))")
+            return
+        }
+        #expect(limitBytes == 100)
+        #expect(actualBytes > 160)
+        #expect(await transport.requestCount == 0)
+    }
+
     @Test("The first-text deadline terminates a silent stream")
     func firstTextDeadlineTerminatesSilentStream() async {
         let transport = RecordingStreamingTransport(result: ok(pendingStream()))
