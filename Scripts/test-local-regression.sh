@@ -55,7 +55,13 @@ desktop_cases_needed() {
 }
 run_stage strict-build swift build -Xswiftc -warnings-as-errors -Xcc -Wall -Xcc -Wextra -Xcc -Werror
 run_stage script-tests python3 -m unittest discover -s Scripts/tests -p 'test_*.py' -v
-run_stage checklist python3 Scripts/verify-feature-checklist.py docs/.workings/v1-core/checklist.md
+# Construction records are not committed, so only the main checkout has the checklist.
+checklist="docs/.workings/v1-core/checklist.md"
+if [[ -f "$checklist" ]]; then
+    run_stage checklist python3 Scripts/verify-feature-checklist.py "$checklist"
+else
+    echo "SKIP checklist: $checklist is not in this checkout; it exists only in the main checkout."
+fi
 run_stage localization-keys python3 Scripts/verify-localization-keys.py
 run_stage shell-syntax bash -c 'for script in Scripts/*.sh; do bash -n "$script" || exit; done'
 run_stage non-app swift test --skip ProviderApplicationTests

@@ -8,8 +8,11 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
+# Construction records are not committed, so only the main checkout has this file.
+CHECKLIST = ROOT / "docs/.workings/v1-core/checklist.md"
 
 
+@unittest.skipUnless(CHECKLIST.is_file(), f"{CHECKLIST.relative_to(ROOT)} is not in this checkout")
 class FeatureChecklistTests(unittest.TestCase):
     def insert_row(self, document, row):
         prefix, heading, section = document.partition("## Spec requirement ownership\n")
@@ -27,33 +30,33 @@ class FeatureChecklistTests(unittest.TestCase):
             )
 
     def test_missing_requirement_fails_even_with_ownership_heading(self):
-        source = (ROOT / "docs/.workings/v1-core/checklist.md").read_text(encoding="utf-8")
+        source = CHECKLIST.read_text(encoding="utf-8")
         incomplete = "\n".join(line for line in source.splitlines() if not line.startswith("| FM-46 |"))
         result = self.run_gate(incomplete)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("FM-46", result.stderr)
 
     def test_duplicate_requirement_is_not_hidden_by_unique_count(self):
-        source = (ROOT / "docs/.workings/v1-core/checklist.md").read_text(encoding="utf-8")
+        source = CHECKLIST.read_text(encoding="utf-8")
         duplicate = self.insert_row(source, "| US-01 | Duplicate | 19 | Named acceptance |")
         result = self.run_gate(duplicate)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Duplicate", result.stderr)
 
     def test_unknown_requirement_cannot_expand_the_contract_silently(self):
-        source = (ROOT / "docs/.workings/v1-core/checklist.md").read_text(encoding="utf-8")
+        source = CHECKLIST.read_text(encoding="utf-8")
         result = self.run_gate(self.insert_row(source, "| FM-47 | Unexpected | 23 | Named acceptance |"))
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Unexpected", result.stderr)
 
     def test_complete_repository_checklist_passes_with_historical_evidence(self):
-        source = (ROOT / "docs/.workings/v1-core/checklist.md").read_text(encoding="utf-8")
+        source = CHECKLIST.read_text(encoding="utf-8")
         result = self.run_gate(source)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("58 requirements", result.stdout)
 
     def test_blank_or_malformed_ownership_rows_fail(self):
-        source = (ROOT / "docs/.workings/v1-core/checklist.md").read_text(encoding="utf-8")
+        source = CHECKLIST.read_text(encoding="utf-8")
         original = next(line for line in source.splitlines() if line.startswith("| US-01 |"))
         for row in (
             "| US-01 | Description |   | Named acceptance |",
@@ -67,7 +70,7 @@ class FeatureChecklistTests(unittest.TestCase):
                 self.assertIn("US-01", result.stderr)
 
     def test_missing_or_duplicate_section_is_not_accepted(self):
-        source = (ROOT / "docs/.workings/v1-core/checklist.md").read_text(encoding="utf-8")
+        source = CHECKLIST.read_text(encoding="utf-8")
         for document in (
             source.replace("## Spec requirement ownership", "## Retired ownership"),
             source + "\n## Spec requirement ownership\n",
