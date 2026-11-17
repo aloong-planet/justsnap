@@ -6,16 +6,19 @@ window.CaptureToolbar = {
     return ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
       .map((edge) => `<span class="selection-handle ${edge}" data-handle="${edge}"></span>`).join('');
   },
-  /** `current` is the operation whose result box is showing; `busy` means a request is running; `unavailable` lists operations that cannot start now. */
-  render(mount, { current = null, busy = false, unavailable = [], language = { short: 'ZH', name: '简体中文' } } = {}) {
+  /** `current` is the operation whose result box is showing; `busy` means a request is running; `unavailable` lists operations that cannot start now.
+      `operationsOnly` renders just Extract and the Translate control, for the paste result box's operation row. */
+  render(mount, { current = null, busy = false, unavailable = [], language = { short: 'ZH', name: '简体中文' }, operationsOnly = false } = {}) {
     const blocked = (kind) => ((busy && current !== kind) || unavailable.includes(kind) ? ' disabled' : '');
     const whenIdle = busy ? ' disabled' : '';
-    mount.innerHTML = `
+    const operations = `
       <button class="action-button${current === 'extract' ? ' is-current' : ''}" data-operation="extract"${blocked('extract')}><svg class="icon" viewBox="0 0 24 24"><path d="M4 5h16M4 10h11M4 15h16M4 20h11"/></svg>提取</button>
       <div class="split-action${current === 'translate' ? ' is-current' : ''}">
         <button class="split-action-main" data-operation="translate"${blocked('translate')}><svg class="icon" viewBox="0 0 24 24"><path d="m5 8 4 4m-6 2 6-6 2-3M4 5h8M13 19l4-10 4 10m-6-4h4"/></svg>翻译</button>
         <button class="split-action-menu" data-toolbar-language aria-label="目标语言：${language.name}" title="目标语言：${language.name}"><strong>${language.short}</strong><svg class="icon" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></button>
-      </div>
+      </div>`;
+    if (operationsOnly) { mount.innerHTML = operations; return; }
+    mount.innerHTML = `${operations}
       <span class="toolbar-divider"></span>
       <button class="tool-button" data-toolbar-action="copy" aria-label="复制图片" title="复制图片"${whenIdle}><span class="icon-mask icon-copy"></span></button>
       <button class="tool-button" data-toolbar-action="save" aria-label="保存图片" title="保存图片"${whenIdle}><span class="icon-mask icon-save"></span></button>
