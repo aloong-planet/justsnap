@@ -25,7 +25,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       - name: Verify live Provider contracts
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -39,7 +39,7 @@ jobs:
             --output "$RUNNER_TEMP/live-provider-contracts.json"
       - name: Upload live Provider contract report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: VLMSnapper-${{ inputs.version }}-live-provider-contracts
           path: ${{ runner.temp }}/live-provider-contracts.json
@@ -101,7 +101,7 @@ jobs:
             "${{ inputs.downloadBaseURL }}" \
             "$SPARKLE_PUBLIC_KEY" \
             "$RUNNER_TEMP/formal-release"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: VLMSnapper-${{ inputs.version }}-verified
           path: ${{ runner.temp }}/formal-release

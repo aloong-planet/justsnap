@@ -18,6 +18,11 @@ enabled = false
 [mutation-testing]
 enabled = false
 
+[docs-auto-merge]
+enabled = true
+source = "docs/adr/0018-merge-prs-without-executable-changes-once-ci-passes.md"
+enforced-by = []
+
 [theming]
 enabled = false
 
