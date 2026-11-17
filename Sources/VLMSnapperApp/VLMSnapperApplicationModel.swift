@@ -46,6 +46,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
     private(set) var settings = GeneralSettingsSnapshot()
     private(set) var captureShortcut = GlobalShortcut.defaultCapture
     private(set) var shortcutFailure: ShortcutSettingsFailure?
+    private(set) var pasteShortcut = GlobalShortcut.defaultPaste
+    private(set) var pasteShortcutFailure: ShortcutSettingsFailure?
 
     var onSnapshotChange: (@MainActor () -> Void)?
     var onNavigate: (@MainActor (ManagementCenterDestination) -> Void)?
@@ -57,6 +59,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
     private let defaults: UserDefaults
     private let dependencies: ApplicationModelDependencies
     private let shortcutStore: UserDefaultsGlobalShortcutStore
+    private let pasteShortcutStore: UserDefaultsGlobalShortcutStore
     private let languageStore: UserDefaultsApplicationLanguageStore
     private let providerCoordinator: ProviderConfigurationCoordinator
     private lazy var workflow = ApplicationWorkflow(coordinator: providerCoordinator)
@@ -115,6 +118,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
     private var confirmedSelectionScreen: NSScreen?
     private lazy var captureToolbarState = CaptureToolbarState(targetLanguageCode: selectedTargetLanguageCode)
     private var shortcutCoordinator: GlobalShortcutCoordinator?
+    private var pasteShortcutCoordinator: GlobalShortcutCoordinator?
     private var cleanupTask: Task<Void, Never>?
     private lazy var resultBoxController = CaptureResultBoxPanelController(
         actions: CaptureResultBoxActions(
@@ -158,6 +162,11 @@ final class VLMSnapperApplicationModel: ObservableObject {
         self.defaults = defaults
         self.dependencies = dependencies
         shortcutStore = UserDefaultsGlobalShortcutStore(defaults: defaults)
+        pasteShortcutStore = UserDefaultsGlobalShortcutStore(
+            defaults: defaults,
+            keyPrefix: "pasteShortcut",
+            defaultShortcut: .defaultPaste
+        )
         self.languageStore = languageStore
         let credentialStore = dependencies.credentialStore
         let metadataStore = FileProviderMetadataStore(
@@ -280,14 +289,15 @@ final class VLMSnapperApplicationModel: ObservableObject {
             ) as? Bool ?? true,
             updateState: updateState,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
         try await updateCoordinator.start(
             automaticallyChecks: settings.automaticallyChecksForUpdates
         )
-        let shortcut = GlobalShortcutCoordinator(
-            backend: try dependencies.makeShortcutBackend()
-        ) { [weak self] in
+        let shortcutBackend = try dependencies.makeShortcutBackend()
+        let shortcut = GlobalShortcutCoordinator(backend: shortcutBackend) { [weak self] in
             self?.capture(from: .shortcut)
         }
         let preferredShortcut = shortcutStore.load()
@@ -304,6 +314,24 @@ final class VLMSnapperApplicationModel: ObservableObject {
             }
         }
         shortcutCoordinator = shortcut
+        let paste = GlobalShortcutCoordinator(backend: shortcutBackend) { [weak self] in
+            self?.pasteFromClipboard()
+        }
+        let preferredPasteShortcut = pasteShortcutStore.load()
+        // A paste shortcut equal to the capture shortcut is a conflict (clipboard-paste::REQ-001/AC-04).
+        for candidate in [preferredPasteShortcut, .defaultPaste] where candidate != captureShortcut {
+            do {
+                try paste.replaceShortcut(with: candidate)
+                pasteShortcut = candidate
+                break
+            } catch {
+                if pasteShortcutFailure == nil { pasteShortcutFailure = shortcutSettingsFailure(for: error) }
+            }
+        }
+        if paste.currentShortcut != preferredPasteShortcut, pasteShortcutFailure == nil {
+            pasteShortcutFailure = .conflict
+        }
+        pasteShortcutCoordinator = paste
         refreshShortcutSettings()
         startAutomaticCleanupLoop()
         publish()
@@ -374,6 +402,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             },
             onShortcutChange: { [weak self] shortcut in
                 self?.changeShortcut(shortcut)
+            },
+            onPasteShortcutChange: { [weak self] shortcut in
+                self?.changePasteShortcut(shortcut)
             },
             onOpenLoginItemSettings: { [weak self] in
                 Task { await self?.loginCoordinator.openSystemSettings() }
@@ -604,7 +635,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: settings.retentionShorteningRecordCount,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
         publish()
     }
@@ -620,7 +653,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: settings.retentionShorteningRecordCount,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
         publish()
     }
@@ -637,7 +672,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: settings.retentionShorteningRecordCount,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
         publish()
     }
@@ -691,6 +728,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
         cleanupTask?.cancel()
         cleanupTask = nil
         shortcutCoordinator?.unregister()
+        pasteShortcutCoordinator?.unregister()
     }
 
     private func exportDiagnostics() async {
@@ -729,7 +767,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: settings.retentionShorteningRecordCount,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
         publish()
     }
@@ -963,19 +1003,42 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: count,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
     }
 
     private func changeShortcut(_ shortcut: GlobalShortcut) {
         guard let shortcutCoordinator else { return }
         do {
+            // The paste shortcut is taken (clipboard-paste::REQ-001/AC-04).
+            guard shortcut != pasteShortcutCoordinator?.currentShortcut else {
+                throw GlobalShortcutRegistrationError.conflict
+            }
             try shortcutCoordinator.replaceShortcut(with: shortcut)
             shortcutStore.save(shortcut)
             captureShortcut = shortcut
             shortcutFailure = nil
         } catch {
             shortcutFailure = shortcutSettingsFailure(for: error)
+        }
+        refreshShortcutSettings()
+        publish()
+    }
+
+    private func changePasteShortcut(_ shortcut: GlobalShortcut) {
+        guard let pasteShortcutCoordinator else { return }
+        do {
+            guard shortcut != shortcutCoordinator?.currentShortcut else {
+                throw GlobalShortcutRegistrationError.conflict
+            }
+            try pasteShortcutCoordinator.replaceShortcut(with: shortcut)
+            pasteShortcutStore.save(shortcut)
+            pasteShortcut = shortcut
+            pasteShortcutFailure = nil
+        } catch {
+            pasteShortcutFailure = shortcutSettingsFailure(for: error)
         }
         refreshShortcutSettings()
         publish()
@@ -991,7 +1054,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             updateState: updateState,
             retentionShorteningRecordCount: settings.retentionShorteningRecordCount,
             captureShortcut: captureShortcut,
-            shortcutFailure: shortcutFailure
+            shortcutFailure: shortcutFailure,
+            pasteShortcut: pasteShortcut,
+            pasteShortcutFailure: pasteShortcutFailure
         )
     }
 

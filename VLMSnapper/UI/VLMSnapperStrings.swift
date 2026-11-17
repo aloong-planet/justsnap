@@ -235,6 +235,7 @@ enum VLMSnapperStrings {
     static var languageSimplifiedChinese: String { localized("settings.language.zhHans") }
     static var languageEnglish: String { localized("settings.language.en") }
     static var shortcutTitle: String { localized("settings.shortcut.title") }
+    static var pasteShortcutTitle: String { localized("settings.pasteShortcut.title") }
     static var shortcutHint: String { localized("settings.shortcut.hint") }
     static var shortcutRecording: String { localized("settings.shortcut.recording") }
     static var shortcutConflict: String { localized("settings.shortcut.conflict") }

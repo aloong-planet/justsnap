@@ -548,20 +548,25 @@ actor FixtureUpdates: UpdateDriving {
 @MainActor
 final class FixtureShortcuts: GlobalShortcutRegistrationBackend {
     private(set) var activeRegistrations = 0
-    private var handler: (@MainActor @Sendable () -> Void)?
-    func fire() throws {
-        let registeredHandler = try #require(handler)
-        registeredHandler()
+    private var handlers: [(shortcut: GlobalShortcut, id: UUID, handler: @MainActor @Sendable () -> Void)] = []
+    /// Fires the handler registered for a shortcut, the default capture shortcut unless named.
+    func fire(_ shortcut: GlobalShortcut = .defaultCapture) throws {
+        let registered = try #require(handlers.last { $0.shortcut == shortcut })
+        registered.handler()
     }
+    func isRegistered(_ shortcut: GlobalShortcut) -> Bool { handlers.contains { $0.shortcut == shortcut } }
     func register(
         _ shortcut: GlobalShortcut,
         handler: @escaping @MainActor @Sendable () -> Void
     ) throws -> any GlobalShortcutRegistration {
+        // The system refuses a hot key this process already holds.
+        guard !isRegistered(shortcut) else { throw GlobalShortcutRegistrationError.conflict }
         activeRegistrations += 1
-        self.handler = handler
+        let id = UUID()
+        handlers.append((shortcut, id, handler))
         return FixtureRegistration { [weak self] in
             self?.activeRegistrations -= 1
-            self?.handler = nil
+            self?.handlers.removeAll { $0.id == id }
         }
     }
 }

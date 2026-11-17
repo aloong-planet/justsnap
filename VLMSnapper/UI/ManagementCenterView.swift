@@ -71,6 +71,8 @@ public struct GeneralSettingsSnapshot: Equatable, Sendable {
     public let retentionShorteningRecordCount: Int?
     public let captureShortcut: GlobalShortcut
     public let shortcutFailure: ShortcutSettingsFailure?
+    public let pasteShortcut: GlobalShortcut
+    public let pasteShortcutFailure: ShortcutSettingsFailure?
 
     public init(
         language: ApplicationLanguagePreference = .system,
@@ -81,7 +83,9 @@ public struct GeneralSettingsSnapshot: Equatable, Sendable {
         updateState: UpdateLifecycleState = .idle,
         retentionShorteningRecordCount: Int? = nil,
         captureShortcut: GlobalShortcut = .defaultCapture,
-        shortcutFailure: ShortcutSettingsFailure? = nil
+        shortcutFailure: ShortcutSettingsFailure? = nil,
+        pasteShortcut: GlobalShortcut = .defaultPaste,
+        pasteShortcutFailure: ShortcutSettingsFailure? = nil
     ) {
         self.language = language
         self.languageRestartRequired = languageRestartRequired
@@ -92,6 +96,8 @@ public struct GeneralSettingsSnapshot: Equatable, Sendable {
         self.retentionShorteningRecordCount = retentionShorteningRecordCount
         self.captureShortcut = captureShortcut
         self.shortcutFailure = shortcutFailure
+        self.pasteShortcut = pasteShortcut
+        self.pasteShortcutFailure = pasteShortcutFailure
     }
 }
 
@@ -118,6 +124,7 @@ public struct ManagementCenterCallbacks {
     public let onRestartForLanguageChange: () -> Void
     public let onLoginItemChange: (Bool) -> Void
     public let onShortcutChange: (GlobalShortcut) -> Void
+    public let onPasteShortcutChange: (GlobalShortcut) -> Void
     public let onOpenLoginItemSettings: () -> Void
     public let onAutomaticUpdateChecksChange: (Bool) -> Void
     public let onCheckUpdates: () -> Void
@@ -142,6 +149,7 @@ public struct ManagementCenterCallbacks {
         onRestartForLanguageChange: @escaping () -> Void = {},
         onLoginItemChange: @escaping (Bool) -> Void = { _ in },
         onShortcutChange: @escaping (GlobalShortcut) -> Void = { _ in },
+        onPasteShortcutChange: @escaping (GlobalShortcut) -> Void = { _ in },
         onOpenLoginItemSettings: @escaping () -> Void = {},
         onAutomaticUpdateChecksChange: @escaping (Bool) -> Void = { _ in },
         onCheckUpdates: @escaping () -> Void = {},
@@ -165,6 +173,7 @@ public struct ManagementCenterCallbacks {
         self.onRestartForLanguageChange = onRestartForLanguageChange
         self.onLoginItemChange = onLoginItemChange
         self.onShortcutChange = onShortcutChange
+        self.onPasteShortcutChange = onPasteShortcutChange
         self.onOpenLoginItemSettings = onOpenLoginItemSettings
         self.onAutomaticUpdateChecksChange = onAutomaticUpdateChecksChange
         self.onCheckUpdates = onCheckUpdates
@@ -553,6 +562,21 @@ public struct ManagementCenterView: View {
                     }
                     if let shortcutFailure = settings.shortcutFailure {
                         Text(shortcutFailureMessage(shortcutFailure))
+                            .font(.caption)
+                            .foregroundStyle(VLMSnapperTheme.destructive)
+                    }
+                    settingsRow(
+                        title: VLMSnapperStrings.pasteShortcutTitle,
+                        detail: VLMSnapperStrings.shortcutHint
+                    ) {
+                        GlobalShortcutRecorder(
+                            shortcut: settings.pasteShortcut,
+                            onChange: callbacks.onPasteShortcutChange
+                        )
+                        .frame(width: 150, height: 28)
+                    }
+                    if let pasteShortcutFailure = settings.pasteShortcutFailure {
+                        Text(shortcutFailureMessage(pasteShortcutFailure))
                             .font(.caption)
                             .foregroundStyle(VLMSnapperTheme.destructive)
                     }

@@ -349,6 +349,53 @@ extension ProviderApplicationTests {
             try await eventually { resultBox() == nil }
         }
     }
+
+    @Test
+    func thePasteShortcutPastesAndCannotEqualTheCaptureShortcut() async throws {
+        try await withResultFixture { fixture, model in
+            #expect(model.settings.pasteShortcut == GlobalShortcut(keyCode: 9, modifiers: [.option, .shift]))
+            fixture.pasteboard.clearContents()
+            try fixture.shortcuts.fire(.defaultPaste)
+            try await eventually { resultBoxPresentation()?.title == "Paste" }
+            try clickResultBoxButton(try #require(resultBox()), fromEnd: 0)
+            try await eventually { resultBox() == nil }
+
+            let callbacks = model.managementCallbacks()
+            callbacks.onPasteShortcutChange(.defaultCapture)
+            #expect(model.settings.pasteShortcutFailure == .conflict)
+            #expect(model.settings.pasteShortcut == .defaultPaste)
+            #expect(fixture.shortcuts.isRegistered(.defaultPaste))
+            callbacks.onShortcutChange(.defaultPaste)
+            #expect(model.settings.shortcutFailure == .conflict)
+            #expect(model.settings.captureShortcut == .defaultCapture)
+
+            let replacement = GlobalShortcut(keyCode: 9, modifiers: [.command, .option])
+            callbacks.onPasteShortcutChange(replacement)
+            #expect(model.settings.pasteShortcutFailure == nil)
+            #expect(model.settings.pasteShortcut == replacement)
+            #expect(!fixture.shortcuts.isRegistered(.defaultPaste))
+            try fixture.shortcuts.fire(replacement)
+            try await eventually { resultBoxPresentation()?.title == "Paste" }
+            try clickResultBoxButton(try #require(resultBox()), fromEnd: 0)
+            try await eventually { resultBox() == nil }
+        }
+    }
+
+    @Test
+    func aSavedPasteShortcutIsRegisteredAtTheNextLaunch() async throws {
+        let replacement = GlobalShortcut(keyCode: 9, modifiers: [.command, .option])
+        try await withFixture { fixture in
+            try await fixture.withModel { model in
+                model.managementCallbacks().onPasteShortcutChange(replacement)
+                #expect(model.settings.pasteShortcut == replacement)
+            }
+            try await fixture.withModel { model in
+                #expect(model.settings.pasteShortcut == replacement)
+                #expect(fixture.shortcuts.isRegistered(replacement))
+                #expect(!fixture.shortcuts.isRegistered(.defaultPaste))
+            }
+        }
+    }
 }
 
 // MARK: Helpers

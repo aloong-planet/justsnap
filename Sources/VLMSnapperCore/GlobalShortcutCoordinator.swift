@@ -29,19 +29,28 @@ public struct GlobalShortcut: Equatable, Sendable {
         keyCode: 1,
         modifiers: [.option, .shift]
     )
+
+    /// ⌥⇧V (clipboard-paste::REQ-001/AC-03).
+    public static let defaultPaste = GlobalShortcut(
+        keyCode: 9,
+        modifiers: [.option, .shift]
+    )
 }
 
 @MainActor
 public struct UserDefaultsGlobalShortcutStore {
     private let defaults: UserDefaults
     private let keyPrefix: String
+    private let defaultShortcut: GlobalShortcut
 
     public init(
         defaults: UserDefaults = .standard,
-        keyPrefix: String = "captureShortcut"
+        keyPrefix: String = "captureShortcut",
+        defaultShortcut: GlobalShortcut = .defaultCapture
     ) {
         self.defaults = defaults
         self.keyPrefix = keyPrefix
+        self.defaultShortcut = defaultShortcut
     }
 
     public func load() -> GlobalShortcut {
@@ -49,14 +58,14 @@ public struct UserDefaultsGlobalShortcutStore {
         let modifiersKey = "\(keyPrefix).modifiers"
         guard defaults.object(forKey: keyCodeKey) != nil,
               defaults.object(forKey: modifiersKey) != nil else {
-            return .defaultCapture
+            return defaultShortcut
         }
         let keyCode = defaults.integer(forKey: keyCodeKey)
         let modifiers = defaults.integer(forKey: modifiersKey)
         guard keyCode >= 0, modifiers >= 0,
               let keyCode = UInt32(exactly: keyCode),
               let modifiers = UInt8(exactly: modifiers) else {
-            return .defaultCapture
+            return defaultShortcut
         }
         return GlobalShortcut(
             keyCode: keyCode,

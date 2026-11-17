@@ -250,6 +250,7 @@
 "settings.language.zhHans" = "简体中文";
 "settings.language.en" = "English";
 "settings.shortcut.title" = "截图快捷键";
+"settings.pasteShortcut.title" = "粘贴快捷键";
 "settings.shortcut.hint" = "点击按键框，然后按下包含 Command、Option 或 Control 的快捷键。";
 "settings.shortcut.recording" = "请按快捷键";
 "settings.shortcut.conflict" = "该快捷键已被占用，原快捷键仍然有效。";

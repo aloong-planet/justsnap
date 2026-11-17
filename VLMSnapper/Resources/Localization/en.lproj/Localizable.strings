@@ -250,6 +250,7 @@
 "settings.language.zhHans" = "Simplified Chinese";
 "settings.language.en" = "English";
 "settings.shortcut.title" = "Capture Shortcut";
+"settings.pasteShortcut.title" = "Paste Shortcut";
 "settings.shortcut.hint" = "Click the field, then press a shortcut containing Command, Option, or Control.";
 "settings.shortcut.recording" = "Press shortcut";
 "settings.shortcut.conflict" = "That shortcut is already in use. The previous shortcut remains active.";
