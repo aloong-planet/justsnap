@@ -150,13 +150,13 @@ struct CaptureResultBoxPresentationTests {
     }
 
     @Test(
-        "a request body over the limit names its size, the Provider's limit and what to do",
+        "a request body over the limit names the request size, the Provider's limit and what to do",
         arguments: [
             (CaptureResultBoxPresentation.ImageSource.capture, EffectiveApplicationLanguage.simplifiedChinese,
-             "截图为 24.3 MB，超过 Gemini 允许的 20 MB。请缩小选区后重试。"),
-            (.paste, .simplifiedChinese, "图片为 24.3 MB，超过 Gemini 允许的 20 MB。请复制较小的图片后重新粘贴。"),
-            (.capture, .english, "The screenshot is 24.3 MB, over the 20 MB Gemini allows. Select a smaller area and retry."),
-            (.paste, .english, "The image is 24.3 MB, over the 20 MB Gemini allows. Copy a smaller image and paste again."),
+             "请求大小为 24.3 MB，超过 Gemini 允许的 20 MB。请缩小选区后重试。"),
+            (.paste, .simplifiedChinese, "请求大小为 24.3 MB，超过 Gemini 允许的 20 MB。请复制较小的图片后重新粘贴。"),
+            (.capture, .english, "The request is 24.3 MB, over the 20 MB Gemini allows. Select a smaller area and retry."),
+            (.paste, .english, "The request is 24.3 MB, over the 20 MB Gemini allows. Copy a smaller image and paste again."),
         ]
     )
     func requestBodyOverLimit(source: CaptureResultBoxPresentation.ImageSource, language: EffectiveApplicationLanguage, message: String) {

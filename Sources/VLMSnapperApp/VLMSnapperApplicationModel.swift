@@ -46,7 +46,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
     private(set) var settings = GeneralSettingsSnapshot()
     private(set) var captureShortcut = GlobalShortcut.defaultCapture
     private(set) var shortcutFailure: ShortcutSettingsFailure?
-    private(set) var pasteShortcut = GlobalShortcut.defaultPaste
+    private(set) var pasteShortcut: GlobalShortcut? = .defaultPaste
     private(set) var pasteShortcutFailure: ShortcutSettingsFailure?
 
     var onSnapshotChange: (@MainActor () -> Void)?
@@ -329,7 +329,11 @@ final class VLMSnapperApplicationModel: ObservableObject {
                 if pasteShortcutFailure == nil { pasteShortcutFailure = shortcutSettingsFailure(for: error) }
             }
         }
-        if paste.currentShortcut != preferredPasteShortcut, pasteShortcutFailure == nil {
+        if paste.currentShortcut == nil {
+            // Nothing could be registered, e.g. a capture shortcut of ⌥⇧V stored before paste existed.
+            pasteShortcut = nil
+            pasteShortcutFailure = .unset
+        } else if paste.currentShortcut != preferredPasteShortcut, pasteShortcutFailure == nil {
             pasteShortcutFailure = .conflict
         }
         pasteShortcutCoordinator = paste
@@ -349,7 +353,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
             captureShortcut: GlobalShortcutDisplayFormatter.string(
                 for: captureShortcut
             ),
-            pasteShortcut: GlobalShortcutDisplayFormatter.string(for: pasteShortcut),
+            pasteShortcut: pasteShortcut.map(GlobalShortcutDisplayFormatter.string(for:)),
             callbacks: menuCallbacks()
         )
     }
@@ -1045,7 +1049,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             pasteShortcut = shortcut
             pasteShortcutFailure = nil
         } catch {
-            pasteShortcutFailure = shortcutSettingsFailure(for: error)
+            let failure = shortcutSettingsFailure(for: error)
+            // With no paste shortcut registered there is no previous one that still works.
+            pasteShortcutFailure = failure == .conflict && pasteShortcut == nil ? .unset : failure
         }
         refreshShortcutSettings()
         publish()

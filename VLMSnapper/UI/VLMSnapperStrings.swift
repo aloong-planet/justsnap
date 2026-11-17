@@ -240,6 +240,8 @@ enum VLMSnapperStrings {
     static var shortcutHint: String { localized("settings.shortcut.hint") }
     static var shortcutRecording: String { localized("settings.shortcut.recording") }
     static var shortcutConflict: String { localized("settings.shortcut.conflict") }
+    static var shortcutNotSet: String { localized("settings.shortcut.notSet") }
+    static var pasteShortcutUnset: String { localized("settings.pasteShortcut.unset") }
     static var shortcutInvalid: String { localized("settings.shortcut.invalid") }
     static var loginItemTitle: String { localized("settings.loginItem.title") }
     static var loginItemHint: String { localized("settings.loginItem.hint") }

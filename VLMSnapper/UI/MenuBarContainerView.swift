@@ -47,7 +47,7 @@ public struct MenuBarContainerView: View {
     private let provider: ProviderReadiness
     private let updateState: UpdateLifecycleState
     private let captureShortcut: String
-    private let pasteShortcut: String
+    private let pasteShortcut: String?
     private let callbacks: MenuBarCallbacks
 
     public init(
@@ -56,7 +56,7 @@ public struct MenuBarContainerView: View {
         provider: ProviderReadiness,
         updateState: UpdateLifecycleState = .idle,
         captureShortcut: String = "⌥⇧S",
-        pasteShortcut: String = "⌥⇧V",
+        pasteShortcut: String? = "⌥⇧V",
         callbacks: MenuBarCallbacks
     ) {
         self.recentItems = recentItems

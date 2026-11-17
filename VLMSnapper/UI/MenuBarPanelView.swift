@@ -193,7 +193,8 @@ public struct MenuBarPanelView: View {
     private let provider: ProviderReadiness
     private let updateState: UpdateLifecycleState
     private let captureShortcut: String
-    private let pasteShortcut: String
+    /// Nil when the paste shortcut is unset; the button then shows no shortcut.
+    private let pasteShortcut: String?
     private let onCapture: () -> Void
     private let onPaste: () -> Void
     private let onOpenRecent: (String) -> Void
@@ -207,7 +208,7 @@ public struct MenuBarPanelView: View {
         provider: ProviderReadiness = .missing,
         updateState: UpdateLifecycleState = .idle,
         captureShortcut: String = "⌥⇧S",
-        pasteShortcut: String = "⌥⇧V",
+        pasteShortcut: String? = "⌥⇧V",
         onCapture: @escaping () -> Void,
         onPaste: @escaping () -> Void = {},
         onOpenRecent: @escaping (String) -> Void,
@@ -403,7 +404,7 @@ public struct MenuBarPanelView: View {
     private func primaryAction(
         _ title: String,
         icon: VLMSnapperIcon,
-        shortcut: String,
+        shortcut: String?,
         action: @escaping () -> Void
     ) -> some View {
         MenuBarPanelActionButton(role: .primary, action: action) {
@@ -413,10 +414,12 @@ public struct MenuBarPanelView: View {
                     .foregroundStyle(VLMSnapperTheme.primaryText)
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                Text(shortcut)
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                    .foregroundStyle(VLMSnapperTheme.secondaryText)
-                    .fixedSize()
+                if let shortcut {
+                    Text(shortcut)
+                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                        .foregroundStyle(VLMSnapperTheme.secondaryText)
+                        .fixedSize()
+                }
             }
             .padding(.horizontal, 12)
         }

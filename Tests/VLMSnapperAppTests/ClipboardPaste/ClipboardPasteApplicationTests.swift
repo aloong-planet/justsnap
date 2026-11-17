@@ -19,7 +19,8 @@ import VLMSnapperUI
 // covers this controller passing the paste wording, the Provider's name and the sizes into the box. The display
 // the box opens on and its default place (REQ-005/AC-01) need a second display and a placed pointer, and the
 // paste shortcut recorder sitting below the capture one (REQ-001/AC-03) is layout; both are checked on the
-// installed build. Retry with no Provider or model left (the missing-selection failure) needs the current
+// installed build, as are the panel's Paste button and the recorder when the paste shortcut is unset
+// (REQ-001/AC-04). Retry with no Provider or model left (the missing-selection failure) needs the current
 // Provider removed while the box is open and is not driven here. The box showing that the request is being prepared while a large image converts
 // (failure mode 4) depends on conversion timing. A history database that cannot record (REQ-002/AC-05) goes
 // through the same runner as a capture, so it is not repeated here.
@@ -464,6 +465,33 @@ extension ProviderApplicationTests {
                 #expect(model.settings.pasteShortcut == replacement)
                 #expect(fixture.shortcuts.isRegistered(replacement))
                 #expect(!fixture.shortcuts.isRegistered(.defaultPaste))
+            }
+        }
+    }
+
+    @Test
+    func aStoredCaptureShortcutEqualToThePasteDefaultLeavesPasteUnset() async throws {
+        // Versions before paste existed let the capture shortcut be ⌥⇧V (c839327).
+        try await withFixture { fixture in
+            let defaults = try #require(UserDefaults(suiteName: fixture.suite))
+            UserDefaultsGlobalShortcutStore(defaults: defaults).save(.defaultPaste)
+            try await fixture.withModel { model in
+                #expect(model.settings.captureShortcut == .defaultPaste)
+                #expect(model.settings.pasteShortcut == nil)
+                #expect(model.settings.pasteShortcutFailure == .unset)
+                #expect(fixture.shortcuts.isRegistered(.defaultPaste))
+
+                let callbacks = model.managementCallbacks()
+                callbacks.onPasteShortcutChange(.defaultPaste)
+                #expect(model.settings.pasteShortcut == nil)
+                #expect(model.settings.pasteShortcutFailure == .unset)
+
+                let replacement = GlobalShortcut(keyCode: 9, modifiers: [.command, .option])
+                callbacks.onPasteShortcutChange(replacement)
+                #expect(model.settings.pasteShortcut == replacement)
+                #expect(model.settings.pasteShortcutFailure == nil)
+                #expect(fixture.shortcuts.isRegistered(replacement))
+                #expect(model.settings.captureShortcut == .defaultPaste)
             }
         }
     }

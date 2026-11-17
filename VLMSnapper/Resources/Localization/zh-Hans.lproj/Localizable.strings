@@ -38,8 +38,8 @@
 "failure.contentBlocked" = "Provider 拒绝处理这张截图。";
 "failure.imageUnsupported" = "当前模型不支持图片输入。";
 "failure.imageTooLarge" = "截图超过当前 Provider 或模型的大小限制。";
-"failure.imageTooLarge.capture" = "截图为 %1$@，超过 %2$@ 允许的 %3$@。请缩小选区后重试。";
-"failure.imageTooLarge.paste" = "图片为 %1$@，超过 %2$@ 允许的 %3$@。请复制较小的图片后重新粘贴。";
+"failure.imageTooLarge.capture" = "请求大小为 %1$@，超过 %2$@ 允许的 %3$@。请缩小选区后重试。";
+"failure.imageTooLarge.paste" = "请求大小为 %1$@，超过 %2$@ 允许的 %3$@。请复制较小的图片后重新粘贴。";
 "failure.timeout" = "等待 Provider 响应超时，请检查网络后手动重试。";
 "failure.transport" = "无法连接 Provider，请检查网络后手动重试。";
 "failure.localStorage" = "VLMSnapper 无法将 API Key 安全保存到 Apple Keychain。请保留当前窗口，检查应用安装后重试。";
@@ -255,6 +255,8 @@
 "settings.shortcut.hint" = "点击按键框，然后按下包含 Command、Option 或 Control 的快捷键。";
 "settings.shortcut.recording" = "请按快捷键";
 "settings.shortcut.conflict" = "该快捷键已被占用，原快捷键仍然有效。";
+"settings.shortcut.notSet" = "未设置";
+"settings.pasteShortcut.unset" = "粘贴快捷键与其他快捷键冲突，目前未设置。请录制新的快捷键。";
 "settings.shortcut.invalid" = "请使用 Command、Option 或 Control 搭配支持的按键。";
 "settings.loginItem.title" = "登录时启动";
 "settings.loginItem.hint" = "登录这台 Mac 后在菜单栏中启动 VLMSnapper。";

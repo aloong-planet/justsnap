@@ -71,7 +71,8 @@ public struct GeneralSettingsSnapshot: Equatable, Sendable {
     public let retentionShorteningRecordCount: Int?
     public let captureShortcut: GlobalShortcut
     public let shortcutFailure: ShortcutSettingsFailure?
-    public let pasteShortcut: GlobalShortcut
+    /// Nil when no paste shortcut could be registered at startup (clipboard-paste::REQ-001/AC-04).
+    public let pasteShortcut: GlobalShortcut?
     public let pasteShortcutFailure: ShortcutSettingsFailure?
 
     public init(
@@ -84,7 +85,7 @@ public struct GeneralSettingsSnapshot: Equatable, Sendable {
         retentionShorteningRecordCount: Int? = nil,
         captureShortcut: GlobalShortcut = .defaultCapture,
         shortcutFailure: ShortcutSettingsFailure? = nil,
-        pasteShortcut: GlobalShortcut = .defaultPaste,
+        pasteShortcut: GlobalShortcut? = .defaultPaste,
         pasteShortcutFailure: ShortcutSettingsFailure? = nil
     ) {
         self.language = language
@@ -105,6 +106,8 @@ public enum ShortcutSettingsFailure: Equatable, Sendable {
     case invalid
     case conflict
     case registrationFailed
+    /// A conflict left the paste shortcut unregistered, so there is no previous shortcut still working.
+    case unset
 }
 
 @MainActor
@@ -1178,6 +1181,8 @@ public struct ManagementCenterView: View {
         switch failure {
         case .conflict:
             return VLMSnapperStrings.shortcutConflict
+        case .unset:
+            return VLMSnapperStrings.pasteShortcutUnset
         case .invalid, .registrationFailed:
             return VLMSnapperStrings.shortcutInvalid
         }

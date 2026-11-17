@@ -38,8 +38,8 @@
 "failure.contentBlocked" = "The Provider refused to process this screenshot.";
 "failure.imageUnsupported" = "The current model does not support image input.";
 "failure.imageTooLarge" = "The screenshot exceeds the current Provider or model size limit.";
-"failure.imageTooLarge.capture" = "The screenshot is %1$@, over the %3$@ %2$@ allows. Select a smaller area and retry.";
-"failure.imageTooLarge.paste" = "The image is %1$@, over the %3$@ %2$@ allows. Copy a smaller image and paste again.";
+"failure.imageTooLarge.capture" = "The request is %1$@, over the %3$@ %2$@ allows. Select a smaller area and retry.";
+"failure.imageTooLarge.paste" = "The request is %1$@, over the %3$@ %2$@ allows. Copy a smaller image and paste again.";
 "failure.timeout" = "The Provider response timed out. Check the network and retry manually.";
 "failure.transport" = "VLMSnapper could not reach the Provider. Check the network and retry manually.";
 "failure.localStorage" = "VLMSnapper could not save the API key securely in Apple Keychain. Keep this window open and retry after checking the app installation.";
@@ -255,6 +255,8 @@
 "settings.shortcut.hint" = "Click the field, then press a shortcut containing Command, Option, or Control.";
 "settings.shortcut.recording" = "Press shortcut";
 "settings.shortcut.conflict" = "That shortcut is already in use. The previous shortcut remains active.";
+"settings.shortcut.notSet" = "Not set";
+"settings.pasteShortcut.unset" = "The paste shortcut conflicts with another shortcut and is not set. Record a new one.";
 "settings.shortcut.invalid" = "Use Command, Option, or Control with a supported key.";
 "settings.loginItem.title" = "Launch at Login";
 "settings.loginItem.hint" = "Start VLMSnapper in the menu bar after you log in to this Mac.";
