@@ -18,6 +18,7 @@ struct ApplicationModelDependencies {
     let frozenDisplayCapturer: any FrozenDisplayCapturing
     let windowListing: any CaptureWindowListing
     let captureClipboard: any CaptureImageClipboard
+    let clipboardReader: any ClipboardImageReading
     let captureImageSaver: any CaptureImageSaving
     let captureResultLossNotifier: any CaptureResultLossNotifying
     let displayMonitor: CaptureDisplayMonitor
@@ -39,6 +40,7 @@ struct ApplicationModelDependencies {
             frozenDisplayCapturer: ScreenCaptureKitFrozenDisplayCapturer(),
             windowListing: CoreGraphicsCaptureWindowListing(),
             captureClipboard: SystemCaptureImageClipboard(),
+            clipboardReader: PasteboardClipboardImageReader(pasteboard: .general),
             captureImageSaver: SavePanelCaptureImageSaver(),
             captureResultLossNotifier: AlertCaptureResultLossNotifier(),
             displayMonitor: CaptureDisplayMonitor(

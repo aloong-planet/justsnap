@@ -204,6 +204,7 @@ final class ApplicationFixture {
                 frozenDisplayCapturer: capture,
                 windowListing: windows,
                 captureClipboard: clipboard,
+                clipboardReader: PasteboardClipboardImageReader(pasteboard: pasteboard),
                 captureImageSaver: imageSaver,
                 captureResultLossNotifier: resultLossNotifier,
                 displayMonitor: CaptureDisplayMonitor(

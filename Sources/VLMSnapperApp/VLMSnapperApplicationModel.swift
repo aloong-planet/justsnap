@@ -128,6 +128,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
             Task { await self.requestCaptureExit(generation: generation) }
         }
     )
+    /// The paste result box, outside any capture (clipboard-paste, ADR-0019).
+    private lazy var pasteController = makePasteController()
     private lazy var updateDriver = dependencies.makeUpdateDriver { [weak self] event in
         await self?.receiveUpdateEvent(event)
     }
@@ -672,6 +674,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
             guard await closeResultSessionForExit() else { return false }
             await cancelCapture(generation: activeCaptureGeneration)
         }
+        guard await pasteController.prepareForTermination() else { return false }
         for task in credentialTasks.values { task.cancel() }
         credentialTasks.removeAll()
         credentialEditor.terminate()
@@ -1024,19 +1027,86 @@ final class VLMSnapperApplicationModel: ObservableObject {
         } catch {}
     }
 
+    private func makePasteController() -> ClipboardPasteController {
+        ClipboardPasteController(environment: .init(
+            reader: dependencies.clipboardReader,
+            makeSession: { [unowned self] png in
+                OperationWorkspaceSession(
+                    originalPNG: png,
+                    runner: PersistedOperationWorkspaceRunner(
+                        screenshotStore: screenshotStore,
+                        historyStore: historyStore,
+                        provider: providerStreamer,
+                        visionCompatibility: providerCoordinator,
+                        modelListRefresh: providerCoordinator
+                    ),
+                    activeGate: operationGate
+                )
+            },
+            performRequest: { [unowned self] operation in
+                (try? await workflow.performOperation { await operation() }) ?? false
+            },
+            selection: { [unowned self] in providerSelection },
+            missingSelectionCode: { [unowned self] in
+                if case .pendingModel = providerReadiness {
+                    return ProviderAdapterError.modelUnavailable.normalizedCode
+                }
+                return ProviderAdapterError.providerUnavailable.normalizedCode
+            },
+            providerSummary: { [unowned self] in providerSummary(for: $0) },
+            providerName: { [unowned self] in providerName(for: $0) },
+            targetLanguageCode: { [unowned self] in selectedTargetLanguageCode },
+            targetLanguages: { [unowned self] in targetLanguageOptions },
+            changeTargetLanguage: { [unowned self] in changeTargetLanguage($0) },
+            copyText: { [unowned self] in dependencies.captureClipboard.write(text: $0) },
+            requestFinished: { [unowned self] session, operation in
+                await recordResultDiagnostic(session, operation: operation)
+                let snapshot = await session.snapshot()
+                await reloadProviderIfRequestChangedModels(operation == .extract ? snapshot.extract : snapshot.translate)
+                await refreshHistory()
+            },
+            refreshHistory: { [unowned self] in await refreshHistory() }
+        ))
+    }
+
+    /// Pastes the clipboard's image for Text Extraction (clipboard-paste::REQ-002, REQ-003).
+    func pasteFromClipboard() {
+        Task {
+            // Nothing while the capture interface is open, or while the box holds work.
+            guard captureRequest == nil, captureLease == nil, !pasteController.holdsWork else { return }
+            if case let .credential(provider) = await providerCoordinator.currentActivity() {
+                presentProviderPage(provider)
+                return
+            }
+            guard case .ready = providerReadiness else {
+                onShowOnboarding?()
+                return
+            }
+            guard captureRequest == nil, captureLease == nil else { return }
+            pasteController.paste()
+        }
+    }
+
+    private func presentProviderPage(_ provider: ProviderID) {
+        providerFocusRequest = ProviderSettingsFocusRequest(provider: provider)
+        publish()
+        onNavigate?(.providerSettings)
+        providerSettingsConfiguration().onSelectProvider(provider)
+    }
+
     private func capture(from source: CaptureEntryPoint = .menu) {
+        // A paste result box with a running request or an unsaved result keeps the screen
+        // (clipboard-paste::REQ-005/AC-07).
+        guard !pasteController.holdsWork else { return }
         Task {
             await workflow.capture(
                 from: source,
                 replacing: captureLease,
                 presentProvider: { [weak self] provider in
-                    guard let self else { return }
-                    self.providerFocusRequest = ProviderSettingsFocusRequest(provider: provider)
-                    self.publish()
-                    self.onNavigate?(.providerSettings)
-                    self.providerSettingsConfiguration().onSelectProvider(provider)
+                    self?.presentProviderPage(provider)
                 },
                 perform: { [self] lease in
+                    guard !pasteController.holdsWork else { return false }
                     guard permission == .ready, case .ready = providerReadiness else {
                         onShowOnboarding?()
                         return false
@@ -1172,6 +1242,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
                 resetResultSurfaces()
             }
             onRetireCaptureSources?()
+            await pasteController.closeForCapture()
             await retiredSelectionSession?.cancel()
             return true
         case .permissionRequired:
