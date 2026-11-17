@@ -12,8 +12,13 @@ import VLMSnapperUI
 // clipboard-paste. The paste fixture's pasteboard is a private one the real reader reads; its layouts copy
 // clipboards seen on this Mac on 2026-11-17 (WebKit's Copy Image). Not covered here, because they need the
 // window server and other apps: what browsers other than WebKit and spreadsheets put on the clipboard,
-// that showing the box leaves another app active, and the box's level above other apps' windows — checked
-// on the installed build.
+// that showing the box leaves another app active, that a click makes it key, the box's level above other
+// apps' windows, and the delegate closing the real menu panel — checked on the installed build.
+// Also not covered: an oversized paste naming its Provider (REQ-004/AC-04) needs a Gemini request body over
+// 20 MB, which the fixture cannot lower; its message is covered by the box presentation tests and its sizes
+// by the Core runner tests. The box showing that the request is being prepared while a large image converts
+// (failure mode 4) depends on conversion timing. A history database that cannot record (REQ-002/AC-05) goes
+// through the same runner as a capture, so it is not repeated here.
 extension ProviderApplicationTests {
     @Test
     func pastingACopiedImageExtractsItInAFloatingBox() async throws {
