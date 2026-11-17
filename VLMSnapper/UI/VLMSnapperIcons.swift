@@ -14,7 +14,7 @@ enum VLMSnapperIcon: String {
     case copy = "doc.on.doc"
     case retry = "arrow.clockwise"
     case capture = "viewfinder"
-    case paste = "doc.on.clipboard"
+    case paste = "list.clipboard"
     case permission = "rectangle.inset.filled.and.person.filled"
     case complete = "checkmark.circle.fill"
     case warning = "exclamationmark.triangle.fill"
