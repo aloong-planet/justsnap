@@ -149,6 +149,36 @@ struct CaptureResultBoxPresentationTests {
         }
     }
 
+    @Test(
+        "a request body over the limit names its size, the Provider's limit and what to do",
+        arguments: [
+            (CaptureResultBoxPresentation.ImageSource.capture, EffectiveApplicationLanguage.simplifiedChinese,
+             "截图为 24.3 MB，超过 Gemini 允许的 20 MB。请缩小选区后重试。"),
+            (.paste, .simplifiedChinese, "图片为 24.3 MB，超过 Gemini 允许的 20 MB。请复制较小的图片后重新粘贴。"),
+            (.capture, .english, "The screenshot is 24.3 MB, over the 20 MB Gemini allows. Select a smaller area and retry."),
+            (.paste, .english, "The image is 24.3 MB, over the 20 MB Gemini allows. Copy a smaller image and paste again."),
+        ]
+    )
+    func requestBodyOverLimit(source: CaptureResultBoxPresentation.ImageSource, language: EffectiveApplicationLanguage, message: String) {
+        LocalizationTestCoordinator.withExclusiveAccess {
+            VLMSnapperLocalization.configure(effectiveLanguage: language)
+            let value = CaptureResultBoxPresentation(
+                operation: .extract,
+                targetLanguageName: "简体中文",
+                providerSummary: "Gemini · vision",
+                slot: WorkspaceOperationSlot(
+                    attempt: .failed(code: "image_too_large"),
+                    requestBodyOverLimit: RequestBodyOverLimit(actualBytes: 24_300_000, limitBytes: 20_000_000)
+                ),
+                source: source,
+                providerName: "Gemini",
+                locale: Locale(identifier: "en_US")
+            )
+            #expect(value.body == .failure(message))
+            #expect(value.canRetry)
+        }
+    }
+
     @Test("a canceled operation says so and can be retried, without earlier text")
     func canceled() {
         LocalizationTestCoordinator.withExclusiveAccess {

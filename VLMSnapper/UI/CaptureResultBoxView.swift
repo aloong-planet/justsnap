@@ -16,6 +16,12 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
         case text(CaptureResultBoxText)
     }
 
+    /// Where the box's image came from: a capture, or a Pasted Image (clipboard-paste).
+    public enum ImageSource: Equatable, Sendable {
+        case capture
+        case paste
+    }
+
     public let title: String
     public let providerSummary: String
     public let showsProgress: Bool
@@ -32,7 +38,10 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
         targetLanguageName: String,
         providerSummary: String,
         slot: WorkspaceOperationSlot,
-        retryAvailable: Bool = true
+        retryAvailable: Bool = true,
+        source: ImageSource = .capture,
+        providerName: String = "",
+        locale: Locale = .autoupdatingCurrent
     ) {
         title = operation == .extract
             ? VLMSnapperStrings.captureExtract
@@ -81,7 +90,14 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
         case let .failed(code):
             showsProgress = false
             followsNewText = false
-            body = .failure(VLMSnapperStrings.failureMessage(code: code))
+            body = .failure(slot.requestBodyOverLimit.map {
+                VLMSnapperStrings.requestBodyOverLimit(
+                    $0,
+                    providerName: providerName,
+                    fromPaste: source == .paste,
+                    locale: locale
+                )
+            } ?? VLMSnapperStrings.failureMessage(code: code))
             copyText = ""
             canRetry = retryAvailable
             saveNotice = nil

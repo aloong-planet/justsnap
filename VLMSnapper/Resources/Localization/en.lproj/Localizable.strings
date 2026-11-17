@@ -38,6 +38,8 @@
 "failure.contentBlocked" = "The Provider refused to process this screenshot.";
 "failure.imageUnsupported" = "The current model does not support image input.";
 "failure.imageTooLarge" = "The screenshot exceeds the current Provider or model size limit.";
+"failure.imageTooLarge.capture" = "The screenshot is %1$@, over the %3$@ %2$@ allows. Select a smaller area and retry.";
+"failure.imageTooLarge.paste" = "The image is %1$@, over the %3$@ %2$@ allows. Copy a smaller image and paste again.";
 "failure.timeout" = "The Provider response timed out. Check the network and retry manually.";
 "failure.transport" = "VLMSnapper could not reach the Provider. Check the network and retry manually.";
 "failure.localStorage" = "VLMSnapper could not save the API key securely in Apple Keychain. Keep this window open and retry after checking the app installation.";

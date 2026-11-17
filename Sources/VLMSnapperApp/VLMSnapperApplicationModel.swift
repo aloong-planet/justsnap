@@ -108,6 +108,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
     /// A request that never reached the session, such as with no usable model; shown like its failure.
     private var localResultFailures: [WorkspaceOperationKind: String] = [:]
     private var workspaceProviderSummary: String?
+    private var workspaceProviderName = ""
     /// The language of the record in the translation slot; a rerun keeps it.
     private var workspaceTargetLanguageCode: String?
     private var confirmedSelectionFrame: CGRect?
@@ -1492,6 +1493,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
         localResultFailures[operation] = nil
         if operation == .translate { workspaceTargetLanguageCode = targetLanguage }
         workspaceProviderSummary = providerSummary(for: selection)
+        workspaceProviderName = providerName(for: selection)
         runningResultOperation = operation
         refreshResultSurfaces()
         resultRunTask = Task { [weak self] in
@@ -1566,7 +1568,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
             ),
             providerSummary: workspaceProviderSummary ?? providerSummary,
             slot: resultSlot(operation),
-            retryAvailable: !hasUnsavedWorkspaceResult
+            retryAvailable: !hasUnsavedWorkspaceResult,
+            providerName: workspaceProviderName
         )
         if resultBoxController.state.presentation != presentation {
             resultBoxController.state.presentation = presentation
@@ -1744,14 +1747,17 @@ final class VLMSnapperApplicationModel: ObservableObject {
     }
 
     private func providerSummary(for selection: ProviderSelection) -> String {
-        let providerName = ProviderID(rawValue: selection.providerID).map {
+        "\(providerName(for: selection)) · \(selection.modelID)"
+    }
+
+    private func providerName(for selection: ProviderSelection) -> String {
+        ProviderID(rawValue: selection.providerID).map {
             switch $0 {
             case .deepSeek: "DeepSeek"
             case .openAI: "OpenAI"
             case .gemini: "Gemini"
             }
         } ?? selection.providerID
-        return "\(providerName) · \(selection.modelID)"
     }
 
     private var targetLanguageOptions: [TargetLanguageOption] {

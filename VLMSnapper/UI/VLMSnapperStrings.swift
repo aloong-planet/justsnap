@@ -299,6 +299,22 @@ enum VLMSnapperStrings {
         return localized(key)
     }
 
+    /// The size check before sending rejected the request (v1-core §9, clipboard-paste::REQ-004/AC-04).
+    static func requestBodyOverLimit(
+        _ overLimit: RequestBodyOverLimit,
+        providerName: String,
+        fromPaste: Bool,
+        locale: Locale
+    ) -> String {
+        let size = { (bytes: Int) in Int64(bytes).formatted(.byteCount(style: .file).locale(locale)) }
+        return String(
+            format: localized(fromPaste ? "failure.imageTooLarge.paste" : "failure.imageTooLarge.capture"),
+            size(overLimit.actualBytes),
+            providerName,
+            size(overLimit.limitBytes)
+        )
+    }
+
     static func localized(_ key: String) -> String {
         LocalizationBundleStore.shared.localized(key)
     }
