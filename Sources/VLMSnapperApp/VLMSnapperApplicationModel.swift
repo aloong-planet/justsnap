@@ -55,6 +55,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
     var onOpenProviderSettingsFromOnboarding: (@MainActor () -> Void)?
     var onProviderConfigurationCompleted: (@MainActor () -> Void)?
     var onRetireCaptureSources: (@MainActor () -> Void)?
+    var onCloseMenuPanel: (@MainActor () -> Void)?
 
     private let defaults: UserDefaults
     private let dependencies: ApplicationModelDependencies
@@ -348,6 +349,7 @@ final class VLMSnapperApplicationModel: ObservableObject {
             captureShortcut: GlobalShortcutDisplayFormatter.string(
                 for: captureShortcut
             ),
+            pasteShortcut: GlobalShortcutDisplayFormatter.string(for: pasteShortcut),
             callbacks: menuCallbacks()
         )
     }
@@ -466,6 +468,11 @@ final class VLMSnapperApplicationModel: ObservableObject {
     private func menuCallbacks() -> MenuBarCallbacks {
         MenuBarCallbacks(
             onCapture: { [weak self] in self?.capture(from: .menu) },
+            onPaste: { [weak self] in
+                // The panel closes at once, whatever the paste then shows (clipboard-paste::REQ-001/AC-02).
+                self?.onCloseMenuPanel?()
+                self?.pasteFromClipboard()
+            },
             onOpenRecent: { [weak self] id in
                 Task { await self?.openRecentHistoryItem(id) }
             },

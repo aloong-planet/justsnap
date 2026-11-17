@@ -396,6 +396,29 @@ extension ProviderApplicationTests {
             }
         }
     }
+
+    @Test
+    func thePanelsPasteButtonClosesThePanelAndPastes() async throws {
+        try await withResultFixture { fixture, model in
+            var panelCloses = 0
+            model.onCloseMenuPanel = { panelCloses += 1 }
+            fixture.pasteboard.clearContents()
+            let hosting = NSHostingView(rootView: model.menuView())
+            hosting.frame = NSRect(x: 0, y: 0, width: MenuBarPanelMetrics.width, height: 420)
+            let window = NSWindow(contentRect: hosting.frame, styleMask: .borderless, backing: .buffered, defer: false)
+            window.contentView = hosting
+            window.orderFront(nil)
+            defer { window.orderOut(nil) }
+            hosting.layoutSubtreeIfNeeded()
+
+            try click(window, at: NSPoint(x: 225, y: hosting.bounds.maxY - 50 - MenuBarPanelMetrics.captureButtonHeight / 2))
+            try await eventually { resultBoxPresentation()?.title == "Paste" }
+
+            #expect(panelCloses == 1)
+            #expect(resultBoxPresentation()?.body == .message("There is no image on the clipboard. Copy an image, then paste."))
+            #expect(await fixture.capture.requests == 0)
+        }
+    }
 }
 
 // MARK: Helpers

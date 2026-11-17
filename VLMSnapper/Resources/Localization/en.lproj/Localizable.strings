@@ -125,6 +125,7 @@
 "permissionRecovery.laterNote" = "You can close this window and handle it later.";
 "permissionRecovery.restartNote" = "The capture entry will remind you until the app restarts.";
 "menu.capture" = "Capture";
+"menu.paste" = "Paste";
 "paste.title" = "Paste";
 "paste.clipboardText" = "The clipboard holds text. Only images can be pasted for now.";
 "paste.clipboardEmpty" = "There is no image on the clipboard. Copy an image, then paste.";

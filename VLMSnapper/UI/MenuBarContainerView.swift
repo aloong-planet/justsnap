@@ -15,6 +15,7 @@ enum MenuCaptureActionHandler {
 
 public struct MenuBarCallbacks {
     public let onCapture: () -> Void
+    public let onPaste: () -> Void
     public let onOpenRecent: (String) -> Void
     public let onNavigate: (ManagementCenterDestination) -> Void
     public let onCheckUpdates: () -> Void
@@ -23,6 +24,7 @@ public struct MenuBarCallbacks {
 
     public init(
         onCapture: @escaping () -> Void,
+        onPaste: @escaping () -> Void = {},
         onOpenRecent: @escaping (String) -> Void,
         onNavigate: @escaping (ManagementCenterDestination) -> Void,
         onCheckUpdates: @escaping () -> Void,
@@ -30,6 +32,7 @@ public struct MenuBarCallbacks {
         onOpenUpdateInformation: @escaping (URL) -> Void = { _ in }
     ) {
         self.onCapture = onCapture
+        self.onPaste = onPaste
         self.onOpenRecent = onOpenRecent
         self.onNavigate = onNavigate
         self.onCheckUpdates = onCheckUpdates
@@ -44,6 +47,7 @@ public struct MenuBarContainerView: View {
     private let provider: ProviderReadiness
     private let updateState: UpdateLifecycleState
     private let captureShortcut: String
+    private let pasteShortcut: String
     private let callbacks: MenuBarCallbacks
 
     public init(
@@ -52,6 +56,7 @@ public struct MenuBarContainerView: View {
         provider: ProviderReadiness,
         updateState: UpdateLifecycleState = .idle,
         captureShortcut: String = "⌥⇧S",
+        pasteShortcut: String = "⌥⇧V",
         callbacks: MenuBarCallbacks
     ) {
         self.recentItems = recentItems
@@ -59,6 +64,7 @@ public struct MenuBarContainerView: View {
         self.provider = provider
         self.updateState = updateState
         self.captureShortcut = captureShortcut
+        self.pasteShortcut = pasteShortcut
         self.callbacks = callbacks
     }
 
@@ -68,7 +74,9 @@ public struct MenuBarContainerView: View {
             provider: provider,
             updateState: updateState,
             captureShortcut: captureShortcut,
+            pasteShortcut: pasteShortcut,
             onCapture: routeCapture,
+            onPaste: callbacks.onPaste,
             onOpenRecent: callbacks.onOpenRecent,
             onNavigate: callbacks.onNavigate,
             onCheckUpdates: callbacks.onCheckUpdates,

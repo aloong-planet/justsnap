@@ -111,6 +111,7 @@ enum VLMSnapperStrings {
     static var permissionBlocker: String { localized("onboarding.blocker.permission") }
     static var providerBlocker: String { localized("onboarding.blocker.provider") }
     static var menuCapture: String { localized("menu.capture") }
+    static var menuPaste: String { localized("menu.paste") }
     static var menuRecent: String { localized("menu.recent") }
     static var menuHistory: String { localized("menu.history") }
     static var menuSettings: String { localized("menu.settings") }
