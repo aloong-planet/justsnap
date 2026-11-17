@@ -408,7 +408,8 @@ public struct MenuBarPanelView: View {
         action: @escaping () -> Void
     ) -> some View {
         MenuBarPanelActionButton(role: .primary, action: action) {
-            HStack(spacing: 6) {
+            // Half-width buttons: this padding and gap leave room for the English "Capture" with its shortcut.
+            HStack(spacing: 4) {
                 Label(title, systemImage: icon.rawValue)
                     .font(.headline)
                     .foregroundStyle(VLMSnapperTheme.primaryText)
@@ -421,7 +422,7 @@ public struct MenuBarPanelView: View {
                         .fixedSize()
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 8)
         }
         .frame(maxWidth: .infinity)
         .frame(height: MenuBarPanelMetrics.captureButtonHeight)
