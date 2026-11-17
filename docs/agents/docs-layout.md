@@ -19,7 +19,7 @@
 ## 过程类文档
 
 `docs/.workings/<slug>/` 保存施工票、`review-code.md` 和
-`review-tests.md`。
+`review-tests.md`。它被 `.gitignore` 忽略、不提交，只存在于仓库主检出中。
 
 过程类文档在合并后保留，但不能作为当前行为的可靠依据。与结论类
 文档冲突时，以结论类文档为准。

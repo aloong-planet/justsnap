@@ -33,3 +33,4 @@ Entries written under earlier rules keep their form until a change touches what 
 | [0015](0015-show-results-inside-capture-overlay.md) | 在截图界面内显示模型结果，弃用独立结果窗口 | 提议 |
 | [0016](0016-file-application-tests-by-module.md) | File the application tests by module | Accepted (2026-11-10) |
 | [0017](0017-allowlist-gemini-and-openai-models-with-built-in-thinking-settings.md) | Allowlist Gemini and OpenAI models with built-in thinking settings | Proposed |
+| [0018](0018-merge-prs-without-executable-changes-once-ci-passes.md) | Merge PRs without executable changes once CI passes | Accepted (2026-11-17) |
