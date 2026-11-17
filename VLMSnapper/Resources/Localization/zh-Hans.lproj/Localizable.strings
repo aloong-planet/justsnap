@@ -125,6 +125,10 @@
 "permissionRecovery.laterNote" = "你可以关闭此窗口，稍后再次处理。";
 "permissionRecovery.restartNote" = "重启前，截图入口仍会提醒你。";
 "menu.capture" = "截图";
+"paste.title" = "粘贴";
+"paste.clipboardText" = "剪贴板里是文字。目前只能粘贴图片。";
+"paste.clipboardEmpty" = "剪贴板里没有图片。复制一张图片后再粘贴。";
+"paste.clipboardUnreadable" = "剪贴板里的内容无法作为图片读取。";
 "menu.recent" = "最近记录";
 "menu.history" = "历史记录";
 "menu.settings" = "设置中心";

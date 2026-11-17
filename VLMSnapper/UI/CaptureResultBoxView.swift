@@ -30,8 +30,58 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
     public let copyText: String
     public let canRetry: Bool
     public let saveNotice: String?
+    /// The paste result box's operation row under the header (clipboard-paste::REQ-006/AC-03).
+    public let showsOperations: Bool
 
     public var canCopy: Bool { !copyText.isEmpty }
+
+    /// What a paste reports when the clipboard has no image it can use (clipboard-paste::REQ-003/AC-06).
+    public enum PasteClipboardProblem: Equatable, Sendable {
+        case text
+        case empty
+        case unreadable
+    }
+
+    public static func pasteProblem(_ problem: PasteClipboardProblem) -> Self {
+        let message = switch problem {
+        case .text: VLMSnapperStrings.pasteClipboardText
+        case .empty: VLMSnapperStrings.pasteClipboardEmpty
+        case .unreadable: VLMSnapperStrings.pasteClipboardUnreadable
+        }
+        return Self(
+            title: VLMSnapperStrings.pasteTitle,
+            providerSummary: "",
+            showsProgress: false,
+            followsNewText: false,
+            body: .message(message),
+            copyText: "",
+            canRetry: false,
+            saveNotice: nil,
+            showsOperations: false
+        )
+    }
+
+    private init(
+        title: String,
+        providerSummary: String,
+        showsProgress: Bool,
+        followsNewText: Bool,
+        body: Body,
+        copyText: String,
+        canRetry: Bool,
+        saveNotice: String?,
+        showsOperations: Bool
+    ) {
+        self.title = title
+        self.providerSummary = providerSummary
+        self.showsProgress = showsProgress
+        self.followsNewText = followsNewText
+        self.body = body
+        self.copyText = copyText
+        self.canRetry = canRetry
+        self.saveNotice = saveNotice
+        self.showsOperations = showsOperations
+    }
 
     public init(
         operation: WorkspaceOperationKind,
@@ -47,6 +97,7 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
             ? VLMSnapperStrings.captureExtract
             : "\(VLMSnapperStrings.translate) · \(targetLanguageName)"
         self.providerSummary = providerSummary
+        showsOperations = source == .paste
 
         func text(_ result: WorkspaceCommittedResult?) -> (CaptureResultBoxText, String) {
             Self.text(
@@ -136,8 +187,31 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
 @MainActor
 public final class CaptureResultBoxState: ObservableObject {
     @Published public var presentation: CaptureResultBoxPresentation?
+    /// The operation row's controls, shown when the presentation asks for them.
+    @Published public var operations: CaptureResultBoxOperations?
 
     public init() {}
+}
+
+/// What the paste result box's operation row runs (clipboard-paste::REQ-006/AC-03).
+@MainActor
+public struct CaptureResultBoxOperations {
+    public let toolbarState: CaptureToolbarState
+    public let targetLanguages: [TargetLanguageOption]
+    public let onStart: (WorkspaceOperationKind) -> Void
+    public let onTargetLanguageChange: (String) -> Void
+
+    public init(
+        toolbarState: CaptureToolbarState,
+        targetLanguages: [TargetLanguageOption],
+        onStart: @escaping (WorkspaceOperationKind) -> Void,
+        onTargetLanguageChange: @escaping (String) -> Void
+    ) {
+        self.toolbarState = toolbarState
+        self.targetLanguages = targetLanguages
+        self.onStart = onStart
+        self.onTargetLanguageChange = onTargetLanguageChange
+    }
 }
 
 public struct CaptureResultBoxActions {
@@ -199,6 +273,20 @@ public struct CaptureResultBoxView: View {
         VStack(spacing: 0) {
             header(presentation)
             Divider()
+            if presentation.showsOperations, let operations = state.operations {
+                HStack(spacing: 0) {
+                    CaptureOperationControls(
+                        state: operations.toolbarState,
+                        targetLanguages: operations.targetLanguages,
+                        onStart: operations.onStart,
+                        onTargetLanguageChange: operations.onTargetLanguageChange
+                    )
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 3)
+                Divider()
+            }
             resultBody(presentation)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             if let notice = presentation.saveNotice {

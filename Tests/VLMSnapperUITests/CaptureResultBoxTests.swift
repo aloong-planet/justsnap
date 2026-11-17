@@ -179,6 +179,43 @@ struct CaptureResultBoxPresentationTests {
         }
     }
 
+    @Test(
+        "a clipboard without a usable image is titled Paste, says why, and has nothing to copy, retry or run",
+        arguments: [
+            (CaptureResultBoxPresentation.PasteClipboardProblem.text, "剪贴板里是文字。目前只能粘贴图片。"),
+            (.empty, "剪贴板里没有图片。复制一张图片后再粘贴。"),
+            (.unreadable, "剪贴板里的内容无法作为图片读取。"),
+        ]
+    )
+    func pasteClipboardProblem(problem: CaptureResultBoxPresentation.PasteClipboardProblem, message: String) {
+        LocalizationTestCoordinator.withExclusiveAccess {
+            VLMSnapperLocalization.configure(effectiveLanguage: .simplifiedChinese)
+            let value = CaptureResultBoxPresentation.pasteProblem(problem)
+            #expect(value.title == "粘贴")
+            #expect(value.body == .message(message))
+            #expect(value.providerSummary.isEmpty)
+            #expect(!value.canCopy)
+            #expect(!value.canRetry)
+            #expect(!value.showsProgress)
+            #expect(!value.showsOperations)
+        }
+    }
+
+    @Test("a pasted image's operations show the operation row; a capture's do not")
+    func operationRowBelongsToPaste() {
+        LocalizationTestCoordinator.withExclusiveAccess {
+            VLMSnapperLocalization.configure(effectiveLanguage: .simplifiedChinese)
+            let slot = WorkspaceOperationSlot(attempt: .preparing)
+            let paste = CaptureResultBoxPresentation(
+                operation: .extract, targetLanguageName: "简体中文", providerSummary: "DeepSeek · vision",
+                slot: slot, source: .paste
+            )
+            #expect(paste.showsOperations)
+            #expect(paste.title == "提取")
+            #expect(!presentation(.extract, slot).showsOperations)
+        }
+    }
+
     @Test("a canceled operation says so and can be retried, without earlier text")
     func canceled() {
         LocalizationTestCoordinator.withExclusiveAccess {

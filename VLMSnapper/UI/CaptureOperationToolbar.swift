@@ -71,11 +71,10 @@ public struct CaptureOperationToolbar: View {
 
     public var body: some View {
         HStack(spacing: VLMSnapperUIConstants.toolbarControlGap) {
-            extractButton
-            TranslateControl(
+            CaptureOperationControls(
                 state: state,
-                options: targetLanguages,
-                onStart: { onStart(.translate) },
+                targetLanguages: targetLanguages,
+                onStart: onStart,
                 onTargetLanguageChange: onTargetLanguageChange
             )
             Divider().frame(height: 19)
@@ -129,6 +128,39 @@ public struct CaptureOperationToolbar: View {
         .disabled(!enabled)
         .help(label)
         .accessibilityLabel(label)
+    }
+}
+
+/// Extract and Translate with its target language: the capture toolbar's operations, which the paste
+/// result box also shows in its operation row (clipboard-paste::REQ-006/AC-03).
+public struct CaptureOperationControls: View {
+    @ObservedObject private var state: CaptureToolbarState
+    private let targetLanguages: [TargetLanguageOption]
+    private let onStart: (WorkspaceOperationKind) -> Void
+    private let onTargetLanguageChange: (String) -> Void
+
+    public init(
+        state: CaptureToolbarState,
+        targetLanguages: [TargetLanguageOption],
+        onStart: @escaping (WorkspaceOperationKind) -> Void,
+        onTargetLanguageChange: @escaping (String) -> Void
+    ) {
+        self.state = state
+        self.targetLanguages = targetLanguages
+        self.onStart = onStart
+        self.onTargetLanguageChange = onTargetLanguageChange
+    }
+
+    public var body: some View {
+        HStack(spacing: VLMSnapperUIConstants.toolbarControlGap) {
+            extractButton
+            TranslateControl(
+                state: state,
+                options: targetLanguages,
+                onStart: { onStart(.translate) },
+                onTargetLanguageChange: onTargetLanguageChange
+            )
+        }
     }
 
     private var extractButton: some View {

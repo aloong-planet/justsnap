@@ -268,6 +268,11 @@ enum VLMSnapperStrings {
     static var diagnosticsHint: String { localized("diagnostics.hint") }
     static var diagnosticsExport: String { localized("diagnostics.export") }
 
+    static var pasteTitle: String { localized("paste.title") }
+    static var pasteClipboardText: String { localized("paste.clipboardText") }
+    static var pasteClipboardEmpty: String { localized("paste.clipboardEmpty") }
+    static var pasteClipboardUnreadable: String { localized("paste.clipboardUnreadable") }
+
     static func providerName(_ provider: ProviderID) -> String {
         switch provider {
         case .deepSeek: "DeepSeek"

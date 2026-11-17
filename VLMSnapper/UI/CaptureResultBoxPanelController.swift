@@ -24,18 +24,30 @@ enum CaptureResultBoxPlacement {
     }
 }
 
+/// Which result box a panel is: the capture interface's, or the paste result box that floats on its own.
+public enum CaptureResultBoxStyle: Sendable {
+    case capture
+    /// Floats above other apps' windows, outside any capture overlay (ADR-0019).
+    case paste
+}
+
 final class CaptureResultBoxPanel: NSPanel {
     var onEscape: (@MainActor () -> Void)?
 
-    init() {
+    init(style: CaptureResultBoxStyle) {
         super.init(
             contentRect: .zero,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        // The same level as the toolbar, which is ordered in front of the box.
-        level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 1)
+        switch style {
+        case .capture:
+            // The same level as the toolbar, which is ordered in front of the box.
+            level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 1)
+        case .paste:
+            level = .floating
+        }
         isOpaque = false
         backgroundColor = .clear
         hasShadow = true
@@ -51,7 +63,8 @@ final class CaptureResultBoxPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
-    /// `NSPanel` would close itself on Escape; here Escape leaves the capture (v1-core::REQ-012/AC-03).
+    /// `NSPanel` would close itself on Escape; here Escape leaves the capture (v1-core::REQ-012/AC-03)
+    /// or closes the paste result box (clipboard-paste::REQ-005/AC-03).
     override func cancelOperation(_ sender: Any?) {
         onEscape?()
     }
@@ -68,12 +81,17 @@ final class CaptureResultBoxPanel: NSPanel {
 @MainActor
 public final class CaptureResultBoxPanelController {
     public let state = CaptureResultBoxState()
-    private let panel = CaptureResultBoxPanel()
+    private let panel: CaptureResultBoxPanel
     private var visibleScreenFrame = CGRect.zero
     private var draggedOrigin: CGPoint?
     private var isSuspended = false
 
-    public init(actions: CaptureResultBoxActions, onEscape: @escaping @MainActor () -> Void) {
+    public init(
+        actions: CaptureResultBoxActions,
+        onEscape: @escaping @MainActor () -> Void,
+        style: CaptureResultBoxStyle = .capture
+    ) {
+        panel = CaptureResultBoxPanel(style: style)
         panel.onEscape = onEscape
         panel.contentView = NSHostingView(rootView: CaptureResultBoxView(
             state: state,
@@ -126,6 +144,13 @@ public final class CaptureResultBoxPanelController {
         isSuspended = false
         draggedOrigin = nil
         state.presentation = nil
+    }
+
+    /// Asks a question in a sheet attached to the box (clipboard-paste::REQ-005/AC-04).
+    public func presentSheet(_ alert: NSAlert) async -> NSApplication.ModalResponse {
+        await withCheckedContinuation { continuation in
+            alert.beginSheetModal(for: panel) { continuation.resume(returning: $0) }
+        }
     }
 
     private func move(to origin: CGPoint) {
