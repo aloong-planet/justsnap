@@ -350,7 +350,8 @@ final class ClipboardPasteController {
                 providerSummary: sessionProviderSummary
                     ?? environment.selection().map(environment.providerSummary) ?? "",
                 slot: slot(operation),
-                retryAvailable: !hasUnsavedResult,
+                // Until a finished request has wrapped up, Retry would do nothing.
+                retryAvailable: !hasUnsavedResult && runningOperation == nil,
                 source: .paste,
                 providerName: sessionProviderName
             )

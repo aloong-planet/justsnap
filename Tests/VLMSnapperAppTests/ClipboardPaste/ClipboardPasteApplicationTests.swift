@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import ImageIO
 import SQLite3
+import SwiftUI
 import Testing
 import UniformTypeIdentifiers
 import VLMSnapperCore
@@ -227,6 +228,127 @@ extension ProviderApplicationTests {
             #expect(paths.count == 2)
         }
     }
+
+    @Test
+    func anUnsavedImageIsRetriedFromMemoryWhateverTheClipboardHoldsLater() async throws {
+        try await withResultFixture { fixture, model in
+            let folder = fixture.root.appendingPathComponent("Pictures")
+            try? FileManager.default.removeItem(at: folder)
+            try Data().write(to: folder)
+            putWebKitCopiedImage(try pastedImage(width: 9, height: 5), on: fixture.pasteboard)
+
+            model.pasteFromClipboard()
+            try await eventually {
+                guard case .failure = resultBoxPresentation()?.body else { return false }
+                return resultBoxPresentation()?.canRetry == true
+            }
+            #expect(model.historyRecords.isEmpty)
+            #expect(await fixture.http.imageRequests.isEmpty)
+
+            try FileManager.default.removeItem(at: folder)
+            fixture.pasteboard.clearContents()
+            fixture.pasteboard.setString("Something copied since", forType: .string)
+            try clickResultBoxButton(try #require(resultBox()), fromEnd: 1)
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+
+            let sent = try #require(await fixture.http.imageRequests.first.flatMap(sentPNG))
+            let size = try pngSize(sent)
+            #expect(size.width == 9 && size.height == 5)
+            #expect(fixture.clipboardReader.reads == 1)
+            try await fixture.http.finishImage(source: "Saved after all")
+            try await eventually { model.historyRecords.first?.operation.status == .succeeded }
+        }
+    }
+
+    @Test
+    func translateInTheOperationRowMakesItsOwnRecordFromTheSameFile() async throws {
+        try await withResultFixture { fixture, model in
+            model.changeTargetLanguage("ja")
+            putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Source")
+            try await eventually { model.historyRecords.count == 1 }
+            let operations = try #require(pasteBoxOperations())
+            #expect(operations.toolbarState.targetLanguageCode == "ja")
+
+            operations.onStart(.translate)
+            try await eventually { await fixture.http.imageRequests.count == 2 }
+            #expect(resultBoxPresentation()?.title.hasPrefix("Translate · ") == true)
+            #expect(operations.toolbarState.currentOperation == .translate)
+            try await fixture.http.finishImage(source: "Source", translation: "訳文")
+            try await eventually { model.historyRecords.count == 2 }
+
+            let records = model.historyRecords
+            #expect(Set(records.map(\.operation.screenshot.path)).count == 1)
+            #expect(records.contains { $0.operation.kind == .translate && $0.operation.targetLanguage == "ja" })
+
+            // Back to Extract shows its result again without a request (clipboard-paste::REQ-006/AC-04).
+            operations.onStart(.extract)
+            await settleMainActor()
+            #expect(resultBoxText() == "Source")
+            #expect(await fixture.http.imageRequests.count == 2)
+        }
+    }
+
+    @Test
+    func aCaptureClosesTheIdleBoxOnlyOnceItsFreezeFrameShows() async throws {
+        try await withResultFixture { fixture, model in
+            putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Pasted")
+            try await eventually { model.historyRecords.first?.operation.status == .succeeded }
+            let box = try #require(resultBox())
+
+            // Leaving before the freeze frame shows keeps the box.
+            await fixture.capture.holdFrames()
+            try fixture.shortcuts.fire()
+            try await eventually { try mainScreenOverlay() != nil }
+            try pressEscape(try #require(try mainScreenOverlay()))
+            await fixture.capture.release()
+            try await eventually { try mainScreenOverlay() == nil }
+            await settleMainActor()
+            #expect(box.isVisible)
+            #expect(resultBoxText() == "Pasted")
+
+            try fixture.shortcuts.fire()
+            let overlay = try await frozenMainOverlay()
+            try await eventually { !box.isVisible }
+            #expect(resultBox() == nil)
+            try pressEscape(overlay)
+            try await eventually { try mainScreenOverlay() == nil }
+        }
+    }
+
+    @Test
+    func quittingCancelsARunningPasteRequest() async throws {
+        try await withResultFixture { fixture, model in
+            putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+
+            #expect(await model.prepareForTermination())
+
+            #expect(resultBox() == nil)
+            try await eventually { model.historyRecords.first?.operation.status == .canceled }
+        }
+    }
+
+    @Test
+    func showingTheBoxTakesNoKeyboardFocusAndEscapeClosesIt() async throws {
+        try await withResultFixture { fixture, model in
+            fixture.pasteboard.clearContents()
+            model.pasteFromClipboard()
+            try await eventually { resultBox() != nil }
+            let box = try #require(resultBox())
+            pumpNativeEvents(box)
+
+            #expect(!box.isKeyWindow)
+            try pressEscape(box)
+            try await eventually { resultBox() == nil }
+        }
+    }
 }
 
 // MARK: Helpers
@@ -289,6 +411,11 @@ func managedFiles(in fixture: ApplicationFixture) throws -> [URL] {
     let root = fixture.root.appendingPathComponent("Pictures")
     guard let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else { return [] }
     return files.compactMap { $0 as? URL }.filter { $0.pathExtension == "png" }
+}
+
+@MainActor
+func pasteBoxOperations() -> CaptureResultBoxOperations? {
+    (resultBox()?.contentView as? NSHostingView<CaptureResultBoxView>)?.rootView.operations
 }
 
 /// Lets main-actor work the paste started run before a test reads that it did nothing more.
