@@ -564,7 +564,7 @@ public struct ManagementCenterView: View {
                         .frame(width: 150, height: 28)
                     }
                     if let shortcutFailure = settings.shortcutFailure {
-                        Text(shortcutFailureMessage(shortcutFailure))
+                        Text(VLMSnapperStrings.shortcutFailure(shortcutFailure))
                             .font(.caption)
                             .foregroundStyle(VLMSnapperTheme.destructive)
                     }
@@ -579,7 +579,7 @@ public struct ManagementCenterView: View {
                         .frame(width: 150, height: 28)
                     }
                     if let pasteShortcutFailure = settings.pasteShortcutFailure {
-                        Text(shortcutFailureMessage(pasteShortcutFailure))
+                        Text(VLMSnapperStrings.shortcutFailure(pasteShortcutFailure))
                             .font(.caption)
                             .foregroundStyle(VLMSnapperTheme.destructive)
                     }
@@ -1173,19 +1173,6 @@ public struct ManagementCenterView: View {
             get: { settings.automaticallyChecksForUpdates },
             set: { value in callbacks.onAutomaticUpdateChecksChange(value) }
         )
-    }
-
-    private func shortcutFailureMessage(
-        _ failure: ShortcutSettingsFailure
-    ) -> String {
-        switch failure {
-        case .conflict:
-            return VLMSnapperStrings.shortcutConflict
-        case .unset:
-            return VLMSnapperStrings.pasteShortcutUnset
-        case .invalid, .registrationFailed:
-            return VLMSnapperStrings.shortcutInvalid
-        }
     }
 
     private func settingsRow<Accessory: View>(

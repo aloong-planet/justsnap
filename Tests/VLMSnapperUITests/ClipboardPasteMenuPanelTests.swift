@@ -4,7 +4,9 @@ import Testing
 import VLMSnapperCore
 @testable import VLMSnapperUI
 
-// clipboard-paste::REQ-001/AC-01. The shortcut texts and icons are checked on screenshots of the installed build.
+// clipboard-paste::REQ-001/AC-01. The shortcut texts and icons, including the Paste button showing no shortcut
+// while the paste shortcut is unset (AC-04), are checked on screenshots of the installed build: in this test
+// host the panel's SwiftUI text has no accessibility labels to read, even after a second's settling.
 @Suite("Clipboard paste menu panel", .serialized)
 @MainActor
 struct ClipboardPasteMenuPanelTests {

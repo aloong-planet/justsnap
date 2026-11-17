@@ -1049,9 +1049,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
             pasteShortcut = shortcut
             pasteShortcutFailure = nil
         } catch {
-            let failure = shortcutSettingsFailure(for: error)
-            // With no paste shortcut registered there is no previous one that still works.
-            pasteShortcutFailure = failure == .conflict && pasteShortcut == nil ? .unset : failure
+            // While unset, only a recording that registers clears the notice (clipboard-paste::REQ-001/AC-04).
+            pasteShortcutFailure = pasteShortcut == nil ? .unset : shortcutSettingsFailure(for: error)
         }
         refreshShortcutSettings()
         publish()

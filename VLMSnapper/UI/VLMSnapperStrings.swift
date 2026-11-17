@@ -242,6 +242,15 @@ enum VLMSnapperStrings {
     static var shortcutConflict: String { localized("settings.shortcut.conflict") }
     static var shortcutNotSet: String { localized("settings.shortcut.notSet") }
     static var pasteShortcutUnset: String { localized("settings.pasteShortcut.unset") }
+
+    /// The notice under a shortcut recorder.
+    static func shortcutFailure(_ failure: ShortcutSettingsFailure) -> String {
+        switch failure {
+        case .conflict: shortcutConflict
+        case .unset: pasteShortcutUnset
+        case .invalid, .registrationFailed: shortcutInvalid
+        }
+    }
     static var shortcutInvalid: String { localized("settings.shortcut.invalid") }
     static var loginItemTitle: String { localized("settings.loginItem.title") }
     static var loginItemHint: String { localized("settings.loginItem.hint") }

@@ -14,15 +14,16 @@ import VLMSnapperUI
 // window server and other apps: what browsers other than WebKit and spreadsheets put on the clipboard,
 // that showing the box leaves another app active, that a click makes it key, the box's level above other
 // apps' windows, and the delegate closing the real menu panel — checked on the installed build.
-// Also not covered: an oversized paste (REQ-004/AC-04) needs a Gemini Provider in the app fixture and a request
-// body over 20 MB. The box presentation tests cover its message and the Core runner tests its sizes, but nothing
-// covers this controller passing the paste wording, the Provider's name and the sizes into the box. The display
-// the box opens on and its default place (REQ-005/AC-01) need a second display and a placed pointer, and the
-// paste shortcut recorder sitting below the capture one (REQ-001/AC-03) is layout; both are checked on the
-// installed build, as are the panel's Paste button and the recorder when the paste shortcut is unset
-// (REQ-001/AC-04). Retry with no Provider or model left (the missing-selection failure) needs the current
-// Provider removed while the box is open and is not driven here. The box showing that the request is being prepared while a large image converts
-// (failure mode 4) depends on conversion timing. A history database that cannot record (REQ-002/AC-05) goes
+// Also not covered: an oversized paste (REQ-004/AC-04) at app level. The app fixture cannot make Gemini, the only
+// Provider checked before sending, the current Provider: its HTTP fake serves only DeepSeek's model-list shape, and
+// a Gemini configuration stored before launch comes back with no models and no selection. Covering it needs a
+// Gemini model-list response taken from a real one and the request-body limit injectable through the app's
+// dependencies. The box presentation tests cover the message and the Core runner tests the sizes; nothing covers
+// this controller passing the paste wording, the Provider's name and the sizes into the box. The display the box opens on and its default place (REQ-005/AC-01) need a second display
+// and a placed pointer, and the paste shortcut recorder sitting below the capture one (REQ-001/AC-03) is layout;
+// both are checked on the installed build. Retry with no Provider or model left (the missing-selection failure)
+// needs the current Provider removed while the box is open and is not driven here. The box showing that the
+// request is being prepared while a large image converts (failure mode 4) depends on conversion timing. A history database that cannot record (REQ-002/AC-05) goes
 // through the same runner as a capture, so it is not repeated here.
 extension ProviderApplicationTests {
     @Test
@@ -483,6 +484,9 @@ extension ProviderApplicationTests {
 
                 let callbacks = model.managementCallbacks()
                 callbacks.onPasteShortcutChange(.defaultPaste)
+                #expect(model.settings.pasteShortcut == nil)
+                #expect(model.settings.pasteShortcutFailure == .unset)
+                callbacks.onPasteShortcutChange(GlobalShortcut(keyCode: 0, modifiers: []))
                 #expect(model.settings.pasteShortcut == nil)
                 #expect(model.settings.pasteShortcutFailure == .unset)
 
