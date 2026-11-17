@@ -166,7 +166,7 @@ extension ProviderApplicationTests {
             try await eventually { await fixture.http.imageRequests.count == 1 }
             let box = try #require(resultBox())
 
-            try clickResultBoxButton(box, fromEnd: 0)
+            try await clickPasteBoxButton(box, fromEnd: 0)
 
             try await eventually { resultBox() == nil }
             try await eventually { model.historyRecords.first?.operation.status == .canceled }
@@ -186,7 +186,7 @@ extension ProviderApplicationTests {
             try await eventually { resultBoxPresentation()?.saveNotice != nil }
             let box = try #require(resultBox())
 
-            try clickResultBoxButton(box, fromEnd: 0)
+            try await clickPasteBoxButton(box, fromEnd: 0)
             try await answerSheet(on: box, with: .alertSecondButtonReturn)
             await settleMainActor()
             #expect(resultBox() === box)
@@ -199,7 +199,7 @@ extension ProviderApplicationTests {
             #expect(fixture.clipboardReader.reads == 1)
             #expect(await fixture.capture.requests == 0)
 
-            try clickResultBoxButton(box, fromEnd: 0)
+            try await clickPasteBoxButton(box, fromEnd: 0)
             try await answerSheet(on: box, with: .alertFirstButtonReturn)
             try await eventually { resultBox() == nil }
         }
@@ -253,7 +253,7 @@ extension ProviderApplicationTests {
             try FileManager.default.removeItem(at: folder)
             fixture.pasteboard.clearContents()
             fixture.pasteboard.setString("Something copied since", forType: .string)
-            try clickResultBoxButton(try #require(resultBox()), fromEnd: 1)
+            try await clickPasteBoxButton(try #require(resultBox()), fromEnd: 1)
             try await eventually { await fixture.http.imageRequests.count == 1 }
 
             let sent = try #require(await fixture.http.imageRequests.first.flatMap(sentPNG))
@@ -362,7 +362,7 @@ extension ProviderApplicationTests {
             fixture.pasteboard.clearContents()
             try fixture.shortcuts.fire(.defaultPaste)
             try await eventually { resultBoxPresentation()?.title == "Paste" }
-            try clickResultBoxButton(try #require(resultBox()), fromEnd: 0)
+            try await clickPasteBoxButton(try #require(resultBox()), fromEnd: 0)
             try await eventually { resultBox() == nil }
 
             let callbacks = model.managementCallbacks()
@@ -381,7 +381,7 @@ extension ProviderApplicationTests {
             #expect(!fixture.shortcuts.isRegistered(.defaultPaste))
             try fixture.shortcuts.fire(replacement)
             try await eventually { resultBoxPresentation()?.title == "Paste" }
-            try clickResultBoxButton(try #require(resultBox()), fromEnd: 0)
+            try await clickPasteBoxButton(try #require(resultBox()), fromEnd: 0)
             try await eventually { resultBox() == nil }
         }
     }
@@ -486,6 +486,17 @@ func managedFiles(in fixture: ApplicationFixture) throws -> [URL] {
     let root = fixture.root.appendingPathComponent("Pictures")
     guard let files = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else { return [] }
     return files.compactMap { $0 as? URL }.filter { $0.pathExtension == "png" }
+}
+
+/// Presses a header button of the paste box once a box that just opened has drawn its content: a box shown
+/// again after closing starts empty, and a press before SwiftUI renders the header lands on nothing.
+@MainActor
+func clickPasteBoxButton(_ box: NSWindow, fromEnd index: Int) async throws {
+    for _ in 0..<3 {
+        await Task.yield()
+        pumpNativeEvents(box)
+    }
+    try clickResultBoxButton(box, fromEnd: index)
 }
 
 @MainActor
