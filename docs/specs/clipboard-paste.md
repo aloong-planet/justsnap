@@ -43,6 +43,9 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 - clipboard-paste::REQ-004/AC-02: The PNG becomes a Managed Capture File under v1-core §9's rules: the same folder and file naming, an atomic write and SHA-256 before a "preparing request" history record is created, and no upload until both have succeeded and the request-body check passes.
 - clipboard-paste::REQ-004/AC-03: When the PNG cannot be saved, the box shows the reason and Retry, keeps the image in memory while it stays open, and adds no history record; closing the box discards the image.
 - clipboard-paste::REQ-004/AC-04: When the image is larger than the Provider's request-body limit, nothing is sent and the image is not shrunk; the failed record is kept, and the box shows the actual size, the limit, and a suggestion to copy a smaller image.
+
+> Pending: OpenAI and DeepSeek request-body limits are confirmed and part of the signed Provider configuration (v1-core Pending). Until then only a Gemini request rejects an oversized image before anything is sent.
+
 - clipboard-paste::REQ-004/AC-05: History records from a paste behave like records from a capture in list, detail, search, filters, retry, Pin, deletion and cleanup (v1-core §9, §10); history does not mark them as pasted.
 
 ### clipboard-paste::REQ-005 The paste result box
