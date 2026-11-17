@@ -14,7 +14,7 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 
 ### clipboard-paste::REQ-001 Paste entry points
 
-- clipboard-paste::REQ-001/AC-01: The menu bar panel's capture row holds two buttons side by side that split the row equally: Capture on the left and Paste on the right. Each shows its icon, its title and its current global shortcut, in the style the capture button has in v1-core §1 ([v1-core](v1-core.md)).
+- clipboard-paste::REQ-001/AC-01: The menu bar panel's capture row holds two buttons side by side that split the row equally: Capture on the left and Paste on the right. Each shows its icon, its title and its current global shortcut, in the style the capture button has in v1-core §1 ([v1-core](v1-core.md)); Paste shows no shortcut while none is set (AC-04).
 - clipboard-paste::REQ-001/AC-02: Clicking Paste in the panel closes the panel at once and starts a paste; the panel closes even when the paste only reports a clipboard problem (clipboard-paste::REQ-003).
 - clipboard-paste::REQ-001/AC-03: A global paste shortcut starts the same paste as the panel button. Its default is `⌥⇧V`. General settings record it with the same recorder as the capture shortcut, directly below it.
 - clipboard-paste::REQ-001/AC-04: Saving a new paste shortcut follows the capture shortcut's rules in v1-core §3: the app tries to register it at once; on a conflict or a registration failure it shows the specific error and keeps the old shortcut; on success it takes effect at once. A paste shortcut equal to the capture shortcut, and a capture shortcut equal to the paste shortcut, are rejected as conflicts. When neither the saved paste shortcut nor the default can be registered at launch (for example, a capture shortcut of `⌥⇧V` saved before paste existed), no paste shortcut is registered: the panel's Paste button shows no shortcut, the recorder shows that none is set, and General settings say the paste shortcut conflicts and ask for a new one. Recording one that registers clears this; a conflicting one leaves it unset.
@@ -44,7 +44,7 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 - clipboard-paste::REQ-004/AC-03: When the PNG cannot be saved, the box shows the reason and Retry, keeps the image in memory while it stays open, and adds no history record; closing the box discards the image.
 - clipboard-paste::REQ-004/AC-04: When the request carrying the image is larger than the Provider's request-body limit, nothing is sent and the image is not shrunk; the failed record is kept, and the box shows the request's size, the Provider's limit on it, and a suggestion to copy a smaller image.
 
-> Pending: OpenAI and DeepSeek request-body limits are confirmed and part of the signed Provider configuration (v1-core Pending). Until then only a Gemini request rejects an oversized image before anything is sent.
+> Pending: OpenAI and DeepSeek request-body limits are confirmed and part of the signed Provider configuration (v1-core Pending). Until then only a Gemini request is rejected for its size before anything is sent.
 
 - clipboard-paste::REQ-004/AC-05: History records from a paste behave like records from a capture in list, detail, search, filters, retry, Pin, deletion and cleanup (v1-core §9, §10); history does not mark them as pasted.
 
@@ -78,7 +78,7 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 1. The user copies an image in a browser whose clipboard also carries the image's URL as text: the image is pasted (clipboard-paste::REQ-003/AC-02). Copy Image in Safari and other WebKit views puts the image on the clipboard as TIFF only, together with its address as plain text, as a URL and inside HTML and a web archive.
 2. The user copies cells in a spreadsheet or text in a word processor, which put both text and a rendered picture on the clipboard: it is a text clipboard and nothing is sent (clipboard-paste::REQ-003/AC-03).
 3. The user copies a file in Finder: its file name is plain text, so it is a text clipboard (clipboard-paste::REQ-003/AC-01, AC-03).
-4. The user pastes a very large image: decoding and conversion do not block the interface; the box shows that the request is being prepared until the PNG is saved, and an image over the Provider's limit fails as in clipboard-paste::REQ-004/AC-04.
+4. The user pastes a very large image: decoding and conversion do not block the interface; the box shows that the request is being prepared until the PNG is saved, and a request over the Provider's limit fails as in clipboard-paste::REQ-004/AC-04.
 5. The user pastes, then copies something else and presses Retry: Retry uses the saved Pasted Image (clipboard-paste::REQ-003/AC-07).
 6. The user triggers paste while a request runs or a result is unsaved in the box, or while the capture interface is open: nothing happens (clipboard-paste::REQ-002/AC-03, AC-04).
 7. The user triggers a capture while the box is open and idle, then presses Escape before the freeze frame is shown, or the freeze fails: the box stays (clipboard-paste::REQ-005/AC-06).
