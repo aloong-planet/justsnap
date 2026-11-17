@@ -38,46 +38,47 @@ public struct SRGBPNGCropper: CaptureImageCropping {
         guard let cropped = frame.image.cropping(to: cropBounds) else {
             throw CaptureImageCropError.cropFailed
         }
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-              let context = CGContext(
-                  data: nil,
-                  width: pixelRect.width,
-                  height: pixelRect.height,
-                  bitsPerComponent: 8,
-                  bytesPerRow: 0,
-                  space: colorSpace,
-                  bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue
-                      | CGImageAlphaInfo.premultipliedLast.rawValue
-              )
-        else {
-            throw CaptureImageCropError.renderFailed
-        }
-        context.draw(
-            cropped,
-            in: CGRect(
-                x: 0,
-                y: 0,
-                width: pixelRect.width,
-                height: pixelRect.height
-            )
-        )
-        guard let rendered = context.makeImage() else {
-            throw CaptureImageCropError.renderFailed
-        }
-
-        let output = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(
-            output,
-            UTType.png.identifier as CFString,
-            1,
-            nil
-        ) else {
-            throw CaptureImageCropError.pngEncodingFailed
-        }
-        CGImageDestinationAddImage(destination, rendered, nil)
-        guard CGImageDestinationFinalize(destination) else {
-            throw CaptureImageCropError.pngEncodingFailed
-        }
-        return output as Data
+        return try encodeSRGBPNG(cropped)
     }
+}
+
+/// Draws an image into an 8-bit sRGB bitmap with its alpha and encodes it as PNG,
+/// keeping its pixel dimensions.
+func encodeSRGBPNG(_ image: CGImage) throws -> Data {
+    guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+          let context = CGContext(
+              data: nil,
+              width: image.width,
+              height: image.height,
+              bitsPerComponent: 8,
+              bytesPerRow: 0,
+              space: colorSpace,
+              bitmapInfo: CGBitmapInfo.byteOrder32Big.rawValue
+                  | CGImageAlphaInfo.premultipliedLast.rawValue
+          )
+    else {
+        throw CaptureImageCropError.renderFailed
+    }
+    context.draw(
+        image,
+        in: CGRect(x: 0, y: 0, width: image.width, height: image.height)
+    )
+    guard let rendered = context.makeImage() else {
+        throw CaptureImageCropError.renderFailed
+    }
+
+    let output = NSMutableData()
+    guard let destination = CGImageDestinationCreateWithData(
+        output,
+        UTType.png.identifier as CFString,
+        1,
+        nil
+    ) else {
+        throw CaptureImageCropError.pngEncodingFailed
+    }
+    CGImageDestinationAddImage(destination, rendered, nil)
+    guard CGImageDestinationFinalize(destination) else {
+        throw CaptureImageCropError.pngEncodingFailed
+    }
+    return output as Data
 }

@@ -75,7 +75,7 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 
 ## Failure modes and boundaries
 
-1. The user copies an image in a browser whose clipboard also carries the image's URL as text: the image is pasted (clipboard-paste::REQ-003/AC-02).
+1. The user copies an image in a browser whose clipboard also carries the image's URL as text: the image is pasted (clipboard-paste::REQ-003/AC-02). Copy Image in Safari and other WebKit views puts the image on the clipboard as TIFF only, together with its address as plain text, as a URL and inside HTML and a web archive.
 2. The user copies cells in a spreadsheet or text in a word processor, which put both text and a rendered picture on the clipboard: it is a text clipboard and nothing is sent (clipboard-paste::REQ-003/AC-03).
 3. The user copies a file in Finder: its file name is plain text, so it is a text clipboard (clipboard-paste::REQ-003/AC-01, AC-03).
 4. The user pastes a very large image: decoding and conversion do not block the interface; the box shows that the request is being prepared until the PNG is saved, and an image over the Provider's limit fails as in clipboard-paste::REQ-004/AC-04.
@@ -89,6 +89,7 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 
 ## Implementation Decisions
 
+- A single URL is plain text that, with surrounding whitespace removed, contains no whitespace and is an absolute URL whose scheme is followed by `//`, such as `https://…` or `file://…`.
 - Clipboard decision order, evaluated once per paste: (1) image data present and plain text empty or a single URL → image; (2) any other plain text → text clipboard; (3) image data present → image, or unreadable when it cannot be decoded as a bitmap; (4) nothing usable → empty clipboard.
 - A Pasted Image becomes an ordinary Managed Capture File and its records ordinary history records: the history database's format does not change, and no record stores whether it came from a paste (ADR-0006).
 - The paste shortcut is stored like the capture shortcut, as its own preference.
