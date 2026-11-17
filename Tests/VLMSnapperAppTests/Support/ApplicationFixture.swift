@@ -96,6 +96,7 @@ final class ApplicationFixture {
     var queuedDisplayGeometries: [[CaptureDisplayGeometry]] = []
     var displayReads = 0
     let pasteboard = NSPasteboard.withUniqueName()
+    private(set) lazy var clipboardReader = FixtureClipboardReader(pasteboard: pasteboard)
     var permissionGranted = false
     var updates: FixtureUpdates?
     private(set) var dependencyConstructions = 0
@@ -204,7 +205,7 @@ final class ApplicationFixture {
                 frozenDisplayCapturer: capture,
                 windowListing: windows,
                 captureClipboard: clipboard,
-                clipboardReader: PasteboardClipboardImageReader(pasteboard: pasteboard),
+                clipboardReader: clipboardReader,
                 captureImageSaver: imageSaver,
                 captureResultLossNotifier: resultLossNotifier,
                 displayMonitor: CaptureDisplayMonitor(
@@ -428,6 +429,18 @@ actor FixtureCapture: FrozenDisplayCapturing {
         }
         if !released { await withCheckedContinuation { waiters.append($0) } }
         throw .permissionDenied
+    }
+}
+
+/// The real clipboard reader over the fixture's private pasteboard, counting its reads.
+@MainActor
+final class FixtureClipboardReader: ClipboardImageReading {
+    private let reader: PasteboardClipboardImageReader
+    private(set) var reads = 0
+    init(pasteboard: NSPasteboard) { reader = PasteboardClipboardImageReader(pasteboard: pasteboard) }
+    func read() -> ClipboardSnapshot {
+        reads += 1
+        return reader.read()
     }
 }
 

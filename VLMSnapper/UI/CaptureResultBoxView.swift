@@ -252,6 +252,8 @@ public struct CaptureResultBoxView: View {
 
     /// What the box is showing.
     public var presentation: CaptureResultBoxPresentation? { state.presentation }
+    /// What its operation row runs, when it has one.
+    public var operations: CaptureResultBoxOperations? { state.operations }
 
     public var body: some View {
         Group {

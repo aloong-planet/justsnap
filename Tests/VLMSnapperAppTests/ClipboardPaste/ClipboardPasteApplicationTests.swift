@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import ImageIO
+import SQLite3
 import Testing
 import UniformTypeIdentifiers
 import VLMSnapperCore
@@ -54,6 +55,176 @@ extension ProviderApplicationTests {
             #expect(await fixture.http.imageRequests.isEmpty)
             #expect(model.historyRecords.isEmpty)
             #expect(try managedFiles(in: fixture).isEmpty)
+        }
+    }
+
+    @Test
+    func withoutAModelPasteShowsOnboardingAndLeavesTheClipboardUnread() async throws {
+        try await withFixture { fixture in
+            try await fixture.withModel { model in
+                var onboardingRequests = 0
+                model.onShowOnboarding = { onboardingRequests += 1 }
+                putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+
+                model.pasteFromClipboard()
+                try await eventually { onboardingRequests == 1 }
+
+                #expect(fixture.clipboardReader.reads == 0)
+                #expect(resultBox() == nil)
+            }
+        }
+    }
+
+    @Test
+    func pasteNeedsNoScreenRecordingPermission() async throws {
+        try await withFixture { fixture in
+            fixture.permissionGranted = false
+            await fixture.http.allowImageRequests()
+            try await fixture.withModel { model in
+                try await makeCaptureReady(model, key: "fixture-paste-key")
+                putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+
+                model.pasteFromClipboard()
+                try await eventually { await fixture.http.imageRequests.count == 1 }
+                try await fixture.http.finishImage(source: "Done")
+                try await eventually { model.historyRecords.first?.operation.status == .succeeded }
+            }
+        }
+    }
+
+    @Test
+    func duringACredentialJobPasteShowsTheProviderPageAndLeavesTheClipboardUnread() async throws {
+        try await withFixture { fixture in
+            try await fixture.withModel { model in
+                try await makeCaptureReady(model, key: "fixture-initial-key")
+                await fixture.http.pause()
+                model.credentialEditor.edit("fixture-replacement-key")
+                #expect(model.credentialEditor.submit(for: .deepSeek, isReadOnly: false,
+                    operation: model.providerSettingsConfiguration().onValidate))
+                try await eventually { await fixture.http.requests.count == 2 }
+                var providerNavigations = 0
+                model.onNavigate = { if $0 == .providerSettings { providerNavigations += 1 } }
+
+                model.pasteFromClipboard()
+                try await eventually { providerNavigations == 1 }
+
+                #expect(fixture.clipboardReader.reads == 0)
+                #expect(resultBox() == nil)
+                await fixture.http.release()
+                try await eventually { !model.credentialEditor.isSubmitting }
+            }
+        }
+    }
+
+    @Test
+    func pasteDoesNothingWhileTheCaptureInterfaceIsOpen() async throws {
+        try await withResultFixture { fixture, model in
+            putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+            let (overlay, _) = try await completeSelection(fixture)
+
+            model.pasteFromClipboard()
+            await settleMainActor()
+
+            #expect(fixture.clipboardReader.reads == 0)
+            #expect(resultBox() == nil)
+            try pressEscape(overlay)
+            try await eventually { try mainScreenOverlay() == nil }
+        }
+    }
+
+    @Test
+    func whileAPasteRequestRunsNeitherPasteNorCaptureDoesAnything() async throws {
+        try await withResultFixture { fixture, model in
+            putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+
+            model.pasteFromClipboard()
+            try fixture.shortcuts.fire()
+            await settleMainActor()
+
+            #expect(fixture.clipboardReader.reads == 1)
+            #expect(await fixture.capture.requests == 0)
+            #expect(try mainScreenOverlay() == nil)
+            #expect(await fixture.http.imageRequests.count == 1)
+            try await fixture.http.finishImage(source: "Done")
+            try await eventually { model.historyRecords.first?.operation.status == .succeeded }
+        }
+    }
+
+    @Test
+    func closingTheBoxDuringARequestSavesItAsCanceled() async throws {
+        try await withResultFixture { fixture, model in
+            putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            let box = try #require(resultBox())
+
+            try clickResultBoxButton(box, fromEnd: 0)
+
+            try await eventually { resultBox() == nil }
+            try await eventually { model.historyRecords.first?.operation.status == .canceled }
+            #expect(model.providerSnapshot.activity == nil)
+        }
+    }
+
+    @Test
+    func closingWithAnUnsavedResultAsksOnTheBox() async throws {
+        try await withResultFixture { fixture, model in
+            putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+            let database = try failSuccessfulSaves(fixture)
+            defer { sqlite3_close(database) }
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Unsaved text")
+            try await eventually { resultBoxPresentation()?.saveNotice != nil }
+            let box = try #require(resultBox())
+
+            try clickResultBoxButton(box, fromEnd: 0)
+            try await answerSheet(on: box, with: .alertSecondButtonReturn)
+            await settleMainActor()
+            #expect(resultBox() === box)
+            #expect(resultBoxText() == "Unsaved text")
+
+            // Capture and paste wait for the unsaved result (clipboard-paste::REQ-002/AC-04, REQ-005/AC-07).
+            model.pasteFromClipboard()
+            try fixture.shortcuts.fire()
+            await settleMainActor()
+            #expect(fixture.clipboardReader.reads == 1)
+            #expect(await fixture.capture.requests == 0)
+
+            try clickResultBoxButton(box, fromEnd: 0)
+            try await answerSheet(on: box, with: .alertFirstButtonReturn)
+            try await eventually { resultBox() == nil }
+        }
+    }
+
+    @Test
+    func aNewPasteReplacesTheIdleBoxWhereItWasDragged() async throws {
+        try await withResultFixture { fixture, model in
+            putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "First")
+            try await eventually { resultBoxText() == "First" }
+            try await eventually { model.historyRecords.count == 1 }
+            let box = try #require(resultBox())
+            let placed = box.frame
+            let header = NSPoint(x: 150, y: box.frame.height - CaptureResultBoxMetrics.headerHeight / 2)
+            try drag(box, from: header, to: NSPoint(x: header.x - 200, y: header.y - 120))
+            let dragged = box.frame
+            #expect(dragged.origin != placed.origin)
+
+            putWebKitCopiedImage(try pastedImage(width: 12, height: 6), on: fixture.pasteboard)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 2 }
+            try await fixture.http.finishImage(source: "Second")
+            try await eventually { resultBoxText() == "Second" }
+
+            #expect(resultBox()?.frame == dragged)
+            try await eventually { model.historyRecords.count == 2 }
+            let paths = Set(model.historyRecords.map(\.operation.screenshot.path))
+            #expect(paths.count == 2)
         }
     }
 }
