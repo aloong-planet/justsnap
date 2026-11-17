@@ -8,13 +8,10 @@
 |---|---|
 | `docs/CONTEXT.md` | 产品领域术语及应避免的同义词 |
 | `docs/adr/` | 架构决策、备选项及取舍原因 |
-| `docs/specs/<slug>.md` | 功能需求、边界和明确不做的内容 |
-| `docs/features/<slug>.md` | 当前版本的用户可见行为 |
+| `docs/specs/<slug>.md` | 功能的现行用户可见行为、需求、边界和明确不做的内容 |
 | `docs/prototypes/` | 界面与状态模型原型 |
 | `docs/postmortems/` | 事故与问题的因果分析 |
 | `docs/ops/` | 签名、打包、发布等运维手册 |
-
-`docs/specs/` 与 `docs/features/` 使用相同的 slug。
 
 ## 过程类文档
 
