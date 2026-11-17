@@ -14,9 +14,13 @@ import VLMSnapperUI
 // window server and other apps: what browsers other than WebKit and spreadsheets put on the clipboard,
 // that showing the box leaves another app active, that a click makes it key, the box's level above other
 // apps' windows, and the delegate closing the real menu panel — checked on the installed build.
-// Also not covered: an oversized paste naming its Provider (REQ-004/AC-04) needs a Gemini request body over
-// 20 MB, which the fixture cannot lower; its message is covered by the box presentation tests and its sizes
-// by the Core runner tests. The box showing that the request is being prepared while a large image converts
+// Also not covered: an oversized paste (REQ-004/AC-04) needs a Gemini Provider in the app fixture and a request
+// body over 20 MB. The box presentation tests cover its message and the Core runner tests its sizes, but nothing
+// covers this controller passing the paste wording, the Provider's name and the sizes into the box. The display
+// the box opens on and its default place (REQ-005/AC-01) need a second display and a placed pointer, and the
+// paste shortcut recorder sitting below the capture one (REQ-001/AC-03) is layout; both are checked on the
+// installed build. Retry with no Provider or model left (the missing-selection failure) needs the current
+// Provider removed while the box is open and is not driven here. The box showing that the request is being prepared while a large image converts
 // (failure mode 4) depends on conversion timing. A history database that cannot record (REQ-002/AC-05) goes
 // through the same runner as a capture, so it is not repeated here.
 extension ProviderApplicationTests {
@@ -293,6 +297,68 @@ extension ProviderApplicationTests {
             await settleMainActor()
             #expect(resultBoxText() == "Source")
             #expect(await fixture.http.imageRequests.count == 2)
+
+            // Copy copies the shown result (clipboard-paste::REQ-006/AC-02).
+            try await clickPasteBoxButton(try #require(resultBox()), fromEnd: 2)
+            #expect(fixture.clipboard.writtenTexts.last == "Source")
+
+            // Translate after a target-language change starts a new record (clipboard-paste::REQ-006/AC-04).
+            operations.onTargetLanguageChange("fr")
+            operations.onStart(.translate)
+            try await eventually { await fixture.http.imageRequests.count == 3 }
+            try await fixture.http.finishImage(source: "Source", translation: "Traduction")
+            try await eventually { model.historyRecords.count == 3 }
+            #expect(model.historyRecords.contains { $0.operation.targetLanguage == "fr" })
+
+            // Retry reruns the shown record in its own language, not the one picked since (v1-core REQ-011/AC-05).
+            operations.onTargetLanguageChange("ko")
+            try await eventually { resultBoxPresentation()?.canRetry == true }
+            try await clickPasteBoxButton(try #require(resultBox()), fromEnd: 1)
+            try await eventually { await fixture.http.imageRequests.count == 4 }
+            try await fixture.http.finishImage(source: "Source", translation: "Rerun")
+            try await eventually {
+                model.historyRecords.contains { $0.operation.translationMarkdown?.contains("Rerun") == true }
+            }
+            #expect(model.historyRecords.count == 3)
+            let rerun = model.historyRecords.first { $0.operation.translationMarkdown?.contains("Rerun") == true }
+            #expect(rerun?.operation.targetLanguage == "fr")
+        }
+    }
+
+    @Test
+    func anUnsavedResultOutlastsACancelledQuitAndRetrySaveWritesIt() async throws {
+        try await withResultFixture { fixture, model in
+            putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+            let database = try failSuccessfulSaves(fixture)
+            defer { sqlite3_close(database) }
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Unsaved text")
+            try await eventually { resultBoxPresentation()?.saveNotice != nil }
+            let box = try #require(resultBox())
+
+            // Quitting asks on the box; keeping the result keeps the app running (clipboard-paste::REQ-005/AC-08).
+            let quitting = Task { await model.prepareForTermination() }
+            try await answerSheet(on: box, with: .alertSecondButtonReturn)
+            #expect(await quitting.value == false)
+            #expect(resultBox() === box)
+            #expect(resultBoxText() == "Unsaved text")
+
+            // Retry Save writes it without another request (clipboard-paste failure mode 8).
+            try #require(sqlite3_exec(database, "DROP TRIGGER box_save_failure", nil, nil, nil) == SQLITE_OK)
+            await settleMainActor()
+            pumpNativeEvents(box)
+            try click(box, at: NSPoint(x: try #require(box.contentView).bounds.maxX - 32, y: 20))
+            try await eventually { resultBoxPresentation()?.saveNotice == nil }
+            try await eventually {
+                model.historyRecords.first?.operation.sourceMarkdown == "Unsaved text"
+                    && model.historyRecords.first?.operation.status == .succeeded
+            }
+            #expect(await fixture.http.imageRequests.count == 1)
+
+            // Once saved, quitting closes the box without asking.
+            #expect(await model.prepareForTermination())
+            #expect(resultBox() == nil)
         }
     }
 

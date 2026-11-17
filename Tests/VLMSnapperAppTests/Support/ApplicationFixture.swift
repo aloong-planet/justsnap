@@ -138,7 +138,7 @@ final class ApplicationFixture {
             await historyImageLoader?.releaseAll()
             await http.release()
             await capture.release()
-            let answering = answerLeftoverOverlaySheets()
+            let answering = answerLeftoverSheets()
             _ = await model.prepareForTermination()
             answering.cancel()
             stopFixture(excluding: existingWindows) { model.stop() }
