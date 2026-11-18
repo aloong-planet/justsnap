@@ -31,12 +31,40 @@ struct MenuBarPresentationTests {
         #expect(succeededItem.title == "Designing Calm Software")
         #expect(succeededItem.detail == "Translate · 2 min ago")
         #expect(succeededItem.status == .succeeded)
-        #expect(succeededItem.screenshotURL.path == "/tmp/capture.png")
+        #expect(succeededItem.screenshotURL?.path == "/tmp/capture.png")
 
         let failedItem = MenuRecentItem(record: failed, now: now)
         #expect(failedItem.title == "Provider request failed")
         #expect(failedItem.detail == "Extract Text · 1 hr ago")
         #expect(failedItem.status == .failed)
+    }
+
+    @Test("a Pasted Text record's recent item has no screenshot and keeps its title and detail")
+    func pastedTextRecordPresentation() {
+        LocalizationTestCoordinator.acquire()
+        defer { LocalizationTestCoordinator.release() }
+        VLMSnapperLocalization.configure(effectiveLanguage: .english)
+        defer {
+            VLMSnapperLocalization.configure(effectiveLanguage: .simplifiedChinese)
+        }
+        let now = Date(timeIntervalSince1970: 10_000)
+        let pasted = HistoryRecord(
+            operation: StoredOperation(
+                id: UUID(),
+                input: .pastedText("Quarterly notes\nmore"),
+                selection: ProviderSelection(providerID: "deepseek", modelID: "vision-model"),
+                status: .succeeded,
+                sourceMarkdown: "## Quarterly notes"
+            ),
+            createdAt: now.addingTimeInterval(-120),
+            isPinned: false
+        )
+
+        let item = MenuRecentItem(record: pasted, now: now)
+
+        #expect(item.screenshotURL == nil)
+        #expect(item.title == "Quarterly notes")
+        #expect(item.detail == "Extract Text · 2 min ago")
     }
 
     @Test("provider badge never claims availability before a selected model exists")

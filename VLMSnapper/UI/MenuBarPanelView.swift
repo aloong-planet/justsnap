@@ -20,14 +20,15 @@ public struct MenuRecentItem: Identifiable, Equatable, Sendable {
     public let title: String
     public let detail: String
     public let status: Status
-    public let screenshotURL: URL
+    /// The original image's file; `nil` for a Pasted Text record, which has none (clipboard-paste::REQ-008/AC-02).
+    public let screenshotURL: URL?
 
     public init(
         id: String,
         title: String,
         detail: String,
         status: Status = .succeeded,
-        screenshotURL: URL = URL(fileURLWithPath: "/dev/null")
+        screenshotURL: URL? = URL(fileURLWithPath: "/dev/null")
     ) {
         self.id = id
         self.title = title
@@ -41,7 +42,7 @@ public struct MenuRecentItem: Identifiable, Equatable, Sendable {
         title = Self.title(for: record)
         detail = "\(Self.operationLabel(for: record.operation.kind)) · \(Self.relativeTime(from: record.createdAt, to: now))"
         status = Self.status(for: record.operation.status)
-        screenshotURL = URL(fileURLWithPath: record.operation.screenshot?.path ?? "/dev/null")
+        screenshotURL = record.operation.screenshot.map { URL(fileURLWithPath: $0.path) }
     }
 
     private static func title(for record: HistoryRecord) -> String {
@@ -341,7 +342,7 @@ public struct MenuBarPanelView: View {
 
     @ViewBuilder
     private func recentThumbnail(for item: MenuRecentItem) -> some View {
-        if let image = NSImage(contentsOf: item.screenshotURL) {
+        if let url = item.screenshotURL, let image = NSImage(contentsOf: url) {
             Image(nsImage: image)
                 .resizable()
                 .scaledToFill()
