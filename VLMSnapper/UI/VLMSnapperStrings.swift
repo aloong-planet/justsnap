@@ -282,7 +282,7 @@ enum VLMSnapperStrings {
     static var diagnosticsExport: String { localized("diagnostics.export") }
 
     static var pasteTitle: String { localized("paste.title") }
-    static var pasteClipboardText: String { localized("paste.clipboardText") }
+    static var pasteClipboardFile: String { localized("paste.clipboardFile") }
     static var pasteClipboardEmpty: String { localized("paste.clipboardEmpty") }
     static var pasteClipboardUnreadable: String { localized("paste.clipboardUnreadable") }
 
@@ -317,16 +317,22 @@ enum VLMSnapperStrings {
         return localized(key)
     }
 
-    /// The size check before sending rejected the request (v1-core §9, clipboard-paste::REQ-004/AC-04).
+    /// The size check before sending rejected the request (v1-core §9, clipboard-paste::REQ-004/AC-04,
+    /// REQ-007/AC-03).
     static func requestBodyOverLimit(
         _ overLimit: RequestBodyOverLimit,
         providerName: String,
-        fromPaste: Bool,
+        source: CaptureResultBoxPresentation.InputSource,
         locale: Locale
     ) -> String {
         let size = { (bytes: Int) in Int64(bytes).formatted(.byteCount(style: .file).locale(locale)) }
+        let key = switch source {
+        case .capture: "failure.imageTooLarge.capture"
+        case .paste: "failure.imageTooLarge.paste"
+        case .pastedText: "failure.textTooLarge.paste"
+        }
         return String(
-            format: localized(fromPaste ? "failure.imageTooLarge.paste" : "failure.imageTooLarge.capture"),
+            format: localized(key),
             size(overLimit.actualBytes),
             providerName,
             size(overLimit.limitBytes)

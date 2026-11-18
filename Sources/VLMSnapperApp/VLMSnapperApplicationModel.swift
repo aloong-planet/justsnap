@@ -1109,9 +1109,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
     private func makePasteController() -> ClipboardPasteController {
         ClipboardPasteController(environment: .init(
             reader: dependencies.clipboardReader,
-            makeSession: { [unowned self] png in
+            makeSession: { [unowned self] input in
                 OperationWorkspaceSession(
-                    originalPNG: png,
+                    input: input,
                     runner: PersistedOperationWorkspaceRunner(
                         screenshotStore: screenshotStore,
                         historyStore: historyStore,

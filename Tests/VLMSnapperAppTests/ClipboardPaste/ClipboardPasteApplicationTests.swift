@@ -10,7 +10,7 @@ import VLMSnapperUI
 @testable import VLMSnapperApp
 
 // clipboard-paste. The paste fixture's pasteboard is a private one the real reader reads; its layouts copy
-// clipboards seen on this Mac on 2026-11-17 (WebKit's Copy Image). Not covered here, because they need the
+// clipboards seen on this Mac on 2026-11-17 (WebKit's Copy Image) and 2026-11-18 (a Finder file copy). Not covered here, because they need the
 // window server and other apps: what browsers other than WebKit and spreadsheets put on the clipboard,
 // that showing the box leaves another app active, that a click makes it key, the box's level above other
 // apps' windows, and the delegate closing the real menu panel — checked on the installed build.
@@ -53,20 +53,71 @@ extension ProviderApplicationTests {
     }
 
     @Test
-    func aTextClipboardIsReportedWithoutARequestOrRecord() async throws {
+    func pastingCopiedTextExtractsItWithoutAnImageOrFile() async throws {
         try await withResultFixture { fixture, model in
+            let text = "  A paragraph of copied\ntext that wraps 'here'.\n"
             fixture.pasteboard.clearContents()
-            fixture.pasteboard.setString("A paragraph of copied text", forType: .string)
+            fixture.pasteboard.setString(text, forType: .string)
+
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await eventually { resultBoxPresentation()?.title == "Extract" }
+
+            let request = try #require(await fixture.http.imageRequests.first)
+            #expect(sentUserText(request) == text)
+            #expect(sentPNG(request) == nil)
+            #expect(resultBoxPresentation()?.showsOperations == true)
+            try await fixture.http.finishImage(source: "A paragraph of copied text that wraps 'here'.")
+            try await eventually { resultBoxText() == "A paragraph of copied text that wraps 'here'." }
+            try await eventually { model.historyRecords.first?.operation.status == .succeeded }
+            #expect(model.historyRecords.map(\.operation.input) == [.pastedText(text)])
+            #expect(try managedFiles(in: fixture).isEmpty)
+        }
+    }
+
+    @Test
+    func aCopiedFinderFileIsReportedWithoutARequestOrRecord() async throws {
+        try await withResultFixture { fixture, model in
+            putFinderCopiedFile(named: "report.pdf", on: fixture.pasteboard)
 
             model.pasteFromClipboard()
             try await eventually { resultBoxPresentation()?.title == "Paste" }
 
-            #expect(resultBoxPresentation()?.body == .message("The clipboard holds text. Only images can be pasted for now."))
+            #expect(resultBoxPresentation()?.body == .message("Files can't be pasted for now. Copy text or an image instead."))
             #expect(resultBoxPresentation()?.canRetry == false)
+            #expect(resultBoxPresentation()?.showsOperations == false)
             await settleMainActor()
             #expect(await fixture.http.imageRequests.isEmpty)
             #expect(model.historyRecords.isEmpty)
             #expect(try managedFiles(in: fixture).isEmpty)
+        }
+    }
+
+    @Test
+    func translateAfterATextPasteMakesItsOwnRecordFromTheSameText() async throws {
+        try await withResultFixture { fixture, model in
+            model.changeTargetLanguage("ja")
+            fixture.pasteboard.clearContents()
+            fixture.pasteboard.setString("Hello there.\nSecond line.", forType: .string)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Hello there. Second line.")
+            try await eventually { model.historyRecords.count == 1 }
+
+            // A later clipboard change does not reach the operations of this paste (clipboard-paste::REQ-003/AC-07).
+            fixture.pasteboard.clearContents()
+            fixture.pasteboard.setString("Copied since", forType: .string)
+            try #require(pasteBoxOperations()).onStart(.translate)
+            try await eventually { await fixture.http.imageRequests.count == 2 }
+            let request = try #require(await fixture.http.imageRequests.last)
+            #expect(sentUserText(request) == "Hello there.\nSecond line.")
+            try await fixture.http.finishImage(source: "Hello there.", translation: "こんにちは。")
+            try await eventually { model.historyRecords.count == 2 }
+
+            let records = model.historyRecords
+            #expect(records.allSatisfy { $0.operation.input == .pastedText("Hello there.\nSecond line.") })
+            #expect(records.contains { $0.operation.kind == .translate && $0.operation.targetLanguage == "ja" })
+            #expect(fixture.clipboardReader.reads == 1)
         }
     }
 
@@ -540,6 +591,28 @@ func putWebKitCopiedImage(_ tiff: Data, on pasteboard: NSPasteboard) {
     item.setString(#"<img src="\#(address)" alt="a cat">"#, forType: .html)
     pasteboard.clearContents()
     pasteboard.writeObjects([item])
+}
+
+/// One file copied in Finder, as seen on this Mac on 2026-11-18: a file reference, the file name as plain text
+/// (UTF-8 and UTF-16) and the file's icon as `icns` data.
+@MainActor
+func putFinderCopiedFile(named name: String, on pasteboard: NSPasteboard) {
+    let item = NSPasteboardItem()
+    item.setString("file:///Users/someone/Documents/\(name)", forType: .fileURL)
+    item.setString(name, forType: NSPasteboard.PasteboardType("public.utf16-external-plain-text"))
+    item.setString(name, forType: .string)
+    item.setData(Data(repeating: 0x69, count: 64), forType: NSPasteboard.PasteboardType("com.apple.icns"))
+    pasteboard.clearContents()
+    pasteboard.writeObjects([item])
+}
+
+/// The Pasted Text a DeepSeek text request sent as its user message.
+func sentUserText(_ request: URLRequest) -> String? {
+    guard let body = request.httpBody,
+          let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+          let messages = json["messages"] as? [[String: Any]]
+    else { return nil }
+    return messages.first { $0["role"] as? String == "user" }?["content"] as? String
 }
 
 /// A TIFF with a transparent half, as a copied image arrives.

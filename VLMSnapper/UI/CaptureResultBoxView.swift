@@ -16,10 +16,11 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
         case text(CaptureResultBoxText)
     }
 
-    /// Where the box's image came from: a capture, or a Pasted Image (clipboard-paste).
-    public enum ImageSource: Equatable, Sendable {
+    /// Where the box's input came from: a capture, a Pasted Image or a Pasted Text (clipboard-paste).
+    public enum InputSource: Equatable, Sendable {
         case capture
         case paste
+        case pastedText
     }
 
     public let title: String
@@ -35,16 +36,16 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
 
     public var canCopy: Bool { !copyText.isEmpty }
 
-    /// What a paste reports when the clipboard has no image it can use (clipboard-paste::REQ-003/AC-06).
+    /// What a paste reports when the clipboard has no text or image it can use (clipboard-paste::REQ-003/AC-06).
     public enum PasteClipboardProblem: Equatable, Sendable {
-        case text
+        case file
         case empty
         case unreadable
     }
 
     public static func pasteProblem(_ problem: PasteClipboardProblem) -> Self {
         let message = switch problem {
-        case .text: VLMSnapperStrings.pasteClipboardText
+        case .file: VLMSnapperStrings.pasteClipboardFile
         case .empty: VLMSnapperStrings.pasteClipboardEmpty
         case .unreadable: VLMSnapperStrings.pasteClipboardUnreadable
         }
@@ -89,7 +90,7 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
         providerSummary: String,
         slot: WorkspaceOperationSlot,
         retryAvailable: Bool = true,
-        source: ImageSource = .capture,
+        source: InputSource = .capture,
         providerName: String = "",
         locale: Locale = .autoupdatingCurrent
     ) {
@@ -97,7 +98,7 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
             ? VLMSnapperStrings.captureExtract
             : "\(VLMSnapperStrings.translate) · \(targetLanguageName)"
         self.providerSummary = providerSummary
-        showsOperations = source == .paste
+        showsOperations = source != .capture
 
         func text(_ result: WorkspaceCommittedResult?) -> (CaptureResultBoxText, String) {
             Self.text(
@@ -145,7 +146,7 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
                 VLMSnapperStrings.requestBodyOverLimit(
                     $0,
                     providerName: providerName,
-                    fromPaste: source == .paste,
+                    source: source,
                     locale: locale
                 )
             } ?? VLMSnapperStrings.failureMessage(code: code))

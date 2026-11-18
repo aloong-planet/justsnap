@@ -40,6 +40,7 @@
 "failure.imageTooLarge" = "The screenshot exceeds the current Provider or model size limit.";
 "failure.imageTooLarge.capture" = "The request is %1$@, over the %3$@ %2$@ allows. Select a smaller area and retry.";
 "failure.imageTooLarge.paste" = "The request is %1$@, over the %3$@ %2$@ allows. Copy a smaller image and paste again.";
+"failure.textTooLarge.paste" = "The request is %1$@, over the %3$@ %2$@ allows. Copy less text and paste again.";
 "failure.timeout" = "The Provider response timed out. Check the network and retry manually.";
 "failure.transport" = "VLMSnapper could not reach the Provider. Check the network and retry manually.";
 "failure.localStorage" = "VLMSnapper could not save the API key securely in Apple Keychain. Keep this window open and retry after checking the app installation.";
@@ -127,8 +128,8 @@
 "menu.capture" = "Capture";
 "menu.paste" = "Paste";
 "paste.title" = "Paste";
-"paste.clipboardText" = "The clipboard holds text. Only images can be pasted for now.";
-"paste.clipboardEmpty" = "There is no image on the clipboard. Copy an image, then paste.";
+"paste.clipboardFile" = "Files can't be pasted for now. Copy text or an image instead.";
+"paste.clipboardEmpty" = "There's no text or image on the clipboard.";
 "paste.clipboardUnreadable" = "The clipboard content cannot be read as an image.";
 "menu.recent" = "Recent";
 "menu.history" = "History";

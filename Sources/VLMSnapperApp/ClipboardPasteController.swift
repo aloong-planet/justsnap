@@ -35,12 +35,13 @@ struct PasteboardClipboardImageReader: ClipboardImageReading {
     }
 }
 
-/// The paste result box and the one Pasted Image it works on (clipboard-paste::REQ-005, REQ-006, ADR-0019).
+/// The paste result box and the one Pasted Image or Pasted Text it works on (clipboard-paste::REQ-005, REQ-006,
+/// REQ-007, ADR-0019).
 @MainActor
 final class ClipboardPasteController {
     struct Environment {
         let reader: any ClipboardImageReading
-        let makeSession: @MainActor (Data) -> OperationWorkspaceSession
+        let makeSession: @MainActor (ProviderRequestInput) -> OperationWorkspaceSession
         /// Runs a request as a model request that belongs to no capture; `false` when it was not admitted.
         let performRequest: @MainActor (@MainActor () async -> Void) async -> Bool
         let selection: @MainActor () -> ProviderSelection?
@@ -71,6 +72,7 @@ final class ClipboardPasteController {
     private lazy var toolbarState = CaptureToolbarState(targetLanguageCode: environment.targetLanguageCode())
 
     private var session: OperationWorkspaceSession?
+    private var sessionSource: CaptureResultBoxPresentation.InputSource = .paste
     private var snapshot = OperationWorkspaceSnapshot(
         selectedOperation: .extract,
         extract: WorkspaceOperationSlot(),
@@ -142,17 +144,25 @@ final class ClipboardPasteController {
     private func show(_ content: ClipboardPasteContent) {
         switch content {
         case let .image(png):
-            problem = nil
-            session = environment.makeSession(png)
-            showBox()
-            startRequest(.extract, targetLanguage: environment.targetLanguageCode())
-        case .text, .file:
-            showProblem(.text)
+            start(.png(png), source: .paste)
+        case let .text(text):
+            start(.pastedText(text), source: .pastedText)
+        case .file:
+            showProblem(.file)
         case .empty:
             showProblem(.empty)
         case .unreadable:
             showProblem(.unreadable)
         }
+    }
+
+    /// A paste that uses an image or Pasted Text starts Text Extraction at once (clipboard-paste::REQ-006/AC-01).
+    private func start(_ input: ProviderRequestInput, source: CaptureResultBoxPresentation.InputSource) {
+        problem = nil
+        session = environment.makeSession(input)
+        sessionSource = source
+        showBox()
+        startRequest(.extract, targetLanguage: environment.targetLanguageCode())
     }
 
     private func showProblem(_ value: CaptureResultBoxPresentation.PasteClipboardProblem) {
@@ -356,7 +366,7 @@ final class ClipboardPasteController {
                 slot: slot(operation),
                 // Until a finished request has wrapped up, Retry would do nothing.
                 retryAvailable: !hasUnsavedResult && runningOperation == nil,
-                source: .paste,
+                source: sessionSource,
                 providerName: sessionProviderName
             )
         } else {

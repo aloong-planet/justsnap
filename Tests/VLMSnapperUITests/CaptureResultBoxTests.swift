@@ -152,14 +152,16 @@ struct CaptureResultBoxPresentationTests {
     @Test(
         "a request body over the limit names the request size, the Provider's limit and what to do",
         arguments: [
-            (CaptureResultBoxPresentation.ImageSource.capture, EffectiveApplicationLanguage.simplifiedChinese,
+            (CaptureResultBoxPresentation.InputSource.capture, EffectiveApplicationLanguage.simplifiedChinese,
              "请求大小为 24.3 MB，超过 Gemini 允许的 20 MB。请缩小选区后重试。"),
             (.paste, .simplifiedChinese, "请求大小为 24.3 MB，超过 Gemini 允许的 20 MB。请复制较小的图片后重新粘贴。"),
+            (.pastedText, .simplifiedChinese, "请求大小为 24.3 MB，超过 Gemini 允许的 20 MB。请复制较少的文字后重新粘贴。"),
             (.capture, .english, "The request is 24.3 MB, over the 20 MB Gemini allows. Select a smaller area and retry."),
             (.paste, .english, "The request is 24.3 MB, over the 20 MB Gemini allows. Copy a smaller image and paste again."),
+            (.pastedText, .english, "The request is 24.3 MB, over the 20 MB Gemini allows. Copy less text and paste again."),
         ]
     )
-    func requestBodyOverLimit(source: CaptureResultBoxPresentation.ImageSource, language: EffectiveApplicationLanguage, message: String) {
+    func requestBodyOverLimit(source: CaptureResultBoxPresentation.InputSource, language: EffectiveApplicationLanguage, message: String) {
         LocalizationTestCoordinator.withExclusiveAccess {
             VLMSnapperLocalization.configure(effectiveLanguage: language)
             let value = CaptureResultBoxPresentation(
@@ -180,18 +182,26 @@ struct CaptureResultBoxPresentationTests {
     }
 
     @Test(
-        "a clipboard without a usable image is titled Paste, says why, and has nothing to copy, retry or run",
+        "a clipboard without usable text or image is titled Paste, says why, and has nothing to copy, retry or run",
         arguments: [
-            (CaptureResultBoxPresentation.PasteClipboardProblem.text, "剪贴板里是文字。目前只能粘贴图片。"),
-            (.empty, "剪贴板里没有图片。复制一张图片后再粘贴。"),
-            (.unreadable, "剪贴板里的内容无法作为图片读取。"),
+            (CaptureResultBoxPresentation.PasteClipboardProblem.file, EffectiveApplicationLanguage.simplifiedChinese,
+             "粘贴", "暂不支持粘贴文件，请复制文字或图片。"),
+            (.empty, .simplifiedChinese, "粘贴", "剪贴板里没有文字或图片"),
+            (.unreadable, .simplifiedChinese, "粘贴", "剪贴板里的内容无法作为图片读取。"),
+            (.file, .english, "Paste", "Files can't be pasted for now. Copy text or an image instead."),
+            (.empty, .english, "Paste", "There's no text or image on the clipboard."),
         ]
     )
-    func pasteClipboardProblem(problem: CaptureResultBoxPresentation.PasteClipboardProblem, message: String) {
+    func pasteClipboardProblem(
+        problem: CaptureResultBoxPresentation.PasteClipboardProblem,
+        language: EffectiveApplicationLanguage,
+        title: String,
+        message: String
+    ) {
         LocalizationTestCoordinator.withExclusiveAccess {
-            VLMSnapperLocalization.configure(effectiveLanguage: .simplifiedChinese)
+            VLMSnapperLocalization.configure(effectiveLanguage: language)
             let value = CaptureResultBoxPresentation.pasteProblem(problem)
-            #expect(value.title == "粘贴")
+            #expect(value.title == title)
             #expect(value.body == .message(message))
             #expect(value.providerSummary.isEmpty)
             #expect(!value.canCopy)
