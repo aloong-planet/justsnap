@@ -11,8 +11,10 @@ import VLMSnapperUI
 // History retries remain inline; double clicking no longer opens a result window.
 // Production callback tests do not claim installed-app physical Retry clicks.
 // Gap: whether history detail's Retry button is enabled is decided by HistoryRetryAvailability, which is
-// unit-tested; that the button uses it is not tested, because the in-process accessibility walk does not
-// reach the SwiftUI button. It is checked on the installed build, with text selection and ⌘C in the detail.
+// unit-tested; that the button uses it is not tested. Like the other history retry tests here, these call the
+// production callback; testing the button needs a coordinate click on the rendered detail, and no helper
+// locates that button yet (the in-process accessibility walk does not expose it). Until one exists it is
+// checked on the installed build, with text selection and ⌘C in the detail.
 extension ProviderApplicationTests {
     @Test
     func historyImageDoesNotReportFailureBeforeLoadingCompletes() async throws {
