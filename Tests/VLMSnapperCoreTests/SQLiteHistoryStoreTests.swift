@@ -396,13 +396,15 @@ struct SQLiteHistoryStoreTests {
         #expect(try await store.history(matching: HistoryQuery(searchText: "你好")).map(\.id) == [id])
     }
 
-    @Test("a Pasted Text operation keeps its text exactly and has no image")
-    func pastedTextOperationKeepsItsText() async throws {
+    @Test(
+        "a Pasted Text operation keeps its text exactly and has no image",
+        arguments: ["  第一行\n\tsecond line 'quoted' \n", "before\u{0}after the NUL"]
+    )
+    func pastedTextOperationKeepsItsText(text: String) async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("history.sqlite")
-        let text = "  第一行\n\tsecond line 'quoted' \n"
         let store = try SQLiteHistoryStore(databaseURL: url)
 
         let prepared = try await store.prepareOperation(

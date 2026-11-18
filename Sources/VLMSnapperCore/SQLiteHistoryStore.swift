@@ -968,7 +968,9 @@ public actor SQLiteHistoryStore {
         to statement: OpaquePointer
     ) throws {
         let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-        guard sqlite3_bind_text(statement, index, text, -1, transient) == SQLITE_OK else {
+        // An explicit byte length keeps text after an embedded U+0000; a length of -1 stops there.
+        let length = sqlite3_uint64(text.utf8.count)
+        guard sqlite3_bind_text64(statement, index, text, length, transient, UInt8(SQLITE_UTF8)) == SQLITE_OK else {
             throw SQLiteHistoryStoreError.databaseFailure
         }
     }
@@ -1028,7 +1030,9 @@ public actor SQLiteHistoryStore {
         guard let value = sqlite3_column_text(statement, index) else {
             return nil
         }
-        return String(cString: value)
+        // Read by byte count, not up to the first NUL, so stored text comes back whole.
+        let count = Int(sqlite3_column_bytes(statement, index))
+        return String(decoding: UnsafeBufferPointer(start: value, count: count), as: UTF8.self)
     }
 
     private static func integer(
