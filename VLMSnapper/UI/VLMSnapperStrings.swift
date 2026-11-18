@@ -113,6 +113,7 @@ enum VLMSnapperStrings {
     static var menuCapture: String { localized("menu.capture") }
     static var menuPaste: String { localized("menu.paste") }
     static var menuRecent: String { localized("menu.recent") }
+    static var menuTranslateTo: String { localized("menu.translateTo") }
     static var menuHistory: String { localized("menu.history") }
     static var menuSettings: String { localized("menu.settings") }
     static var menuGeneralSettings: String { localized("menu.generalSettings") }

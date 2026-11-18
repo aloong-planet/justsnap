@@ -210,6 +210,8 @@ public struct MenuBarPanelView: View {
     private let captureShortcut: String
     /// Nil when the paste shortcut is unset; the button then shows no shortcut.
     private let pasteShortcut: String?
+    private let targetLanguageCode: String
+    private let targetLanguages: [TargetLanguageOption]
     private let onCapture: () -> Void
     private let onPaste: () -> Void
     private let onOpenRecent: (String) -> Void
@@ -217,6 +219,9 @@ public struct MenuBarPanelView: View {
     private let onCheckUpdates: () -> Void
     private let onDownloadUpdate: () -> Void
     private let onOpenUpdateInformation: (URL) -> Void
+    private let onTargetLanguageChange: (String) -> Void
+    @State private var isLanguageListPresented = false
+    @State private var languageSearchText = ""
 
     public init(
         recentItems: [MenuRecentItem],
@@ -224,13 +229,16 @@ public struct MenuBarPanelView: View {
         updateState: UpdateLifecycleState = .idle,
         captureShortcut: String = "⌥⇧S",
         pasteShortcut: String? = "⌥⇧V",
+        targetLanguageCode: String = "zh-Hans",
+        targetLanguages: [TargetLanguageOption] = [],
         onCapture: @escaping () -> Void,
         onPaste: @escaping () -> Void = {},
         onOpenRecent: @escaping (String) -> Void,
         onNavigate: @escaping (ManagementCenterDestination) -> Void,
         onCheckUpdates: @escaping () -> Void,
         onDownloadUpdate: @escaping () -> Void = {},
-        onOpenUpdateInformation: @escaping (URL) -> Void = { _ in }
+        onOpenUpdateInformation: @escaping (URL) -> Void = { _ in },
+        onTargetLanguageChange: @escaping (String) -> Void = { _ in }
     ) {
         self.recentItems = recentItems
         self.provider = provider
@@ -244,6 +252,9 @@ public struct MenuBarPanelView: View {
         self.onCheckUpdates = onCheckUpdates
         self.onDownloadUpdate = onDownloadUpdate
         self.onOpenUpdateInformation = onOpenUpdateInformation
+        self.targetLanguageCode = targetLanguageCode
+        self.targetLanguages = targetLanguages
+        self.onTargetLanguageChange = onTargetLanguageChange
     }
 
     public var body: some View {
@@ -273,6 +284,7 @@ public struct MenuBarPanelView: View {
                 )
             }
             .padding(.horizontal, 10)
+            targetLanguageRow
             if updateState.showsMenuNotice {
                 updateNotice
             }
@@ -338,6 +350,43 @@ public struct MenuBarPanelView: View {
         .background(VLMSnapperTheme.window)
         .clipShape(RoundedRectangle(cornerRadius: MenuBarPanelMetrics.outerCornerRadius))
         .frame(width: MenuBarPanelMetrics.width)
+    }
+
+    /// The remembered target language, set here as in the toolbar and the paste box (v1-core::REQ-017).
+    private var targetLanguageRow: some View {
+        MenuBarPanelActionButton(role: .row) {
+            languageSearchText = ""
+            isLanguageListPresented.toggle()
+        } label: {
+            HStack(spacing: 6) {
+                Text(VLMSnapperStrings.menuTranslateTo)
+                    .font(.callout)
+                Spacer(minLength: 8)
+                Text(VLMSnapperLocalization.localizedLanguageName(for: targetLanguageCode))
+                    .font(.callout)
+                    .foregroundStyle(VLMSnapperTheme.secondaryText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                VLMSnapperIcon.chevronDown.image
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(VLMSnapperTheme.secondaryText)
+            }
+            .padding(.horizontal, 8)
+            .frame(height: 32)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .popover(isPresented: $isLanguageListPresented, arrowEdge: .bottom) {
+            TargetLanguageList(
+                options: targetLanguages,
+                selectedCode: targetLanguageCode,
+                searchText: $languageSearchText
+            ) { code in
+                onTargetLanguageChange(code)
+                isLanguageListPresented = false
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.top, 6)
     }
 
     private var providerBadge: some View {

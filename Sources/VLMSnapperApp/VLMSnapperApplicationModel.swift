@@ -354,6 +354,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
                 for: captureShortcut
             ),
             pasteShortcut: pasteShortcut.map(GlobalShortcutDisplayFormatter.string(for:)),
+            targetLanguageCode: selectedTargetLanguageCode,
+            targetLanguages: targetLanguageOptions,
             callbacks: menuCallbacks()
         )
     }
@@ -483,7 +485,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             onNavigate: { [weak self] destination in self?.onNavigate?(destination) },
             onCheckUpdates: { [weak self] in Task { await self?.checkUpdates() } },
             onDownloadUpdate: { [weak self] in Task { await self?.downloadUpdate() } },
-            onOpenUpdateInformation: { NSWorkspace.shared.open($0) }
+            onOpenUpdateInformation: { NSWorkspace.shared.open($0) },
+            // The panel stays open and shows the new language (v1-core::REQ-017/AC-02).
+            onTargetLanguageChange: { [weak self] in self?.changeTargetLanguage($0) }
         )
     }
 
@@ -1743,6 +1747,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
         selectedTargetLanguageCode = code
         defaults.set(code, forKey: "targetLanguageCode")
         refreshResultSurfaces()
+        // An open paste box shows the new language too (v1-core::REQ-017/AC-03).
+        pasteController.targetLanguageDidChange()
         // SwiftUI applies the new abbreviation on its next update; its width changes the toolbar's.
         DispatchQueue.main.async { [weak self] in
             guard let self, let frame = confirmedSelectionFrame, let screen = confirmedSelectionScreen else { return }

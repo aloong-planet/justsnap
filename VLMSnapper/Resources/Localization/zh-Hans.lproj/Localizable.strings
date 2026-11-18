@@ -132,6 +132,7 @@
 "paste.clipboardEmpty" = "剪贴板里没有文字或图片";
 "paste.clipboardUnreadable" = "剪贴板里的内容无法作为图片读取。";
 "menu.recent" = "最近记录";
+"menu.translateTo" = "翻译为";
 "menu.history" = "历史记录";
 "menu.settings" = "设置中心";
 "menu.generalSettings" = "设置";

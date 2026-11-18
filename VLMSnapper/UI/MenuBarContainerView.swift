@@ -21,6 +21,7 @@ public struct MenuBarCallbacks {
     public let onCheckUpdates: () -> Void
     public let onDownloadUpdate: () -> Void
     public let onOpenUpdateInformation: (URL) -> Void
+    public let onTargetLanguageChange: (String) -> Void
 
     public init(
         onCapture: @escaping () -> Void,
@@ -29,7 +30,8 @@ public struct MenuBarCallbacks {
         onNavigate: @escaping (ManagementCenterDestination) -> Void,
         onCheckUpdates: @escaping () -> Void,
         onDownloadUpdate: @escaping () -> Void = {},
-        onOpenUpdateInformation: @escaping (URL) -> Void = { _ in }
+        onOpenUpdateInformation: @escaping (URL) -> Void = { _ in },
+        onTargetLanguageChange: @escaping (String) -> Void = { _ in }
     ) {
         self.onCapture = onCapture
         self.onPaste = onPaste
@@ -38,6 +40,7 @@ public struct MenuBarCallbacks {
         self.onCheckUpdates = onCheckUpdates
         self.onDownloadUpdate = onDownloadUpdate
         self.onOpenUpdateInformation = onOpenUpdateInformation
+        self.onTargetLanguageChange = onTargetLanguageChange
     }
 }
 
@@ -48,7 +51,10 @@ public struct MenuBarContainerView: View {
     private let updateState: UpdateLifecycleState
     private let captureShortcut: String
     private let pasteShortcut: String?
-    private let callbacks: MenuBarCallbacks
+    /// What the panel's translation language row shows (v1-core::REQ-017).
+    public let targetLanguageCode: String
+    private let targetLanguages: [TargetLanguageOption]
+    public let callbacks: MenuBarCallbacks
 
     public init(
         recentItems: [MenuRecentItem],
@@ -57,6 +63,8 @@ public struct MenuBarContainerView: View {
         updateState: UpdateLifecycleState = .idle,
         captureShortcut: String = "⌥⇧S",
         pasteShortcut: String? = "⌥⇧V",
+        targetLanguageCode: String = "zh-Hans",
+        targetLanguages: [TargetLanguageOption] = [],
         callbacks: MenuBarCallbacks
     ) {
         self.recentItems = recentItems
@@ -65,6 +73,8 @@ public struct MenuBarContainerView: View {
         self.updateState = updateState
         self.captureShortcut = captureShortcut
         self.pasteShortcut = pasteShortcut
+        self.targetLanguageCode = targetLanguageCode
+        self.targetLanguages = targetLanguages
         self.callbacks = callbacks
     }
 
@@ -75,13 +85,16 @@ public struct MenuBarContainerView: View {
             updateState: updateState,
             captureShortcut: captureShortcut,
             pasteShortcut: pasteShortcut,
+            targetLanguageCode: targetLanguageCode,
+            targetLanguages: targetLanguages,
             onCapture: routeCapture,
             onPaste: callbacks.onPaste,
             onOpenRecent: callbacks.onOpenRecent,
             onNavigate: callbacks.onNavigate,
             onCheckUpdates: callbacks.onCheckUpdates,
             onDownloadUpdate: callbacks.onDownloadUpdate,
-            onOpenUpdateInformation: callbacks.onOpenUpdateInformation
+            onOpenUpdateInformation: callbacks.onOpenUpdateInformation,
+            onTargetLanguageChange: callbacks.onTargetLanguageChange
         )
     }
 

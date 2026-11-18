@@ -561,6 +561,34 @@ extension ProviderApplicationTests {
         }
     }
 
+    // v1-core::REQ-017/AC-02, AC-03.
+    @Test
+    func aLanguageChosenInThePanelShowsThereAndInTheOpenPasteBoxWithoutARequest() async throws {
+        try await withResultFixture { fixture, model in
+            model.changeTargetLanguage("ja")
+            fixture.pasteboard.clearContents()
+            fixture.pasteboard.setString("Hello", forType: .string)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Hello", translation: "こんにちは")
+            try await eventually { model.historyRecords.count == 1 }
+            var panelCloses = 0
+            model.onCloseMenuPanel = { panelCloses += 1 }
+            #expect(model.menuView().targetLanguageCode == "ja")
+
+            model.menuView().callbacks.onTargetLanguageChange("fr")
+
+            #expect(model.menuView().targetLanguageCode == "fr")
+            #expect(pasteBoxOperations()?.toolbarState.targetLanguageCode == "fr")
+            #expect(model.selectedTargetLanguageCode == "fr")
+            await settleMainActor()
+            #expect(panelCloses == 0)
+            #expect(resultBoxText() == "こんにちは")
+            #expect(await fixture.http.imageRequests.count == 1)
+            #expect(model.historyRecords.count == 1)
+        }
+    }
+
     @Test
     func thePanelsPasteButtonClosesThePanelAndPastes() async throws {
         try await withResultFixture { fixture, model in

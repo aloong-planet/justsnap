@@ -261,42 +261,61 @@ private struct TranslateControl: View {
         .help(selectedLanguageHint)
         .accessibilityLabel(selectedLanguageHint)
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-            VStack(spacing: 8) {
-                TextField(VLMSnapperStrings.targetLanguageSearch, text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                List(options.filter { $0.matches(searchText) }) { option in
-                    Button {
-                        state.targetLanguageCode = option.code
-                        onTargetLanguageChange(option.code)
-                        isPresented = false
-                    } label: {
-                        HStack(spacing: 8) {
-                            Text(option.abbreviation)
-                                .font(.system(size: 12, weight: .semibold))
-                                .frame(width: 30, alignment: .leading)
-                            Text(option.name)
-                                .foregroundStyle(VLMSnapperTheme.secondaryText)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                            Spacer(minLength: 0)
-                            if state.targetLanguageCode == option.code {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(VLMSnapperTheme.accent)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-                .listStyle(.plain)
+            TargetLanguageList(
+                options: options,
+                selectedCode: state.targetLanguageCode,
+                searchText: $searchText
+            ) { code in
+                state.targetLanguageCode = code
+                onTargetLanguageChange(code)
+                isPresented = false
             }
-            .padding(10)
-            .frame(width: 260, height: 340)
         }
     }
 
     private var selectedLanguageHint: String {
         let name = options.first { $0.code == state.targetLanguageCode }?.name ?? state.targetLanguageCode
         return VLMSnapperStrings.targetLanguageHint(name)
+    }
+}
+
+/// The searchable target language list that the toolbar's language part and the menu panel's language row
+/// open (v1-core::REQ-013/AC-04, REQ-017/AC-02).
+struct TargetLanguageList: View {
+    let options: [TargetLanguageOption]
+    let selectedCode: String
+    @Binding var searchText: String
+    let onSelect: (String) -> Void
+
+    var body: some View {
+        VStack(spacing: 8) {
+            TextField(VLMSnapperStrings.targetLanguageSearch, text: $searchText)
+                .textFieldStyle(.roundedBorder)
+            List(options.filter { $0.matches(searchText) }) { option in
+                Button {
+                    onSelect(option.code)
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(option.abbreviation)
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(width: 30, alignment: .leading)
+                        Text(option.name)
+                            .foregroundStyle(VLMSnapperTheme.secondaryText)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Spacer(minLength: 0)
+                        if selectedCode == option.code {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(VLMSnapperTheme.accent)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .listStyle(.plain)
+        }
+        .padding(10)
+        .frame(width: 260, height: 340)
     }
 }

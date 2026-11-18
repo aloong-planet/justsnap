@@ -293,32 +293,6 @@ private func translateControlRightEdge(_ window: NSWindow) -> CGFloat {
 }
 
 @MainActor
-private func closePopovers() {
-    for popover in NSApp.windows where popover.className.contains("Popover") && popover.isVisible {
-        popover.orderOut(nil)
-    }
-}
-
-@MainActor
-private func allSubviews(_ view: NSView) -> [NSView] {
-    [view] + view.subviews.flatMap(allSubviews)
-}
-
-@MainActor
-private func popoverCount() -> Int {
-    NSApp.windows.filter { $0.className.contains("Popover") && $0.isVisible }.count
-}
-
-@MainActor
-private func waitUntil(_ condition: () -> Bool) throws {
-    let deadline = Date().addingTimeInterval(2)
-    while !condition(), Date() < deadline {
-        _ = RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
-    }
-    try #require(condition())
-}
-
-@MainActor
 private func renderedColor(_ view: NSView, at point: NSPoint) throws -> [CGFloat] {
     view.layoutSubtreeIfNeeded()
     let representation = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
@@ -359,18 +333,6 @@ private func boxRect(_ window: NSWindow, fromEnd index: Int) -> CGRect {
 private func boxCenter(_ window: NSWindow, fromEnd index: Int) -> NSPoint {
     let box = boxRect(window, fromEnd: index)
     return NSPoint(x: box.midX, y: box.midY)
-}
-
-@MainActor
-private func press(_ window: NSWindow, at point: NSPoint) throws {
-    for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
-        window.sendEvent(try #require(NSEvent.mouseEvent(
-            with: type, location: point, modifierFlags: [],
-            timestamp: ProcessInfo.processInfo.systemUptime,
-            windowNumber: window.windowNumber, context: nil,
-            eventNumber: 1, clickCount: 1, pressure: 1
-        )))
-    }
 }
 
 /// Bounds, in points, of the icon pixels inside a box of the rendered toolbar (light appearance): any pixel

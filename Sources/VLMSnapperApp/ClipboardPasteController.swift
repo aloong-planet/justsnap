@@ -310,6 +310,12 @@ final class ClipboardPasteController {
 
     private func changeTargetLanguage(_ code: String) {
         environment.changeTargetLanguage(code)
+        targetLanguageDidChange()
+    }
+
+    /// The remembered target language changed here or elsewhere; the shown result stays as it is
+    /// (v1-core::REQ-017/AC-03).
+    func targetLanguageDidChange() {
         toolbarState.targetLanguageCode = environment.targetLanguageCode()
         refresh()
     }

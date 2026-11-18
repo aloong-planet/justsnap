@@ -132,6 +132,7 @@
 "paste.clipboardEmpty" = "There's no text or image on the clipboard.";
 "paste.clipboardUnreadable" = "The clipboard content cannot be read as an image.";
 "menu.recent" = "Recent";
+"menu.translateTo" = "Translate to";
 "menu.history" = "History";
 "menu.settings" = "Settings Center";
 "menu.generalSettings" = "Settings";
