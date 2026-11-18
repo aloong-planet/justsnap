@@ -81,7 +81,7 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 ### clipboard-paste::REQ-008 History of Pasted Text records
 
 - clipboard-paste::REQ-008/AC-01: Records whose input is Pasted Text behave like other records in list, detail, search, filters, retry, Pin, deletion and cleanup (v1-core §9, §10), except as AC-02–06 say. History does not mark them as pasted and has no source filter.
-- clipboard-paste::REQ-008/AC-02: In the Management Center history list and the menu bar panel's recent records, such a record shows a text symbol in the thumbnail slot.
+- clipboard-paste::REQ-008/AC-02: In the menu bar panel's recent records, such a record shows a text symbol in the thumbnail slot. The Management Center history list shows no thumbnail for any record and is unchanged.
 - clipboard-paste::REQ-008/AC-03: History detail shows the record's Pasted Text where a record's original image is shown: read-only, scrollable, selectable, with ⌘C and ⌘A, laid out as local read-only text as in v1-core REQ-010/AC-11. It has no enlarged preview.
 - clipboard-paste::REQ-008/AC-04: History search also matches a record's Pasted Text.
 - clipboard-paste::REQ-008/AC-05: Deleting such a record, clearing history and automatic cleanup remove only the record; they touch no file. Retention and Pin rules are those of every record.
@@ -109,7 +109,7 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 12. The user pastes a very long text: it is sent whole; a request over the Provider's limit fails before anything is sent (clipboard-paste::REQ-007/AC-03), and a Provider rejection such as an exceeded context length fails with the Normalized Error.
 13. The pasted text contains instructions to the model, Markdown, HTML or links: Text Extraction keeps them as text and does not follow them (clipboard-paste::REQ-007/AC-04), and the box lays the result out as in item 10.
 14. The clipboard's plain text is only whitespace and it holds no image data: it is an empty clipboard (clipboard-paste::REQ-003/AC-04).
-15. The user opens the history with an earlier VLMSnapper after Pasted Text records exist: that version finds a newer history database and reports it unavailable (v1-core §9); it does not rebuild it or drop records (ADR-0008).
+15. The user opens the history with an earlier VLMSnapper after Pasted Text records exist: that version finds a newer history database and does not open it; it does not rebuild it or drop records (ADR-0008).
 16. The user pastes text while the Selected Model's Vision Compatibility is unknown: the operation runs and the compatibility stays unknown (clipboard-paste::REQ-007/AC-06).
 
 ## Implementation Decisions
