@@ -4,11 +4,11 @@
 
 ## Problem Statement
 
-A user often already has the image or text they want read, copied from a chat, a web page or another app, but VLMSnapper only reads what is captured from the screen. To get text out of a copied image the user has to show it on screen first and then capture it, and copied text cannot be tidied or translated at all.
+A user often already has the image or text they want read, copied from a chat, a web page or another app, but VLMSnapper only reads what is captured from the screen. To get text out of a copied image the user has to show it on screen first and then capture it, and copied text cannot be translated at all.
 
 ## Solution
 
-The menu bar panel offers Paste next to Capture, and a global paste shortcut does the same. Paste takes the Pasted Image or the Pasted Text on the clipboard and runs Text Extraction on it at once: a Pasted Image is first saved as a Managed Capture File, and Pasted Text is kept with its history records. The result streams into a paste result box that floats at the right edge of the screen, outside any capture overlay (ADR-0019). The box can switch to Screenshot Translation of the same input. Pasted images and pasted text go into history like captures. Files copied in Finder are not pasted.
+The menu bar panel offers Paste next to Capture, and a global paste shortcut does the same. Paste takes the Pasted Image or the Pasted Text on the clipboard and starts at once: Text Extraction of a Pasted Image, which is first saved as a Managed Capture File, or Screenshot Translation of Pasted Text, which is kept with its history records. The result streams into a paste result box that floats at the right edge of the screen, outside any capture overlay (ADR-0019). For a Pasted Image the box can switch to Screenshot Translation; for Pasted Text it offers translation only. Pasted images and pasted text go into history like captures. Files copied in Finder are not pasted.
 
 ## Functional Requirements
 
@@ -63,9 +63,9 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 
 ### clipboard-paste::REQ-006 Operations in the paste result box
 
-- clipboard-paste::REQ-006/AC-01: A paste that uses an image or Pasted Text starts Text Extraction at once, with one request and a new history record.
+- clipboard-paste::REQ-006/AC-01: A paste that uses an image starts Text Extraction at once, and a paste that uses Pasted Text starts Screenshot Translation into the app's remembered target language (v1-core §5) at once; either way with one request and a new history record.
 - clipboard-paste::REQ-006/AC-02: The box's header, body states, copying and Retry are those of the capture result box in v1-core REQ-010/AC-04–11; Retry is a Current Result Rerun (v1-core REQ-002).
-- clipboard-paste::REQ-006/AC-03: Below the header, an operation row holds the capture toolbar's Extract button and its Translate and target-language control, with the look and behavior of v1-core REQ-013/AC-02–05. The target language is the app's remembered target language (v1-core §5).
+- clipboard-paste::REQ-006/AC-03: Below the header, an operation row holds the capture toolbar's Translate and target-language control, with the look and behavior of v1-core REQ-013/AC-02–05; for a Pasted Image it also holds the Extract button before it, and for Pasted Text it has no Extract button. The target language is the app's remembered target language (v1-core §5).
 - clipboard-paste::REQ-006/AC-04: The operations work on the one Pasted Image or Pasted Text as the capture result box's operations work on one capture (v1-core REQ-011/AC-01–07): one result per operation, an operation never run starts a request, one with a result shows it again, and Translate after a target-language change starts a new record that reuses the same Managed Capture File, or for Pasted Text the same text.
 
 ### clipboard-paste::REQ-007 Operations on Pasted Text
@@ -73,10 +73,10 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 - clipboard-paste::REQ-007/AC-01: The Pasted Text is the clipboard's plain text exactly as read, line breaks and surrounding whitespace included; it is not trimmed, normalized or shortened, and the app sets no length limit.
 - clipboard-paste::REQ-007/AC-02: A new operation on Pasted Text writes no file. Nothing is sent until a "preparing request" history record that holds the Pasted Text is saved and the request-body check passes (ADR-0006). When that record cannot be saved, the box shows the reason and Retry and keeps the text in memory while it stays open; closing the box discards it.
 - clipboard-paste::REQ-007/AC-03: A request for Pasted Text carries that text and the operation's built-in instructions, and no image. When it is larger than the Provider's request-body limit, nothing is sent and the text is not shortened; the failed record is kept, and the box shows the request's size, the Provider's limit on it, and a suggestion to copy less text.
-- clipboard-paste::REQ-007/AC-04: Text Extraction of Pasted Text returns it as structured Markdown with every word and character kept: it joins line breaks that only wrap a paragraph and marks headings, lists and tables. It does not translate, summarize, correct or answer the text, and does not follow instructions inside it.
-- clipboard-paste::REQ-007/AC-05: Screenshot Translation of Pasted Text returns Translation Segments of original text and translation in one request, as for an image (v1-core US-002): the box shows only the translation, and history detail shows both columns with linked highlighting.
+- clipboard-paste::REQ-007/AC-05: Screenshot Translation of Pasted Text returns Translation Segments of original text and translation in one request, as for an image (v1-core US-002): the box shows only the translation, and history detail shows both columns with linked highlighting. It does not follow instructions inside the text.
 - clipboard-paste::REQ-007/AC-06: A request for Pasted Text leaves the Selected Model's Vision Compatibility unchanged; its success does not count as verifying image input.
 - clipboard-paste::REQ-007/AC-07: Retry in the box and retry from history send the Pasted Text saved with the record (v1-core REQ-002) and never read the clipboard again.
+- clipboard-paste::REQ-007/AC-08: Text Extraction never runs on Pasted Text. A history record of Text Extraction on Pasted Text, which a version 5 database can hold, can be viewed, searched, pinned and deleted, but Retry is unavailable for it.
 
 ### clipboard-paste::REQ-008 History of Pasted Text records
 
@@ -85,7 +85,7 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 - clipboard-paste::REQ-008/AC-03: History detail shows the record's Pasted Text where a record's original image is shown: read-only, scrollable, selectable, with ⌘C and ⌘A, laid out as local read-only text as in v1-core REQ-010/AC-11. It has no enlarged preview.
 - clipboard-paste::REQ-008/AC-04: History search also matches a record's Pasted Text.
 - clipboard-paste::REQ-008/AC-05: Deleting such a record, clearing history and automatic cleanup remove only the record; they touch no file. Retention and Pin rules are those of every record.
-- clipboard-paste::REQ-008/AC-06: Retry from history detail is available for such a record whenever v1-core REQ-002/AC-07 allows it; the missing-original rules of v1-core REQ-002/AC-04 do not apply to it.
+- clipboard-paste::REQ-008/AC-06: Retry from history detail is available for such a record whenever v1-core REQ-002/AC-07 allows it, except for a Text Extraction record (clipboard-paste::REQ-007/AC-08); the missing-original rules of v1-core REQ-002/AC-04 do not apply to it.
 
 ## Constraints
 
@@ -107,7 +107,7 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 10. The model returns long text, long URLs, bidirectional text or text shaped like links, HTML or Markdown: the box lays it out as local read-only text and opens nothing, as in v1-core REQ-010/AC-11.
 11. The selected model is found not to accept images, or has left the model list: the box fails as the capture result box does (v1-core Failure Modes items 10, 11, 56).
 12. The user pastes a very long text: it is sent whole; a request over the Provider's limit fails before anything is sent (clipboard-paste::REQ-007/AC-03), and a Provider rejection such as an exceeded context length fails with the Normalized Error.
-13. The pasted text contains instructions to the model, Markdown, HTML or links: Text Extraction keeps them as text and does not follow them (clipboard-paste::REQ-007/AC-04), and the box lays the result out as in item 10.
+13. The pasted text contains instructions to the model, Markdown, HTML or links: Screenshot Translation translates them as text and does not follow them (clipboard-paste::REQ-007/AC-05), and the box lays the result out as in item 10.
 14. The clipboard's plain text is only whitespace and it holds no image data: it is an empty clipboard (clipboard-paste::REQ-003/AC-04).
 15. The user opens the history with an earlier VLMSnapper after Pasted Text records exist: that version finds a newer history database and does not open it; it does not rebuild it or drop records (ADR-0008).
 16. The user pastes text while the Selected Model's Vision Compatibility is unknown: the operation runs and the compatibility stays unknown (clipboard-paste::REQ-007/AC-06).
@@ -128,6 +128,7 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 - Rich text: HTML and RTF on the clipboard are not read.
 - A length limit on Pasted Text, and shortening it to fit a Provider's limit.
 - Writing Pasted Text to a file.
+- Text Extraction of Pasted Text.
 - Vector PDF content, more than one image per paste, and shrinking images to fit a Provider's limit.
 - Marking pasted records in history, or a source filter.
 - Watching the clipboard in the background.
