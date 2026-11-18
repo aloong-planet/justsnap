@@ -118,6 +118,54 @@ extension ProviderApplicationTests {
         }
     }
 
+    // clipboard-paste::REQ-008/AC-03, AC-06 and REQ-007/AC-07. Whether the detail's Retry is enabled is the
+    // HistoryRetryAvailability rule's unit test; text selection and ⌘C in the detail are checked on the installed build.
+    @Test
+    func aPastedTextRecordShowsItsTextInDetailAndRetriesWithIt() async throws {
+        try await withFixture { fixture in
+            let store = try SQLiteHistoryStore(databaseURL: fixture.root.appendingPathComponent("history.sqlite"))
+            let text = "Pasted words for history\nSecond pasted line"
+            let prepared = try await store.prepareOperation(input: .pastedText(text),
+                selection: ProviderSelection(providerID: "deepseek", modelID: "old-model"), operation: .extractText)
+            try await store.finish(operationID: prepared.operationID,
+                with: .succeeded(sourceMarkdown: "Structured result", translationMarkdown: nil))
+            await fixture.http.allowImageRequests()
+            try await fixture.withModel { model in
+                let controls = model.providerSettingsConfiguration()
+                model.credentialEditor.edit("fixture-history-key")
+                #expect(model.credentialEditor.submit(for: .deepSeek, isReadOnly: false, operation: controls.onValidate))
+                try await eventually { model.providerSnapshot.phase == .selectingModel }
+                controls.onSelectModel("fixture-vision")
+                try await eventually { model.providerSnapshot.phase == .ready }
+                try await eventually { model.historyRetry.allowsStart }
+                VLMSnapperLocalization.configure(effectiveLanguage: .english)
+                let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 780),
+                    styleMask: [.titled, .closable], backing: .buffered, defer: false)
+                window.isReleasedWhenClosed = false
+                window.contentView = NSHostingView(rootView: ManagementCenterView(
+                    destination: .history, records: model.historyRecords,
+                    selectedRecordID: prepared.operationID, callbacks: model.managementCallbacks()))
+                window.orderFront(nil)
+                defer { window.close() }
+
+                try await eventually { try renderedText(in: window).lowercased().contains("second pasted line") }
+
+                model.managementCallbacks().onRetryRecord(prepared.operationID)
+                try await eventually { await fixture.http.imageRequests.count == 1 }
+                let request = try #require(await fixture.http.imageRequests.first)
+                #expect(sentUserText(request) == text)
+                #expect(sentPNG(request) == nil)
+                try await fixture.http.finishImage(source: "Rerun result")
+                try await eventually { !model.historyRetry.isRunning }
+                #expect(model.historyRetry.slot.attempt == .succeeded)
+                let stored = try #require(try await store.operation(id: prepared.operationID))
+                #expect(stored.sourceMarkdown == "Rerun result")
+                #expect(stored.input == .pastedText(text))
+                #expect(model.historyRecords.count == 1)
+            }
+        }
+    }
+
     @Test(arguments: [PersistedOperationKind.extract, .translate])
     func historyRetryUpdatesOriginalRecord(kind: PersistedOperationKind) async throws {
         try await withFixture { fixture in

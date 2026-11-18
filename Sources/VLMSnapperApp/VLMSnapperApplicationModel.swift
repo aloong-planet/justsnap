@@ -793,9 +793,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
         selectedHistoryRecordID = id
         selectedHistoryImageLoadFailed = false
         publish()
+        let record = try? await historyStore.historyRecord(id: id)
         let image: NSImage?
-        if let record = try? await historyStore.historyRecord(id: id),
-           let screenshot = record.operation.screenshot,
+        if let screenshot = record?.operation.screenshot,
            let data = try? await historyImageLoader.loadIfOwned(screenshot) {
             image = NSImage(data: data)
         } else {
@@ -804,7 +804,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
         guard selectedHistoryRecordID == id, historyImageLoadGeneration == generation else { return }
         historyImageLoadGeneration = nil
         selectedHistoryImage = image
-        selectedHistoryImageLoadFailed = image == nil
+        // A Pasted Text record has no original image to miss (clipboard-paste::REQ-008/AC-06).
+        selectedHistoryImageLoadFailed = image == nil && record?.operation.pastedText == nil
         publish()
     }
 
@@ -830,17 +831,24 @@ final class VLMSnapperApplicationModel: ObservableObject {
                           !record.operation.status.isActive else {
                         throw OperationWorkspaceRunFailure(code: "history_record_unavailable")
                     }
-                    guard let screenshot = record.operation.screenshot,
-                          let png = try? await screenshotStore.loadIfOwned(screenshot),
-                          NSImage(data: png) != nil else {
-                        throw OperationWorkspaceRunFailure(code: "history_screenshot_unavailable")
+                    // A Pasted Text record reruns on its saved text (clipboard-paste::REQ-007/AC-07).
+                    let input: ProviderRequestInput
+                    if let pastedText = record.operation.pastedText {
+                        input = .pastedText(pastedText)
+                    } else {
+                        guard let screenshot = record.operation.screenshot,
+                              let png = try? await screenshotStore.loadIfOwned(screenshot),
+                              NSImage(data: png) != nil else {
+                            throw OperationWorkspaceRunFailure(code: "history_screenshot_unavailable")
+                        }
+                        input = .png(png)
                     }
                     try Task.checkCancellation()
                     let runner = PersistedOperationWorkspaceRunner(screenshotStore: screenshotStore,
                         historyStore: historyStore, provider: providerStreamer,
                         visionCompatibility: providerCoordinator, modelListRefresh: providerCoordinator,
                         restoring: record.operation)
-                    let session = OperationWorkspaceSession(originalPNG: png, runner: runner,
+                    let session = OperationWorkspaceSession(input: input, runner: runner,
                         activeGate: operationGate, restoring: record.operation)
                     historyRetrySession = session
                     historyRetry.providerSummary = providerSummary(for: selection)

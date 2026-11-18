@@ -1273,7 +1273,18 @@ public struct ManagementCenterView: View {
                     historyDetailHeader(record)
                     Divider()
                     VStack(alignment: .leading, spacing: 18) {
-                        screenshot(record)
+                        if let pastedText = record.operation.pastedText {
+                            HistoryPastedTextView(text: pastedText)
+                                .frame(maxWidth: .infinity, minHeight: 100, maxHeight: 100)
+                                .background(VLMSnapperTheme.subtleSurface)
+                                .clipShape(RoundedRectangle(cornerRadius: VLMSnapperUIConstants.cardCornerRadius))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: VLMSnapperUIConstants.cardCornerRadius)
+                                        .strokeBorder(VLMSnapperTheme.historyImageBorder, lineWidth: 1)
+                                }
+                        } else {
+                            screenshot(record)
+                        }
                         Divider()
                         if historyRetry.recordID == record.id {
                             historyRetryContent(record)
@@ -1325,8 +1336,12 @@ public struct ManagementCenterView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.borderless)
-            .disabled(!historyRetry.allowsStart || historyRetry.isRunning
-                      || record.operation.status.isActive || selectedImage == nil || imageRecordID != record.id)
+            .disabled(!HistoryRetryAvailability.isAvailable(
+                for: record,
+                allowsStart: historyRetry.allowsStart,
+                isRunning: historyRetry.isRunning,
+                hasLoadedImage: selectedImage != nil && imageRecordID == record.id
+            ))
             .help(VLMSnapperStrings.retry)
             .accessibilityLabel(VLMSnapperStrings.retry)
             .accessibilityIdentifier("history-retry")
@@ -1385,16 +1400,13 @@ public struct ManagementCenterView: View {
     }
 
     private var filteredRecords: [HistoryRecord] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return records.filter { record in
+        records.filter { record in
             let kindMatches = kind == .all
                 || (kind == .extract && record.operation.kind == .extract)
                 || (kind == .translate && record.operation.kind == .translate)
-            let searchable = [record.operation.sourceMarkdown, record.operation.translationMarkdown]
-                .compactMap { $0 }.joined(separator: "\n").lowercased()
             return kindMatches && (!pinnedOnly || record.isPinned)
                 && (historyProviderID == nil || record.operation.selection.providerID == historyProviderID)
-                && (query.isEmpty || searchable.contains(query))
+                && HistoryLocalSearch.matches(record, query: searchText)
         }
     }
 
@@ -1600,5 +1612,51 @@ public struct ManagementCenterView: View {
             format: VLMSnapperStrings.historyRetentionShorteningConfirm,
             settings.retentionShorteningRecordCount ?? 0
         )
+    }
+}
+
+/// Whether history detail offers Retry: an image record needs its original loaded first; a Pasted Text record
+/// reruns on its saved text (clipboard-paste::REQ-008/AC-06).
+enum HistoryRetryAvailability {
+    static func isAvailable(for record: HistoryRecord, allowsStart: Bool, isRunning: Bool, hasLoadedImage: Bool) -> Bool {
+        allowsStart && !isRunning && !record.operation.status.isActive
+            && (record.operation.pastedText != nil || hasLoadedImage)
+    }
+}
+
+/// The history list's local search over a record's results and its Pasted Text (clipboard-paste::REQ-008/AC-04).
+enum HistoryLocalSearch {
+    static func matches(_ record: HistoryRecord, query: String) -> Bool {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else { return true }
+        return [record.operation.sourceMarkdown, record.operation.translationMarkdown, record.operation.pastedText]
+            .compactMap { $0 }.joined(separator: "\n").lowercased().contains(query)
+    }
+}
+
+/// A Pasted Text record's text where an image record shows its original: read-only, scrollable and
+/// selectable, with only Copy and Select All in its menu (clipboard-paste::REQ-008/AC-03, v1-core::REQ-010/AC-11).
+struct HistoryPastedTextView: NSViewRepresentable {
+    let text: String
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.drawsBackground = false
+        scrollView.borderType = .noBorder
+        scrollView.horizontalScrollElasticity = .none
+        let textView = ResultBoxTextView()
+        textView.font = .systemFont(ofSize: NSFont.systemFontSize)
+        textView.textColor = .labelColor
+        scrollView.documentView = textView
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? ResultBoxTextView, textView.string != text else { return }
+        textView.string = text
+        textView.setSelectedRange(NSRange(location: 0, length: 0))
+        textView.scrollToBeginningOfDocument(nil)
     }
 }
