@@ -7,7 +7,7 @@
 "action.copy" = "复制";
 "action.copied" = "已复制";
 "action.selectAll" = "全选";
-"result.noText" = "图片中没有识别到文字。";
+"result.noText" = "没有识别到文字。";
 "result.discardedAfterDisplayChange.title" = "未保存的结果已丢弃";
 "result.discardedAfterDisplayChange.body" = "截图所在的显示器已变化，结果框无法继续显示。";
 "capture.targetLanguage" = "目标语言：%@";
@@ -35,7 +35,7 @@
 "failure.rateLimited" = "Provider 暂时限制了请求，请稍后手动重试。";
 "failure.insufficientBalance" = "Provider 账户余额或额度不足。";
 "failure.providerUnavailable" = "Provider 服务暂时不可用，请稍后手动重试。";
-"failure.contentBlocked" = "Provider 拒绝处理这张截图。";
+"failure.contentBlocked" = "Provider 拒绝处理这些内容。";
 "failure.imageUnsupported" = "当前模型不支持图片输入。";
 "failure.imageTooLarge" = "截图超过当前 Provider 或模型的大小限制。";
 "failure.imageTooLarge.capture" = "请求大小为 %1$@，超过 %2$@ 允许的 %3$@。请缩小选区后重试。";

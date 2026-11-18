@@ -128,7 +128,7 @@ struct CaptureResultBoxPresentationTests {
                 attempt: .succeeded,
                 committedResult: WorkspaceCommittedResult(sourceMarkdown: "", translationMarkdown: "")
             ))
-            #expect(value.body == .message("图片中没有识别到文字。"))
+            #expect(value.body == .message("没有识别到文字。"))
             #expect(!value.canCopy)
             #expect(value.canRetry)
         }

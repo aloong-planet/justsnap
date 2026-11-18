@@ -7,7 +7,7 @@
 "action.copy" = "Copy";
 "action.copied" = "Copied";
 "action.selectAll" = "Select All";
-"result.noText" = "No text was found in the image.";
+"result.noText" = "No text was found.";
 "result.discardedAfterDisplayChange.title" = "Unsaved Result Discarded";
 "result.discardedAfterDisplayChange.body" = "The display of this capture changed, so the result box can no longer be shown.";
 "capture.targetLanguage" = "Target language: %@";
@@ -35,7 +35,7 @@
 "failure.rateLimited" = "The Provider is temporarily limiting requests. Retry manually later.";
 "failure.insufficientBalance" = "The Provider account has insufficient balance or quota.";
 "failure.providerUnavailable" = "The Provider is temporarily unavailable. Retry manually later.";
-"failure.contentBlocked" = "The Provider refused to process this screenshot.";
+"failure.contentBlocked" = "The Provider refused to process this content.";
 "failure.imageUnsupported" = "The current model does not support image input.";
 "failure.imageTooLarge" = "The screenshot exceeds the current Provider or model size limit.";
 "failure.imageTooLarge.capture" = "The request is %1$@, over the %3$@ %2$@ allows. Select a smaller area and retry.";
