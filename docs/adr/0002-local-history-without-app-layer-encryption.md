@@ -1,35 +1,34 @@
-# ADR-0002: 本地历史不做应用层加密
+# ADR-0002: Keep local history without app-layer encryption
 
-- 状态: 已接受（2026-08-25）
+- Status: Accepted (2026-11-18)
 
-## 背景与问题
+## Context
 
-VLMSnapper 会在固定的应用私有目录中保存原始截图 PNG、模型返回的原文与译文、操作状态和搜索索引。产品同时要求历史搜索响应快、后台资源消耗小，并允许用户从 Finder 查看原始 PNG。应用层加密会使图片直接查看、全文索引、数据恢复和密钥迁移更复杂，但不加密意味着获得当前用户账户或磁盘访问权限的主体可能读取历史内容。
+VLMSnapper keeps original PNGs, Pasted Text, model source and translation text, operation states and a search index on this Mac. History search must stay fast and light in the background, and users open original PNGs straight from Finder. App-layer encryption would complicate direct viewing, full-text indexing, recovery and key migration, while plain files can be read by anyone who gains the user's account or disk access.
 
-## 备选项
+## Options
 
-1. **以普通文件保存历史，只依赖 macOS 用户权限和可选的 FileVault 磁盘加密**
-2. 使用 Keychain 保存数据密钥，对截图和数据库做应用层加密——否决，因为图片无法直接从 Finder 查看，全文搜索需要额外的解密索引设计，并增加密钥轮换、恢复、迁移和性能成本
-3. 不保存历史——否决，因为产品明确要求从菜单栏浏览、搜索、重新执行和自动清理截图与文字结果
+1. **Keep history as plain files, protected by macOS user permissions and optional FileVault**
+2. Encrypt the images and the database with a data key kept in the Keychain — rejected: images could no longer be opened from Finder, full-text search would need a separate decrypting index, and key rotation, recovery, migration and performance would all cost more.
+3. Keep no history — rejected: the product requires browsing, searching, rerunning and automatically cleaning up past captures and text results from the menu bar.
 
-## 决策
+## Decision
 
-选定**方案 1**：截图 PNG 和文字数据库以普通文件保存在 `~/Library/Application Support/VLMSnapper/`，应用创建的数据目录和文件仅允许当前 macOS 用户访问。第一版不对历史数据做应用层加密，不启用 iCloud 或其他云端历史同步，也不主动上传历史内容；只有用户触发模型操作时，对应原始截图才发送给当前 Provider。
+We adopt **option 1**. History is kept as plain files in the locations ADR-0006 sets, and the folders and files the app creates are accessible only to the current macOS user. The app does not encrypt history at the application layer, offers no iCloud or other cloud history sync, and never uploads history on its own: an operation's input, an original image or a Pasted Text, goes to the current Provider only when that operation runs, at the moment the v1-core and clipboard-paste specs set.
 
-Provider API Key 不属于这一决定覆盖的历史数据，继续按照 ADR-0001 仅保存在 Apple Keychain 中。
+The app sets no backup-exclusion attribute on user-visible PNGs. Copies made by Time Machine, corporate backup or third-party sync are under the user's control and outside the app's deletion and cleanup promise.
 
-## 后果
+Provider API keys are not history data; ADR-0001 keeps them in the Keychain.
 
-- 正面：原始 PNG 可从 Finder 直接查看，本地全文搜索无需逐条解密，后台 CPU、内存和实现复杂度较低。
-- 负面：如果攻击者获得当前用户账户、未加密磁盘、备份或相应文件访问权限，可能读取截图和文字历史；应用不能把“不做应用层加密”描述成端到端加密或零知识存储。
-- 中性：FileVault 是否启用由用户和系统管理，不由 VLMSnapper 保证；自动清理、手动删除和权限设置仍必须覆盖截图、数据库及相关元数据。
+## Consequences
 
-## 来源
+- Positive: original PNGs open directly from Finder, local full-text search needs no per-record decryption, and background CPU, memory and implementation cost stay low.
+- Negative: anyone who gains the user's account, an unencrypted disk, a backup or the files themselves can read screenshots, Pasted Text and text history; the app must not describe its storage as end-to-end encrypted or zero-knowledge.
+- Negative: copies in backups or third-party sync outlive the app's deletion and automatic cleanup.
+- Neutral: whether FileVault is on is up to the user and the system, not guaranteed by VLMSnapper; automatic cleanup, manual deletion and permissions must still cover images, the database and related metadata.
 
-- [VLMSnapper v1 需求对齐记录](../.workings/v1-core/requirements-alignment.md)
-- [ADR-0001: 使用 Apple Keychain 保存 Provider API Key](0001-store-provider-api-keys-in-apple-keychain.md)
+## Sources
 
-## 后续修订
-
-- ADR-0006 将本 ADR 中的固定保存位置细化为分层存储：原始 PNG 位于 `~/Pictures/VLMSnapper/`，文字数据库等应用内部数据位于 App Sandbox Container。该修订不改变“本地历史不做应用层加密”的决定。
-- VLMSnapper 自身不实现历史同步，也不为用户可见 PNG 设置禁止备份属性；Time Machine、企业备份或第三方同步产生的副本受用户环境控制，不属于应用自动清理的删除承诺。
+- The user's v1 storage and privacy decisions of 2026-08-25 and Pasted Text decisions of 2026-11-18 (alignment records in `docs/.workings/`, not committed).
+- [ADR-0001](0001-store-provider-api-keys-in-apple-keychain.md)
+- [ADR-0006: Keep original images in Pictures and history data in the app container](0006-layer-user-screenshots-and-internal-history-storage.md)

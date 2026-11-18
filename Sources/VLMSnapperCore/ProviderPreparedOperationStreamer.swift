@@ -13,7 +13,7 @@ public struct ProviderPreparedOperationStreamer: PreparedOperationStreaming {
     }
 
     public func stream(
-        originalPNG: Data,
+        input: ProviderRequestInput,
         preparedOperation: PreparedOperation
     ) async -> AsyncThrowingStream<ProviderStreamEvent, Error> {
         guard let provider = ProviderID(
@@ -31,7 +31,7 @@ public struct ProviderPreparedOperationStreamer: PreparedOperationStreaming {
                 provider: provider,
                 modelID: preparedOperation.selection.modelID,
                 apiKey: credential.apiKey,
-                originalPNG: originalPNG,
+                input: input,
                 operation: preparedOperation.operation
             )
         } catch {

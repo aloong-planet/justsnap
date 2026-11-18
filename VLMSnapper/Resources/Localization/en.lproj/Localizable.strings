@@ -7,7 +7,7 @@
 "action.copy" = "Copy";
 "action.copied" = "Copied";
 "action.selectAll" = "Select All";
-"result.noText" = "No text was found in the image.";
+"result.noText" = "No text was found.";
 "result.discardedAfterDisplayChange.title" = "Unsaved Result Discarded";
 "result.discardedAfterDisplayChange.body" = "The display of this capture changed, so the result box can no longer be shown.";
 "capture.targetLanguage" = "Target language: %@";
@@ -35,11 +35,12 @@
 "failure.rateLimited" = "The Provider is temporarily limiting requests. Retry manually later.";
 "failure.insufficientBalance" = "The Provider account has insufficient balance or quota.";
 "failure.providerUnavailable" = "The Provider is temporarily unavailable. Retry manually later.";
-"failure.contentBlocked" = "The Provider refused to process this screenshot.";
+"failure.contentBlocked" = "The Provider refused to process this content.";
 "failure.imageUnsupported" = "The current model does not support image input.";
 "failure.imageTooLarge" = "The screenshot exceeds the current Provider or model size limit.";
 "failure.imageTooLarge.capture" = "The request is %1$@, over the %3$@ %2$@ allows. Select a smaller area and retry.";
 "failure.imageTooLarge.paste" = "The request is %1$@, over the %3$@ %2$@ allows. Copy a smaller image and paste again.";
+"failure.textTooLarge.paste" = "The request is %1$@, over the %3$@ %2$@ allows. Copy less text and paste again.";
 "failure.timeout" = "The Provider response timed out. Check the network and retry manually.";
 "failure.transport" = "VLMSnapper could not reach the Provider. Check the network and retry manually.";
 "failure.localStorage" = "VLMSnapper could not save the API key securely in Apple Keychain. Keep this window open and retry after checking the app installation.";
@@ -54,7 +55,7 @@
 "onboarding.permission.missing" = "Not authorized";
 "onboarding.permission.restart" = "Restart required";
 "onboarding.permission.ready" = "Authorized";
-"onboarding.privacy.description" = "Only model operations upload the current screenshot. Screenshots and text stay on this Mac; unpinned records are permanently deleted after 30 days by default.";
+"onboarding.privacy.description" = "Only model operations upload the content being processed. Screenshots and text stay on this Mac; unpinned records are permanently deleted after 30 days by default.";
 "onboarding.privacy.important" = "Important information";
 "onboarding.privacy.note" = "Storage and privacy is informational and does not block getting started.";
 "onboarding.gate.ready.title" = "Ready to get started";
@@ -85,7 +86,7 @@
 "providerSetup.apiKey" = "API Key";
 "providerSetup.currentModel" = "Current Model";
 "providerSetup.chooseModel" = "Choose a model";
-"providerSetup.visionValidationHint" = "Choosing a model does not send a test image. The first real operation verifies image input support.";
+"providerSetup.visionValidationHint" = "Choosing a model does not send a test image. The first real operation on an image verifies image input support.";
 "providerSetup.pendingModel" = "Choose a model";
 "providerSetup.notConfigured" = "Not Configured";
 "providerSetup.validating" = "Validating";
@@ -127,10 +128,11 @@
 "menu.capture" = "Capture";
 "menu.paste" = "Paste";
 "paste.title" = "Paste";
-"paste.clipboardText" = "The clipboard holds text. Only images can be pasted for now.";
-"paste.clipboardEmpty" = "There is no image on the clipboard. Copy an image, then paste.";
+"paste.clipboardFile" = "Files can't be pasted for now. Copy text or an image instead.";
+"paste.clipboardEmpty" = "There's no text or image on the clipboard.";
 "paste.clipboardUnreadable" = "The clipboard content cannot be read as an image.";
 "menu.recent" = "Recent";
+"menu.translateTo" = "Translate to";
 "menu.history" = "History";
 "menu.settings" = "Settings Center";
 "menu.generalSettings" = "Settings";
@@ -200,7 +202,7 @@
 "edit.emojiAndSymbols" = "Emoji & Symbols";
 "privacy.title" = "Storage and Privacy Details";
 "privacy.upload.title" = "Sent to Online Providers";
-"privacy.upload.body" = "The original PNG screenshot is sent to the selected online Provider only after you choose Extract Text or Translate.";
+"privacy.upload.body" = "The original PNG screenshot is sent to the selected online Provider only after you choose Extract Text or Translate. A pasted image or text is sent as soon as you paste it.";
 "privacy.storage.title" = "Local Storage";
 "privacy.storage.body" = "Original images are saved in Pictures/VLMSnapper/YYYY-MM/. Extracted text, translations, and history remain on this Mac under macOS user permissions. API keys are stored in Apple Keychain. When FileVault is enabled, local data also receives system disk encryption.";
 "privacy.retention.title" = "Automatic Cleanup";
@@ -234,7 +236,7 @@
 "history.cleanupFailures" = "Some records could not be cleaned up";
 "history.retention" = "Automatic Cleanup Retention";
 "history.retentionHint" = "Expired unpinned records and their original screenshots are permanently deleted.";
-"history.deleteConfirm" = "Permanently delete this history record and its matching original screenshot? This cannot be undone.";
+"history.deleteConfirm" = "Permanently delete this history record and its matching original screenshot, if any? This cannot be undone.";
 "history.clearConfirm" = "Clearing cannot be undone, and files are not moved to Trash.";
 "history.clearUnpinned" = "Clear Unpinned Records";
 "history.clearIncludingPinned" = "Clear All, Including Pinned";

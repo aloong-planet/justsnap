@@ -144,10 +144,11 @@ public actor HistoryDeletionCoordinator {
                     continue
                 }
                 // Operations on one capture share its file, which stays until the last of them goes
-                // (v1-core::REQ-014).
-                if try await !historyStore.hasOtherRecords(sharing: record.operation.screenshot, excluding: id) {
+                // (v1-core::REQ-014). A Pasted Text record has no file (clipboard-paste::REQ-008/AC-05).
+                if let screenshot = record.operation.screenshot,
+                   try await !historyStore.hasOtherRecords(sharing: screenshot, excluding: id) {
                     do {
-                        try await screenshotStore.discardIfOwned(record.operation.screenshot)
+                        try await screenshotStore.discardIfOwned(screenshot)
                     } catch ScreenshotStoreError.missingFile {
                         // The original file is already unavailable; only internal history is removed.
                     } catch ScreenshotStoreError.ownershipMismatch {

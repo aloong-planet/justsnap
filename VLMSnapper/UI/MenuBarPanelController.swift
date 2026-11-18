@@ -67,10 +67,12 @@ enum MenuBarPanelDismissalRouter {
         eventWindowNumber: Int,
         eventLocationInWindow: CGPoint,
         panelWindowNumber: Int,
+        panelChildWindowNumbers: [Int] = [],
         statusItemWindowNumber: Int?,
         statusItemFrame: CGRect?
     ) -> MenuBarPanelDismissalAction {
-        if eventWindowNumber == panelWindowNumber {
+        // A window attached to the panel, such as its language list, is part of it.
+        if eventWindowNumber == panelWindowNumber || panelChildWindowNumbers.contains(eventWindowNumber) {
             return route(target: .panel)
         }
         if eventWindowNumber == statusItemWindowNumber,
@@ -306,6 +308,7 @@ public final class MenuBarPanelController<Content: View>: NSObject {
                 eventWindowNumber: event.windowNumber,
                 eventLocationInWindow: event.locationInWindow,
                 panelWindowNumber: self.panel.windowNumber,
+                panelChildWindowNumbers: self.panel.childWindows?.map(\.windowNumber) ?? [],
                 statusItemWindowNumber: button?.window?.windowNumber,
                 statusItemFrame: button.map { $0.convert($0.bounds, to: nil) }
             )

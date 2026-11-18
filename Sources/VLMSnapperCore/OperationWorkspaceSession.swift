@@ -25,7 +25,7 @@ public enum OperationWorkspaceRunEvent: Equatable, Sendable {
 
 public protocol OperationWorkspaceRunning: Sendable {
     func run(
-        originalPNG: Data,
+        input: ProviderRequestInput,
         operation: ProviderOperation,
         selection: ProviderSelection
     ) async -> AsyncThrowingStream<OperationWorkspaceRunEvent, Error>
@@ -37,6 +37,14 @@ public protocol OperationWorkspaceRunning: Sendable {
 }
 
 public extension OperationWorkspaceRunning {
+    func run(
+        originalPNG: Data,
+        operation: ProviderOperation,
+        selection: ProviderSelection
+    ) async -> AsyncThrowingStream<OperationWorkspaceRunEvent, Error> {
+        await run(input: .png(originalPNG), operation: operation, selection: selection)
+    }
+
     func retrySavingResult() async throws -> WorkspaceCommittedResult {
         throw OperationWorkspaceSessionError.noUnsavedResult
     }
@@ -216,7 +224,8 @@ private extension WorkspaceOperationSlot {
 }
 
 public actor OperationWorkspaceSession {
-    private let originalPNG: Data
+    /// The one Pasted Image, capture or Pasted Text every operation of this session works on.
+    private let input: ProviderRequestInput
     private let runner: any OperationWorkspaceRunning
     private let activeGate: any OperationActivityGating
     private var selectedOperation: WorkspaceOperationKind = .extract
@@ -234,7 +243,16 @@ public actor OperationWorkspaceSession {
         activeGate: any OperationActivityGating,
         restoring operation: StoredOperation? = nil
     ) {
-        self.originalPNG = originalPNG
+        self.init(input: .png(originalPNG), runner: runner, activeGate: activeGate, restoring: operation)
+    }
+
+    public init(
+        input: ProviderRequestInput,
+        runner: any OperationWorkspaceRunning,
+        activeGate: any OperationActivityGating,
+        restoring operation: StoredOperation? = nil
+    ) {
+        self.input = input
         self.runner = runner
         self.activeGate = activeGate
         if let operation {
@@ -432,7 +450,7 @@ public actor OperationWorkspaceSession {
             .translate(targetLanguage: targetLanguage)
         }
         let events = await runner.run(
-            originalPNG: originalPNG,
+            input: input,
             operation: operation,
             selection: selection
         )

@@ -14,15 +14,17 @@ public struct ClipboardImageRepresentation: Equatable, Sendable {
     }
 }
 
-/// What a paste read from the clipboard: its image data and its plain text only
-/// (clipboard-paste::REQ-003/AC-01).
+/// What a paste read from the clipboard: its image data, its plain text, and whether any item carries a
+/// file reference (clipboard-paste::REQ-003/AC-01).
 public struct ClipboardSnapshot: Equatable, Sendable {
     public let images: [ClipboardImageRepresentation]
     public let plainText: String?
+    public let hasFileReference: Bool
 
-    public init(images: [ClipboardImageRepresentation], plainText: String?) {
+    public init(images: [ClipboardImageRepresentation], plainText: String?, hasFileReference: Bool = false) {
         self.images = images
         self.plainText = plainText
+        self.hasFileReference = hasFileReference
     }
 }
 
@@ -30,7 +32,10 @@ public struct ClipboardSnapshot: Equatable, Sendable {
 public enum ClipboardPasteContent: Equatable, Sendable {
     /// The Pasted Image as an 8-bit sRGB PNG (clipboard-paste::REQ-004/AC-01).
     case image(png: Data)
-    case text
+    /// The Pasted Text exactly as read (clipboard-paste::REQ-007/AC-01).
+    case text(String)
+    /// Copied files: not processed (clipboard-paste::REQ-003/AC-08).
+    case file
     case empty
     case unreadable
 }
@@ -39,9 +44,12 @@ public enum ClipboardPaste {
     /// Applies the clipboard decision order of clipboard-paste's Implementation Decisions.
     /// Decoding and conversion can be slow for a large image; callers keep it off the main actor.
     public static func resolve(_ snapshot: ClipboardSnapshot) -> ClipboardPasteContent {
+        if snapshot.hasFileReference {
+            return .file
+        }
         let text = snapshot.plainText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !text.isEmpty, snapshot.images.isEmpty || !isSingleURL(text) {
-            return .text
+        if !text.isEmpty, let plainText = snapshot.plainText, snapshot.images.isEmpty || !isSingleURL(text) {
+            return .text(plainText)
         }
         if snapshot.images.isEmpty {
             return .empty

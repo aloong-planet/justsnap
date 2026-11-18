@@ -9,14 +9,18 @@ protocol ClipboardImageReading {
     func read() -> ClipboardSnapshot
 }
 
-/// Takes the first clipboard item that holds image data, in the item's own type order, and the plain
-/// text. File references are never followed.
+/// Takes the first clipboard item that holds image data, in the item's own type order, the plain text,
+/// and whether any item carries a file reference. File references are never followed.
 struct PasteboardClipboardImageReader: ClipboardImageReading {
     let pasteboard: NSPasteboard
 
     func read() -> ClipboardSnapshot {
+        let items = pasteboard.pasteboardItems ?? []
+        if items.contains(where: { $0.types.contains(.fileURL) }) {
+            return ClipboardSnapshot(images: [], plainText: nil, hasFileReference: true)
+        }
         var images: [ClipboardImageRepresentation] = []
-        for item in pasteboard.pasteboardItems ?? [] {
+        for item in items {
             images = item.types.compactMap { type in
                 guard let uniformType = UTType(type.rawValue),
                       // PDF is kept so a clipboard whose only image is vector content reads as unreadable.
@@ -31,12 +35,13 @@ struct PasteboardClipboardImageReader: ClipboardImageReading {
     }
 }
 
-/// The paste result box and the one Pasted Image it works on (clipboard-paste::REQ-005, REQ-006, ADR-0019).
+/// The paste result box and the one Pasted Image or Pasted Text it works on (clipboard-paste::REQ-005, REQ-006,
+/// REQ-007, ADR-0019).
 @MainActor
 final class ClipboardPasteController {
     struct Environment {
         let reader: any ClipboardImageReading
-        let makeSession: @MainActor (Data) -> OperationWorkspaceSession
+        let makeSession: @MainActor (ProviderRequestInput) -> OperationWorkspaceSession
         /// Runs a request as a model request that belongs to no capture; `false` when it was not admitted.
         let performRequest: @MainActor (@MainActor () async -> Void) async -> Bool
         let selection: @MainActor () -> ProviderSelection?
@@ -67,6 +72,7 @@ final class ClipboardPasteController {
     private lazy var toolbarState = CaptureToolbarState(targetLanguageCode: environment.targetLanguageCode())
 
     private var session: OperationWorkspaceSession?
+    private var sessionSource: CaptureResultBoxPresentation.InputSource = .paste
     private var snapshot = OperationWorkspaceSnapshot(
         selectedOperation: .extract,
         extract: WorkspaceOperationSlot(),
@@ -109,6 +115,8 @@ final class ClipboardPasteController {
         }
         // Decoding a large image happens away from the interface; meanwhile the request is being prepared.
         isPreparingImage = true
+        // The box offers Extract for an image while it is still being prepared (clipboard-paste::REQ-006/AC-03).
+        sessionSource = .paste
         shownOperation = .extract
         showBox()
         preparationTask = Task { [weak self] in
@@ -138,17 +146,27 @@ final class ClipboardPasteController {
     private func show(_ content: ClipboardPasteContent) {
         switch content {
         case let .image(png):
-            problem = nil
-            session = environment.makeSession(png)
-            showBox()
-            startRequest(.extract, targetLanguage: environment.targetLanguageCode())
-        case .text:
-            showProblem(.text)
+            start(.png(png), source: .paste)
+        case let .text(text):
+            start(.pastedText(text), source: .pastedText)
+        case .file:
+            showProblem(.file)
         case .empty:
             showProblem(.empty)
         case .unreadable:
             showProblem(.unreadable)
         }
+    }
+
+    /// A Pasted Image starts Text Extraction at once; Pasted Text starts Screenshot Translation into the
+    /// remembered target language (clipboard-paste::REQ-006/AC-01).
+    private func start(_ input: ProviderRequestInput, source: CaptureResultBoxPresentation.InputSource) {
+        problem = nil
+        session = environment.makeSession(input)
+        sessionSource = source
+        showBox()
+        let operation: WorkspaceOperationKind = source == .pastedText ? .translate : .extract
+        startRequest(operation, targetLanguage: environment.targetLanguageCode())
     }
 
     private func showProblem(_ value: CaptureResultBoxPresentation.PasteClipboardProblem) {
@@ -294,6 +312,12 @@ final class ClipboardPasteController {
 
     private func changeTargetLanguage(_ code: String) {
         environment.changeTargetLanguage(code)
+        targetLanguageDidChange()
+    }
+
+    /// The remembered target language changed here or elsewhere; the shown result stays as it is
+    /// (v1-core::REQ-017/AC-03).
+    func targetLanguageDidChange() {
         toolbarState.targetLanguageCode = environment.targetLanguageCode()
         refresh()
     }
@@ -352,7 +376,7 @@ final class ClipboardPasteController {
                 slot: slot(operation),
                 // Until a finished request has wrapped up, Retry would do nothing.
                 retryAvailable: !hasUnsavedResult && runningOperation == nil,
-                source: .paste,
+                source: sessionSource,
                 providerName: sessionProviderName
             )
         } else {

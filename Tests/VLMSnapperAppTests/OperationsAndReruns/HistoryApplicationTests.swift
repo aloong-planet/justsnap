@@ -10,6 +10,11 @@ import VLMSnapperUI
 // History retry tests exercise production callbacks and rebuild the model from disk.
 // History retries remain inline; double clicking no longer opens a result window.
 // Production callback tests do not claim installed-app physical Retry clicks.
+// Gap: whether history detail's Retry button is enabled is decided by HistoryRetryAvailability, which is
+// unit-tested; that the button uses it is not tested. Like the other history retry tests here, these call the
+// production callback; testing the button needs a coordinate click on the rendered detail, and no helper
+// locates that button yet (the in-process accessibility walk does not expose it). Until one exists it is
+// checked on the installed build, with text selection and ⌘C in the detail.
 extension ProviderApplicationTests {
     @Test
     func historyImageDoesNotReportFailureBeforeLoadingCompletes() async throws {
@@ -114,6 +119,56 @@ extension ProviderApplicationTests {
                 model.managementCallbacks().onSelectRecord(ids[1])
                 try await eventually { model.selectedHistoryImage?.size.width == 8 }
                 #expect(model.selectedHistoryRecordID == ids[1])
+            }
+        }
+    }
+
+    // clipboard-paste::REQ-008/AC-03, AC-06 and REQ-007/AC-07. This test calls the Retry callback directly, so it
+    // does not show the detail's Retry button is enabled for a Pasted Text record (see the gap in the file header).
+    @Test
+    func aPastedTextRecordShowsItsTextInDetailAndRetriesWithIt() async throws {
+        try await withFixture { fixture in
+            let store = try SQLiteHistoryStore(databaseURL: fixture.root.appendingPathComponent("history.sqlite"))
+            let text = "Pasted words for history\nSecond pasted line"
+            let prepared = try await store.prepareOperation(input: .pastedText(text),
+                selection: ProviderSelection(providerID: "deepseek", modelID: "old-model"),
+                operation: .translate(targetLanguage: "fr"))
+            try await store.finish(operationID: prepared.operationID,
+                with: .succeeded(sourceMarkdown: "Pasted words", translationMarkdown: "Mots collés"))
+            await fixture.http.allowImageRequests()
+            try await fixture.withModel { model in
+                let controls = model.providerSettingsConfiguration()
+                model.credentialEditor.edit("fixture-history-key")
+                #expect(model.credentialEditor.submit(for: .deepSeek, isReadOnly: false, operation: controls.onValidate))
+                try await eventually { model.providerSnapshot.phase == .selectingModel }
+                controls.onSelectModel("fixture-vision")
+                try await eventually { model.providerSnapshot.phase == .ready }
+                try await eventually { model.historyRetry.allowsStart }
+                VLMSnapperLocalization.configure(effectiveLanguage: .english)
+                let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1200, height: 780),
+                    styleMask: [.titled, .closable], backing: .buffered, defer: false)
+                window.isReleasedWhenClosed = false
+                window.contentView = NSHostingView(rootView: ManagementCenterView(
+                    destination: .history, records: model.historyRecords,
+                    selectedRecordID: prepared.operationID, callbacks: model.managementCallbacks()))
+                window.orderFront(nil)
+                defer { window.close() }
+
+                try await eventually { try renderedText(in: window).lowercased().contains("second pasted line") }
+
+                model.managementCallbacks().onRetryRecord(prepared.operationID)
+                try await eventually { await fixture.http.imageRequests.count == 1 }
+                let request = try #require(await fixture.http.imageRequests.first)
+                #expect(sentUserText(request) == text)
+                #expect(sentPNG(request) == nil)
+                try await fixture.http.finishImage(source: "Pasted words", translation: "Résultat relancé")
+                try await eventually { !model.historyRetry.isRunning }
+                #expect(model.historyRetry.slot.attempt == .succeeded)
+                let stored = try #require(try await store.operation(id: prepared.operationID))
+                #expect(stored.translationMarkdown?.contains("Résultat relancé") == true)
+                #expect(stored.targetLanguage == "fr")
+                #expect(stored.input == .pastedText(text))
+                #expect(model.historyRecords.count == 1)
             }
         }
     }

@@ -39,6 +39,10 @@ enum VLMSnapperIcon: String {
     case eye = "eye"
     case eyeSlash = "eye.slash"
 
+    /// A Pasted Text record's thumbnail (clipboard-paste::REQ-008/AC-02): the Extract symbol, chosen by the user on
+    /// 2026-11-18. Raw values are unique, so it shares the case.
+    static let pastedText = VLMSnapperIcon.extract
+
     var image: Image {
         Image(systemName: rawValue)
     }

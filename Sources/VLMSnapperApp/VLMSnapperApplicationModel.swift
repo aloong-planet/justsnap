@@ -354,6 +354,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
                 for: captureShortcut
             ),
             pasteShortcut: pasteShortcut.map(GlobalShortcutDisplayFormatter.string(for:)),
+            targetLanguageCode: selectedTargetLanguageCode,
+            targetLanguages: targetLanguageOptions,
             callbacks: menuCallbacks()
         )
     }
@@ -483,7 +485,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
             onNavigate: { [weak self] destination in self?.onNavigate?(destination) },
             onCheckUpdates: { [weak self] in Task { await self?.checkUpdates() } },
             onDownloadUpdate: { [weak self] in Task { await self?.downloadUpdate() } },
-            onOpenUpdateInformation: { NSWorkspace.shared.open($0) }
+            onOpenUpdateInformation: { NSWorkspace.shared.open($0) },
+            // The panel stays open and shows the new language (v1-core::REQ-017/AC-02).
+            onTargetLanguageChange: { [weak self] in self?.changeTargetLanguage($0) }
         )
     }
 
@@ -793,9 +797,10 @@ final class VLMSnapperApplicationModel: ObservableObject {
         selectedHistoryRecordID = id
         selectedHistoryImageLoadFailed = false
         publish()
+        let record = try? await historyStore.historyRecord(id: id)
         let image: NSImage?
-        if let record = try? await historyStore.historyRecord(id: id),
-           let data = try? await historyImageLoader.loadIfOwned(record.operation.screenshot) {
+        if let screenshot = record?.operation.screenshot,
+           let data = try? await historyImageLoader.loadIfOwned(screenshot) {
             image = NSImage(data: data)
         } else {
             image = nil
@@ -803,7 +808,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
         guard selectedHistoryRecordID == id, historyImageLoadGeneration == generation else { return }
         historyImageLoadGeneration = nil
         selectedHistoryImage = image
-        selectedHistoryImageLoadFailed = image == nil
+        // A Pasted Text record has no original image to miss (clipboard-paste::REQ-008/AC-06).
+        selectedHistoryImageLoadFailed = image == nil && record?.operation.pastedText == nil
         publish()
     }
 
@@ -829,16 +835,24 @@ final class VLMSnapperApplicationModel: ObservableObject {
                           !record.operation.status.isActive else {
                         throw OperationWorkspaceRunFailure(code: "history_record_unavailable")
                     }
-                    guard let png = try? await screenshotStore.loadIfOwned(record.operation.screenshot),
-                          NSImage(data: png) != nil else {
-                        throw OperationWorkspaceRunFailure(code: "history_screenshot_unavailable")
+                    // A Pasted Text record reruns on its saved text (clipboard-paste::REQ-007/AC-07).
+                    let input: ProviderRequestInput
+                    if let pastedText = record.operation.pastedText {
+                        input = .pastedText(pastedText)
+                    } else {
+                        guard let screenshot = record.operation.screenshot,
+                              let png = try? await screenshotStore.loadIfOwned(screenshot),
+                              NSImage(data: png) != nil else {
+                            throw OperationWorkspaceRunFailure(code: "history_screenshot_unavailable")
+                        }
+                        input = .png(png)
                     }
                     try Task.checkCancellation()
                     let runner = PersistedOperationWorkspaceRunner(screenshotStore: screenshotStore,
                         historyStore: historyStore, provider: providerStreamer,
                         visionCompatibility: providerCoordinator, modelListRefresh: providerCoordinator,
                         restoring: record.operation)
-                    let session = OperationWorkspaceSession(originalPNG: png, runner: runner,
+                    let session = OperationWorkspaceSession(input: input, runner: runner,
                         activeGate: operationGate, restoring: record.operation)
                     historyRetrySession = session
                     historyRetry.providerSummary = providerSummary(for: selection)
@@ -1107,9 +1121,9 @@ final class VLMSnapperApplicationModel: ObservableObject {
     private func makePasteController() -> ClipboardPasteController {
         ClipboardPasteController(environment: .init(
             reader: dependencies.clipboardReader,
-            makeSession: { [unowned self] png in
+            makeSession: { [unowned self] input in
                 OperationWorkspaceSession(
-                    originalPNG: png,
+                    input: input,
                     runner: PersistedOperationWorkspaceRunner(
                         screenshotStore: screenshotStore,
                         historyStore: historyStore,
@@ -1733,6 +1747,10 @@ final class VLMSnapperApplicationModel: ObservableObject {
         selectedTargetLanguageCode = code
         defaults.set(code, forKey: "targetLanguageCode")
         refreshResultSurfaces()
+        // An open paste box shows the new language too (v1-core::REQ-017/AC-03).
+        pasteController.targetLanguageDidChange()
+        // So does the menu bar panel, whose content is rebuilt on publication.
+        publish()
         // SwiftUI applies the new abbreviation on its next update; its width changes the toolbar's.
         DispatchQueue.main.async { [weak self] in
             guard let self, let frame = confirmedSelectionFrame, let screen = confirmedSelectionScreen else { return }

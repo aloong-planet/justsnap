@@ -81,9 +81,21 @@ struct Ticket12MenuBarInteractionTests {
                 eventWindowNumber: 30,
                 eventLocationInWindow: .zero,
                 panelWindowNumber: 10,
+                panelChildWindowNumbers: [40],
                 statusItemWindowNumber: 20,
                 statusItemFrame: statusItemFrame
             ) == .dismiss
+        )
+        // The panel's own language list opens in a window attached to it (v1-core::REQ-017/AC-02).
+        #expect(
+            MenuBarPanelDismissalRouter.route(
+                eventWindowNumber: 40,
+                eventLocationInWindow: .zero,
+                panelWindowNumber: 10,
+                panelChildWindowNumbers: [40],
+                statusItemWindowNumber: 20,
+                statusItemFrame: statusItemFrame
+            ) == .keepOpen
         )
     }
 
