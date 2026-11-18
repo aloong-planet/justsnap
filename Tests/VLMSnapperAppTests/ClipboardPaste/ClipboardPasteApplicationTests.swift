@@ -574,11 +574,16 @@ extension ProviderApplicationTests {
             try await eventually { model.historyRecords.count == 1 }
             var panelCloses = 0
             model.onCloseMenuPanel = { panelCloses += 1 }
-            #expect(model.menuView().targetLanguageCode == "ja")
+            // The open panel shows the content built at the model's last publication, as the app delegate
+            // installs it.
+            var panelLanguage = model.menuView().targetLanguageCode
+            model.onSnapshotChange = { panelLanguage = model.menuView().targetLanguageCode }
+            defer { model.onSnapshotChange = nil }
+            #expect(panelLanguage == "ja")
 
             model.menuView().callbacks.onTargetLanguageChange("fr")
 
-            #expect(model.menuView().targetLanguageCode == "fr")
+            #expect(panelLanguage == "fr")
             #expect(pasteBoxOperations()?.toolbarState.targetLanguageCode == "fr")
             #expect(model.selectedTargetLanguageCode == "fr")
             await settleMainActor()
@@ -586,6 +591,32 @@ extension ProviderApplicationTests {
             #expect(resultBoxText() == "こんにちは")
             #expect(await fixture.http.imageRequests.count == 1)
             #expect(model.historyRecords.count == 1)
+
+            // A choice in the paste box reaches the panel the same way.
+            try #require(pasteBoxOperations()).onTargetLanguageChange("de")
+            #expect(panelLanguage == "de")
+        }
+    }
+
+    // clipboard-paste::REQ-006/AC-03: Extract belongs to an image from the moment it is pasted.
+    @Test
+    func anImagePastedAfterTextOffersExtractWhileItIsPrepared() async throws {
+        try await withResultFixture { fixture, model in
+            fixture.pasteboard.clearContents()
+            fixture.pasteboard.setString("Hello", forType: .string)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Hello", translation: "你好")
+            try await eventually { model.historyRecords.count == 1 }
+            #expect(resultBoxPresentation()?.offersExtract == false)
+
+            // A large image keeps the box in preparation long enough for the first Extract it shows to be the
+            // preparing one; with a decode faster than the poll this test could not tell the two apart.
+            putWebKitCopiedImage(try pastedImage(width: 5000, height: 5000), on: fixture.pasteboard)
+            model.pasteFromClipboard()
+
+            try await eventually { resultBoxPresentation()?.title == "Extract" }
+            #expect(resultBoxPresentation()?.offersExtract == true)
         }
     }
 

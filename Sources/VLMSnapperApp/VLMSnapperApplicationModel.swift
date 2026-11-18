@@ -1749,6 +1749,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
         refreshResultSurfaces()
         // An open paste box shows the new language too (v1-core::REQ-017/AC-03).
         pasteController.targetLanguageDidChange()
+        // So does the menu bar panel, whose content is rebuilt on publication.
+        publish()
         // SwiftUI applies the new abbreviation on its next update; its width changes the toolbar's.
         DispatchQueue.main.async { [weak self] in
             guard let self, let frame = confirmedSelectionFrame, let screen = confirmedSelectionScreen else { return }

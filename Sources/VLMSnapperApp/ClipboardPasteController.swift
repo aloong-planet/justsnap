@@ -115,6 +115,8 @@ final class ClipboardPasteController {
         }
         // Decoding a large image happens away from the interface; meanwhile the request is being prepared.
         isPreparingImage = true
+        // The box offers Extract for an image while it is still being prepared (clipboard-paste::REQ-006/AC-03).
+        sessionSource = .paste
         shownOperation = .extract
         showBox()
         preparationTask = Task { [weak self] in

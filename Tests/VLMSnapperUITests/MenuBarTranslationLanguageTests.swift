@@ -4,9 +4,11 @@ import Testing
 import VLMSnapperCore
 @testable import VLMSnapperUI
 
-// v1-core::REQ-017. The panel staying open while its language list is used, and the row showing the new
-// language afterwards, need the real panel and the application: the application tests and the installed build
-// cover them.
+// v1-core::REQ-017. The row showing the new language once it is chosen is the application's publication,
+// covered by the application tests. Gap: no test drives the real panel's mouse monitor with a press in the
+// list. A mouse-down sent through the application into the popover window ends the test process; the rule
+// that a press in a child window keeps the panel open is covered by `dismissalRouting`, and that the list is
+// a child window of the panel below. Retest with the installed build.
 @Suite("Menu bar translation language", .serialized)
 @MainActor
 struct MenuBarTranslationLanguageTests {
