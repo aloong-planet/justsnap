@@ -346,6 +346,12 @@ public struct MenuBarPanelView: View {
             Image(nsImage: image)
                 .resizable()
                 .scaledToFill()
+        } else if item.screenshotURL == nil {
+            ZStack {
+                VLMSnapperTheme.surface
+                VLMSnapperIcon.pastedText.image
+                    .foregroundStyle(VLMSnapperTheme.secondaryText)
+            }
         } else {
             ZStack {
                 VLMSnapperTheme.surface
