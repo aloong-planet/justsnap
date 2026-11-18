@@ -55,7 +55,7 @@
 "onboarding.permission.missing" = "尚未授权";
 "onboarding.permission.restart" = "需要重启";
 "onboarding.permission.ready" = "已授权";
-"onboarding.privacy.description" = "模型操作时才会上传当前截图；截图和文字记录保存在这台 Mac 上，未钉住记录默认 30 天后永久删除。";
+"onboarding.privacy.description" = "只有模型操作才会上传要处理的内容；截图和文字记录保存在这台 Mac 上，未钉住记录默认 30 天后永久删除。";
 "onboarding.privacy.important" = "重要说明";
 "onboarding.privacy.note" = "“存储与隐私”是重要说明，不影响开始使用。";
 "onboarding.gate.ready.title" = "准备完成，可以开始使用";
@@ -86,7 +86,7 @@
 "providerSetup.apiKey" = "API Key";
 "providerSetup.currentModel" = "当前模型";
 "providerSetup.chooseModel" = "请选择模型";
-"providerSetup.visionValidationHint" = "选择模型时不会发送测试图片；首次真实操作会验证图片输入能力。";
+"providerSetup.visionValidationHint" = "选择模型时不会发送测试图片；首次处理图片的真实操作会验证图片输入能力。";
 "providerSetup.pendingModel" = "待选择模型";
 "providerSetup.notConfigured" = "尚未配置";
 "providerSetup.validating" = "正在验证";
@@ -201,7 +201,7 @@
 "edit.emojiAndSymbols" = "表情与符号";
 "privacy.title" = "存储与隐私详情";
 "privacy.upload.title" = "发送到在线 Provider";
-"privacy.upload.body" = "只有在你点击提取文字或翻译后，原始 PNG 截图才会发送到当前选择的在线 Provider。";
+"privacy.upload.body" = "原始 PNG 截图只有在你点击提取文字或翻译后才会发送到当前选择的在线 Provider；粘贴的图片或文字在粘贴后立即发送。";
 "privacy.storage.title" = "本地保存位置";
 "privacy.storage.body" = "原始图片保存在 图片/VLMSnapper/YYYY-MM/，提取文字、翻译结果和历史记录保存在这台 Mac 上，并受 macOS 用户权限保护。API Key 存储在 Apple Keychain 中；启用 FileVault 后，本地数据还会受到系统磁盘加密保护。";
 "privacy.retention.title" = "自动清理";
@@ -235,7 +235,7 @@
 "history.cleanupFailures" = "部分记录清理失败";
 "history.retention" = "自动清理保留期";
 "history.retentionHint" = "到期的未钉住记录及其原始截图会被永久删除。";
-"history.deleteConfirm" = "永久删除这条历史记录及匹配的原始截图？此操作不可撤销。";
+"history.deleteConfirm" = "永久删除这条历史记录及匹配的原始截图（如有）？此操作不可撤销。";
 "history.clearConfirm" = "清空后不可撤销，文件不会进入废纸篓。";
 "history.clearUnpinned" = "清空未钉住记录";
 "history.clearIncludingPinned" = "清空全部（包括已钉住）";
