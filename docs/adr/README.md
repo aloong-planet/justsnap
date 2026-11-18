@@ -21,7 +21,7 @@ Entries written under earlier rules keep their form until a change touches what 
 | [0003](0003-v1-interface-localization-boundary.md) | 固定 v1 界面本地化边界 | 已接受（2026-08-25） |
 | [0004](0004-separate-sparkle-feeds-per-distribution-architecture.md) | 为三个发行架构使用独立 Sparkle appcast | 已接受（2026-08-25） |
 | [0005](0005-stable-direct-distribution-application-identity.md) | 固定直接分发应用身份 | 已接受（2026-08-25） |
-| [0006](0006-layer-user-screenshots-and-internal-history-storage.md) | 将原始截图与应用内部历史分层存储 | 已接受（2026-08-25） |
+| [0006](0006-layer-user-screenshots-and-internal-history-storage.md) | Keep original images in Pictures and history data in the app container | Accepted (2026-11-18) |
 | [0007](0007-direct-distribution-only-for-v1.md) | v1 仅采用 Developer ID 直接分发 | 已接受（2026-08-25） |
 | [0008](0008-preserve-failed-history-database-before-reset.md) | 历史数据库故障时禁止静默重建 | 已接受（2026-08-25） |
 | [0009](0009-single-primary-instance-per-user.md) | 每个用户只允许一个应用主实例 | 已接受（2026-08-25） |

@@ -1,10 +1,10 @@
 # VLMSnapper
 
-VLMSnapper 是通过屏幕截图或粘贴的剪贴板图片向视觉模型发起文字提取或翻译请求的 macOS 桌面工具。
+VLMSnapper 是通过屏幕截图、粘贴的剪贴板图片或剪贴板文字向视觉模型发起文字提取或翻译请求的 macOS 桌面工具。
 
 ## Contents（目录）
 
-- 截图与结果展示：截图（Capture）、粘贴图片（Pasted Image）、吸附区域（Snap Region）、结果框（Result Box）
+- 截图与结果展示：截图（Capture）、粘贴图片（Pasted Image）、粘贴文字（Pasted Text）、吸附区域（Snap Region）、结果框（Result Box）
 - 操作与重跑：文字提取（Text Extraction）、截图翻译（Screenshot Translation）、当前结果重跑（Current Result Rerun）、历史操作重跑（Historical Operation Rerun）
 - 模型与 Provider：视觉模型（Vision Model）、Provider、当前模型（Selected Model）、视觉兼容状态（Vision Compatibility）、Provider 事件流（Provider Event Stream）、双语对应片段（Translation Segment）、提示词版本（Prompt Version）
 - 界面语言：界面语言偏好（UI Language Preference）、生效界面语言（Effective UI Language）
@@ -21,16 +21,20 @@ _Avoid_：扫描、拍照
 用户通过粘贴入口从系统剪贴板取得、由应用转成原始 PNG 的位图，是文字提取和截图翻译的另一种输入；它不经过屏幕冻结与选区。
 _Avoid_：导入图片（指从文件选择导入，仍不支持）、剪贴板截图
 
+**粘贴文字（Pasted Text）**：
+用户通过粘贴入口从系统剪贴板取得的纯文本，是文字提取和截图翻译的第三种输入。在 Finder 中复制文件时剪贴板附带的文件名不是粘贴文字。
+_Avoid_：导入文本、剪贴板文件
+
 **吸附区域（Snap Region）**：
 选区遮罩上尚未拖动时，按鼠标所在位置自动识别出的候选矩形：最上层可见窗口的整个窗口、菜单栏中的单个状态图标或菜单栏其余部分、Dock 所在的整条区域；鼠标下没有窗口时为整块显示器。单击后它才成为选区。
 _Avoid_：自动选区、智能选区、窗口检测框、高亮框
 
 **文字提取（Text Extraction）**：
-视觉模型直接读取截图或粘贴图片并返回其中原始文字的操作；第一版不包含独立 OCR 阶段。
-_Avoid_：Vision OCR、OCR 识别
+视觉模型读取截图、粘贴图片或粘贴文字并返回其中原始文字的操作；输入是粘贴文字时只整理段落、标题、列表与表格结构，逐字保留原文。
+_Avoid_：Vision OCR、OCR 识别、润色（粘贴文字的提取不改动文字）
 
 **截图翻译（Screenshot Translation）**：
-视觉模型在一次请求中读取截图或粘贴图片，同时返回原始文字和目标语言译文的操作；输入是粘贴图片时仍叫截图翻译。
+视觉模型在一次请求中读取截图、粘贴图片或粘贴文字，同时返回原始文字和目标语言译文的操作；输入是粘贴图片或粘贴文字时仍叫截图翻译。
 _Avoid_：OCR 后翻译、两阶段翻译
 
 **视觉模型（Vision Model）**：
@@ -86,7 +90,7 @@ _Avoid_：截图目录中的所有 PNG、导入图片、遗留图片
 _Avoid_：结果窗口、结果工作区、浮窗
 
 **当前结果重跑（Current Result Rerun）**：
-在结果框中对同一截图或粘贴图片与同一操作点击重试；新结果成功保存后替换当前历史记录，失败或取消则保留此前结果。
+在结果框中对同一截图、粘贴图片或粘贴文字与同一操作点击重试；新结果成功保存后替换当前历史记录，失败或取消则保留此前结果。
 _Avoid_：新建历史记录、自动重试
 
 **历史操作重跑（Historical Operation Rerun）**：
@@ -142,7 +146,7 @@ _Avoid_：历史窗口、设置窗口
 
 ## Invariants（不变量）
 
-- 第一版的文字提取和截图翻译都必须把截图或粘贴图片直接交给用户选定的在线视觉模型。
+- 第一版的文字提取和截图翻译都必须把截图、粘贴图片或粘贴文字直接交给用户选定的在线视觉模型。
 - 第一版的两种操作使用同一个当前模型，不单独选择语言模型。
 - 第一版不使用 Apple Vision OCR，也不接入本地模型。
 - 第一版 UI 只支持简体中文和英语，简体中文是源文案；产品 UI 不承诺 RTL 镜像布局。

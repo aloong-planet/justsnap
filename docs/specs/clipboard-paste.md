@@ -4,11 +4,11 @@
 
 ## Problem Statement
 
-A user often already has the image they want read, copied from a chat, a web page or another app, but VLMSnapper only reads what is captured from the screen. To get text out of a copied image the user has to show it on screen first and then capture it.
+A user often already has the image or text they want read, copied from a chat, a web page or another app, but VLMSnapper only reads what is captured from the screen. To get text out of a copied image the user has to show it on screen first and then capture it, and copied text cannot be tidied or translated at all.
 
 ## Solution
 
-The menu bar panel offers Paste next to Capture, and a global paste shortcut does the same. Paste takes the Pasted Image on the clipboard, saves it as a Managed Capture File and runs Text Extraction on it at once. The result streams into a paste result box that floats at the right edge of the screen, outside any capture overlay (ADR-0019). The box can switch to Screenshot Translation of the same image. Pasted images go into history like captures.
+The menu bar panel offers Paste next to Capture, and a global paste shortcut does the same. Paste takes the Pasted Image or the Pasted Text on the clipboard and runs Text Extraction on it at once: a Pasted Image is first saved as a Managed Capture File, and Pasted Text is kept with its history records. The result streams into a paste result box that floats at the right edge of the screen, outside any capture overlay (ADR-0019). The box can switch to Screenshot Translation of the same input. Pasted images and pasted text go into history like captures. Files copied in Finder are not pasted.
 
 ## Functional Requirements
 
@@ -29,13 +29,14 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 
 ### clipboard-paste::REQ-003 Reading the clipboard
 
-- clipboard-paste::REQ-003/AC-01: A paste reads the clipboard once, when it is triggered. It reads only image data and plain text; file references on the clipboard are not read as files, so a file copied in Finder is judged by the plain text and image data that come with it.
-- clipboard-paste::REQ-003/AC-02: When the clipboard holds image data and its plain text is empty or is a single URL, the paste uses the image.
-- clipboard-paste::REQ-003/AC-03: When the clipboard holds any other plain text, it is a text clipboard, whether or not it also holds image data: the paste result box says that only images can be pasted for now.
-- clipboard-paste::REQ-003/AC-04: When the clipboard holds neither image data nor plain text, the paste result box says there is no image on the clipboard and asks the user to copy one.
+- clipboard-paste::REQ-003/AC-01: A paste reads the clipboard once, when it is triggered. It reads image data, plain text, and whether any clipboard item carries a file reference; it never reads the referenced files, and it ignores rich text such as HTML and RTF.
+- clipboard-paste::REQ-003/AC-02: When no clipboard item carries a file reference, and the clipboard holds image data whose plain text is empty or is a single URL, the paste uses the image.
+- clipboard-paste::REQ-003/AC-03: When no clipboard item carries a file reference and the clipboard holds any other plain text, it is a text clipboard, whether or not it also holds image data: the paste uses that text as the Pasted Text (clipboard-paste::REQ-007) and sends no image.
+- clipboard-paste::REQ-003/AC-04: When the clipboard holds no file reference, no image data and no plain text, the paste result box says “剪贴板里没有文字或图片” (English: “There's no text or image on the clipboard.”).
 - clipboard-paste::REQ-003/AC-05: The paste accepts any bitmap format macOS can decode, such as PNG, JPEG, TIFF, HEIC, WebP and GIF; an animated image uses its first frame. When the clipboard's image data cannot be decoded as a bitmap, including when its only image is vector PDF content, the paste result box says the clipboard content cannot be read as an image.
-- clipboard-paste::REQ-003/AC-06: For AC-03, AC-04 and AC-05 the box is titled Paste, shows the reason in its body, has no operation row, and has Copy and Retry disabled; Close works. No file is written, no history record is added and no request is sent.
-- clipboard-paste::REQ-003/AC-07: Changing the clipboard after a paste does not change the box or its records; retries use the saved Pasted Image.
+- clipboard-paste::REQ-003/AC-06: For AC-04, AC-05 and AC-08 the box is titled Paste, shows the reason in its body, has no operation row, and has Copy and Retry disabled; Close works. No file is written, no history record is added and no request is sent.
+- clipboard-paste::REQ-003/AC-07: Changing the clipboard after a paste does not change the box or its records; retries use the saved Pasted Image or Pasted Text.
+- clipboard-paste::REQ-003/AC-08: When any clipboard item carries a file reference, as a file copied in Finder does, it is a file clipboard, whatever text or image comes with it: the paste result box says that files cannot be pasted for now and asks the user to copy text or an image.
 
 ### clipboard-paste::REQ-004 Saving the Pasted Image
 
@@ -46,7 +47,7 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 
 > Pending: OpenAI and DeepSeek request-body limits are confirmed and part of the signed Provider configuration (v1-core Pending). Until then only a Gemini request is rejected for its size before anything is sent.
 
-- clipboard-paste::REQ-004/AC-05: History records from a paste behave like records from a capture in list, detail, search, filters, retry, Pin, deletion and cleanup (v1-core §9, §10); history does not mark them as pasted.
+- clipboard-paste::REQ-004/AC-05: History records from a pasted image behave like records from a capture in list, detail, search, filters, retry, Pin, deletion and cleanup (v1-core §9, §10); history does not mark them as pasted.
 
 ### clipboard-paste::REQ-005 The paste result box
 
@@ -62,22 +63,41 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 
 ### clipboard-paste::REQ-006 Operations in the paste result box
 
-- clipboard-paste::REQ-006/AC-01: A paste that uses an image starts Text Extraction at once, with one request and a new history record.
+- clipboard-paste::REQ-006/AC-01: A paste that uses an image or Pasted Text starts Text Extraction at once, with one request and a new history record.
 - clipboard-paste::REQ-006/AC-02: The box's header, body states, copying and Retry are those of the capture result box in v1-core REQ-010/AC-04–11; Retry is a Current Result Rerun (v1-core REQ-002).
 - clipboard-paste::REQ-006/AC-03: Below the header, an operation row holds the capture toolbar's Extract button and its Translate and target-language control, with the look and behavior of v1-core REQ-013/AC-02–05. The target language is the app's remembered target language (v1-core §5).
-- clipboard-paste::REQ-006/AC-04: The operations work on the one Pasted Image as the capture result box's operations work on one capture (v1-core REQ-011/AC-01–07): one result per operation, an operation never run starts a request, one with a result shows it again, and Translate after a target-language change starts a new record that reuses the same Managed Capture File.
+- clipboard-paste::REQ-006/AC-04: The operations work on the one Pasted Image or Pasted Text as the capture result box's operations work on one capture (v1-core REQ-011/AC-01–07): one result per operation, an operation never run starts a request, one with a result shows it again, and Translate after a target-language change starts a new record that reuses the same Managed Capture File, or for Pasted Text the same text.
+
+### clipboard-paste::REQ-007 Operations on Pasted Text
+
+- clipboard-paste::REQ-007/AC-01: The Pasted Text is the clipboard's plain text exactly as read, line breaks and surrounding whitespace included; it is not trimmed, normalized or shortened, and the app sets no length limit.
+- clipboard-paste::REQ-007/AC-02: A new operation on Pasted Text writes no file. Nothing is sent until a "preparing request" history record that holds the Pasted Text is saved and the request-body check passes (ADR-0006). When that record cannot be saved, the box shows the reason and Retry and keeps the text in memory while it stays open; closing the box discards it.
+- clipboard-paste::REQ-007/AC-03: A request for Pasted Text carries that text and the operation's built-in instructions, and no image. When it is larger than the Provider's request-body limit, nothing is sent and the text is not shortened; the failed record is kept, and the box shows the request's size, the Provider's limit on it, and a suggestion to copy less text.
+- clipboard-paste::REQ-007/AC-04: Text Extraction of Pasted Text returns it as structured Markdown with every word and character kept: it joins line breaks that only wrap a paragraph and marks headings, lists and tables. It does not translate, summarize, correct or answer the text, and does not follow instructions inside it.
+- clipboard-paste::REQ-007/AC-05: Screenshot Translation of Pasted Text returns Translation Segments of original text and translation in one request, as for an image (v1-core US-002): the box shows only the translation, and history detail shows both columns with linked highlighting.
+- clipboard-paste::REQ-007/AC-06: A request for Pasted Text leaves the Selected Model's Vision Compatibility unchanged; its success does not count as verifying image input.
+- clipboard-paste::REQ-007/AC-07: Retry in the box and retry from history send the Pasted Text saved with the record (v1-core REQ-002) and never read the clipboard again.
+
+### clipboard-paste::REQ-008 History of Pasted Text records
+
+- clipboard-paste::REQ-008/AC-01: Records whose input is Pasted Text behave like other records in list, detail, search, filters, retry, Pin, deletion and cleanup (v1-core §9, §10), except as AC-02–06 say. History does not mark them as pasted and has no source filter.
+- clipboard-paste::REQ-008/AC-02: In the Management Center history list and the menu bar panel's recent records, such a record shows a text symbol in the thumbnail slot.
+- clipboard-paste::REQ-008/AC-03: History detail shows the record's Pasted Text where a record's original image is shown: read-only, scrollable, selectable, with ⌘C and ⌘A, laid out as local read-only text as in v1-core REQ-010/AC-11. It has no enlarged preview.
+- clipboard-paste::REQ-008/AC-04: History search also matches a record's Pasted Text.
+- clipboard-paste::REQ-008/AC-05: Deleting such a record, clearing history and automatic cleanup remove only the record; they touch no file. Retention and Pin rules are those of every record.
+- clipboard-paste::REQ-008/AC-06: Retry from history detail is available for such a record whenever v1-core REQ-002/AC-07 allows it; the missing-original rules of v1-core REQ-002/AC-04 do not apply to it.
 
 ## Constraints
 
 ### clipboard-paste::CON-001 The clipboard is read only on an explicit paste (direct acceptance)
 
-Applies to: the whole app. The app reads the clipboard only when the user triggers a paste, never in the background, and sends only the Pasted Image of that paste to the Provider.
+Applies to: the whole app. The app reads the clipboard only when the user triggers a paste, never in the background, and sends only the Pasted Image or the Pasted Text of that paste to the Provider.
 
 ## Failure modes and boundaries
 
 1. The user copies an image in a browser whose clipboard also carries the image's URL as text: the image is pasted (clipboard-paste::REQ-003/AC-02). Copy Image in Safari and other WebKit views puts the image on the clipboard as TIFF only, together with its address as plain text, as a URL and inside HTML and a web archive.
-2. The user copies cells in a spreadsheet or text in a word processor, which put both text and a rendered picture on the clipboard: it is a text clipboard and nothing is sent (clipboard-paste::REQ-003/AC-03).
-3. The user copies a file in Finder: its file name is plain text, so it is a text clipboard (clipboard-paste::REQ-003/AC-01, AC-03).
+2. The user copies cells in a spreadsheet or text in a word processor, which put both text and a rendered picture on the clipboard: it is a text clipboard; the text is pasted and the picture is not sent (clipboard-paste::REQ-003/AC-03).
+3. The user copies a file in Finder: it is a file clipboard and nothing is sent (clipboard-paste::REQ-003/AC-08). Finder puts one item per file on the clipboard, carrying a file reference, the file name as plain text and the file's icon as an `icns` image; neither the name nor the icon is pasted.
 4. The user pastes a very large image: decoding and conversion do not block the interface; the box shows that the request is being prepared until the PNG is saved, and a request over the Provider's limit fails as in clipboard-paste::REQ-004/AC-04.
 5. The user pastes, then copies something else and presses Retry: Retry uses the saved Pasted Image (clipboard-paste::REQ-003/AC-07).
 6. The user triggers paste while a request runs or a result is unsaved in the box, or while the capture interface is open: nothing happens (clipboard-paste::REQ-002/AC-03, AC-04).
@@ -86,20 +106,29 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 9. The user quits the app while a paste request runs: the request is cancelled and its record is saved as Cancelled (clipboard-paste::REQ-005/AC-08).
 10. The model returns long text, long URLs, bidirectional text or text shaped like links, HTML or Markdown: the box lays it out as local read-only text and opens nothing, as in v1-core REQ-010/AC-11.
 11. The selected model is found not to accept images, or has left the model list: the box fails as the capture result box does (v1-core Failure Modes items 10, 11, 56).
+12. The user pastes a very long text: it is sent whole; a request over the Provider's limit fails before anything is sent (clipboard-paste::REQ-007/AC-03), and a Provider rejection such as an exceeded context length fails with the Normalized Error.
+13. The pasted text contains instructions to the model, Markdown, HTML or links: Text Extraction keeps them as text and does not follow them (clipboard-paste::REQ-007/AC-04), and the box lays the result out as in item 10.
+14. The clipboard's plain text is only whitespace and it holds no image data: it is an empty clipboard (clipboard-paste::REQ-003/AC-04).
+15. The user opens the history with an earlier VLMSnapper after Pasted Text records exist: that version finds a newer history database and reports it unavailable (v1-core §9); it does not rebuild it or drop records (ADR-0008).
+16. The user pastes text while the Selected Model's Vision Compatibility is unknown: the operation runs and the compatibility stays unknown (clipboard-paste::REQ-007/AC-06).
 
 ## Implementation Decisions
 
 - A single URL is plain text that, with surrounding whitespace removed, contains no whitespace and is an absolute URL whose scheme is followed by `//`, such as `https://…` or `file://…`.
-- Clipboard decision order, evaluated once per paste, on the plain text with surrounding whitespace removed (text that is only whitespace counts as empty): (1) image data present and plain text empty or a single URL → image; (2) any other plain text → text clipboard; (3) image data present → image, or unreadable when it cannot be decoded as a bitmap; (4) nothing usable → empty clipboard.
-- A Pasted Image becomes an ordinary Managed Capture File and its records ordinary history records: the history database's format does not change, and no record stores whether it came from a paste (ADR-0006).
+- Clipboard decision order, evaluated once per paste, judging the plain text with surrounding whitespace removed (text that is only whitespace counts as empty): (0) any item carries a file reference → file clipboard; (1) image data present and plain text empty or a single URL → image; (2) any other plain text → text clipboard, whose Pasted Text is the plain text as read; (3) image data present → image, or unreadable when it cannot be decoded as a bitmap; (4) nothing usable → empty clipboard.
+- A Pasted Image becomes an ordinary Managed Capture File and its records ordinary history records; no record stores whether its image came from a paste (ADR-0006).
+- History database schema version 5: each operation record holds either an original image reference (path and SHA-256) or a Pasted Text, never both and never neither. Each record of one Pasted Text stores its own copy of the text. Migrating a version 4 database keeps every record and its image reference unchanged. An earlier app that finds version 5 reports the database unavailable, as for any newer version.
+- A request for Pasted Text uses each Provider's text-only message form and the same streaming, result parsing and Normalized Errors as an image request.
 - The paste shortcut is stored like the capture shortcut, as its own preference.
 - A paste request is a model request under the app's single owner-token mutual exclusion with captures and Provider credential jobs (v1-core Implementation Decisions). The paste result box is not part of the capture interface (ADR-0019).
 
 ## Out of Scope
 
-- Pasting text: a text clipboard is reported, not sent. Text paste is a later increment whose behavior is not yet decided.
-- Reading file references, such as files copied in Finder, as images.
+- Reading copied files, such as files copied in Finder, or their contents.
+- Rich text: HTML and RTF on the clipboard are not read.
+- A length limit on Pasted Text, and shortening it to fit a Provider's limit.
+- Writing Pasted Text to a file.
 - Vector PDF content, more than one image per paste, and shrinking images to fit a Provider's limit.
-- Marking pasted records in history.
+- Marking pasted records in history, or a source filter.
 - Watching the clipboard in the background.
 - A thumbnail of the Pasted Image in the paste result box, and an operation row in the capture result box.
