@@ -28,6 +28,16 @@ public struct ProviderAdapterExecutor: Sendable {
         originalPNG: Data,
         operation: ProviderOperation
     ) -> AsyncThrowingStream<ProviderStreamEvent, Error> {
+        stream(provider: provider, modelID: modelID, apiKey: apiKey, input: .png(originalPNG), operation: operation)
+    }
+
+    public func stream(
+        provider: ProviderID,
+        modelID: String,
+        apiKey: String,
+        input: ProviderRequestInput,
+        operation: ProviderOperation
+    ) -> AsyncThrowingStream<ProviderStreamEvent, Error> {
         AsyncThrowingStream { continuation in
             let coordinator = ProviderStreamTimeoutCoordinator(
                 continuation: continuation,
@@ -41,7 +51,7 @@ public struct ProviderAdapterExecutor: Sendable {
                         provider: provider,
                         modelID: modelID,
                         apiKey: apiKey,
-                        originalPNG: originalPNG,
+                        input: input,
                         operation: operation
                     )
                     await coordinator.startFirstText()
