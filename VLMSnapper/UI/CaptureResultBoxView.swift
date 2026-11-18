@@ -33,6 +33,8 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
     public let saveNotice: String?
     /// The paste result box's operation row under the header (clipboard-paste::REQ-006/AC-03).
     public let showsOperations: Bool
+    /// The input the box's operations work on; it picks the advice for an oversized request.
+    public let source: InputSource
 
     public var canCopy: Bool { !copyText.isEmpty }
 
@@ -58,7 +60,8 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
             copyText: "",
             canRetry: false,
             saveNotice: nil,
-            showsOperations: false
+            showsOperations: false,
+            source: .paste
         )
     }
 
@@ -71,7 +74,8 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
         copyText: String,
         canRetry: Bool,
         saveNotice: String?,
-        showsOperations: Bool
+        showsOperations: Bool,
+        source: InputSource
     ) {
         self.title = title
         self.providerSummary = providerSummary
@@ -82,6 +86,7 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
         self.canRetry = canRetry
         self.saveNotice = saveNotice
         self.showsOperations = showsOperations
+        self.source = source
     }
 
     public init(
@@ -99,6 +104,7 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
             : "\(VLMSnapperStrings.translate) · \(targetLanguageName)"
         self.providerSummary = providerSummary
         showsOperations = source != .capture
+        self.source = source
 
         func text(_ result: WorkspaceCommittedResult?) -> (CaptureResultBoxText, String) {
             Self.text(

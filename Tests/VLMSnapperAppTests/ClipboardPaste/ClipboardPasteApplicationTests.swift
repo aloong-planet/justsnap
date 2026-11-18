@@ -67,6 +67,8 @@ extension ProviderApplicationTests {
             #expect(sentUserText(request) == text)
             #expect(sentPNG(request) == nil)
             #expect(resultBoxPresentation()?.showsOperations == true)
+            // The box knows its input is text, so an oversized request asks for less text (REQ-007/AC-03).
+            #expect(resultBoxPresentation()?.source == .pastedText)
             try await fixture.http.finishImage(source: "A paragraph of copied text that wraps 'here'.")
             try await eventually { resultBoxText() == "A paragraph of copied text that wraps 'here'." }
             try await eventually { model.historyRecords.first?.operation.status == .succeeded }
