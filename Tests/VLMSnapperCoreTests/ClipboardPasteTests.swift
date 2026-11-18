@@ -34,14 +34,16 @@ struct ClipboardPasteTests {
     }
 
     @Test(
-        "any other plain text makes a text clipboard, with or without an image",
+        "any other plain text makes a text clipboard carrying the text as read, with or without an image",
         arguments: [
             ("hello", true),
             ("https://a.example/x https://b.example/y", true),
             ("see https://example.com/cat.png", true),
             ("ratio:3", true),
+            ("  第一行\nsecond line \n", true),
             ("hello", false),
             ("https://example.com/only-a-link", false),
+            ("\t缩进的文字\n\n", false),
         ]
     )
     func otherTextIsATextClipboard(plainText: String, withImage: Bool) {
@@ -55,19 +57,36 @@ struct ClipboardPasteTests {
             plainText: plainText
         )
 
-        #expect(ClipboardPaste.resolve(snapshot) == .text)
+        #expect(ClipboardPaste.resolve(snapshot) == .text(plainText))
     }
 
-    @Test("a clipboard with neither image data nor text is empty")
-    func nothingUsableIsEmpty() {
-        #expect(
-            ClipboardPaste.resolve(ClipboardSnapshot(images: [], plainText: nil))
-                == .empty
-        )
-        #expect(
-            ClipboardPaste.resolve(ClipboardSnapshot(images: [], plainText: "  "))
-                == .empty
-        )
+    @Test(
+        "a clipboard whose item carries a file reference is a file clipboard",
+        arguments: [
+            // Shaped like a real Finder copy: the file name as plain text and the file's icon as image data.
+            ("report.pdf", [ClipboardImageRepresentation(
+                typeIdentifier: "com.apple.icns",
+                data: encodedImage(width: 16, height: 16, type: .png)
+            )]),
+            ("https://example.com/cat.png", [ClipboardImageRepresentation(
+                typeIdentifier: UTType.png.identifier,
+                data: encodedImage(width: 3, height: 3, type: .png)
+            )]),
+            (nil, []),
+        ] as [(String?, [ClipboardImageRepresentation])]
+    )
+    func fileReferenceIsAFileClipboard(plainText: String?, images: [ClipboardImageRepresentation]) {
+        let snapshot = ClipboardSnapshot(images: images, plainText: plainText, hasFileReference: true)
+
+        #expect(ClipboardPaste.resolve(snapshot) == .file)
+    }
+
+    @Test(
+        "a clipboard with neither image data nor text is empty",
+        arguments: [nil, "", "  ", " \n\t\n"] as [String?]
+    )
+    func nothingUsableIsEmpty(plainText: String?) {
+        #expect(ClipboardPaste.resolve(ClipboardSnapshot(images: [], plainText: plainText)) == .empty)
     }
 
     @Test("image data that does not decode as a bitmap is unreadable")

@@ -9,14 +9,18 @@ protocol ClipboardImageReading {
     func read() -> ClipboardSnapshot
 }
 
-/// Takes the first clipboard item that holds image data, in the item's own type order, and the plain
-/// text. File references are never followed.
+/// Takes the first clipboard item that holds image data, in the item's own type order, the plain text,
+/// and whether any item carries a file reference. File references are never followed.
 struct PasteboardClipboardImageReader: ClipboardImageReading {
     let pasteboard: NSPasteboard
 
     func read() -> ClipboardSnapshot {
+        let items = pasteboard.pasteboardItems ?? []
+        if items.contains(where: { $0.types.contains(.fileURL) }) {
+            return ClipboardSnapshot(images: [], plainText: nil, hasFileReference: true)
+        }
         var images: [ClipboardImageRepresentation] = []
-        for item in pasteboard.pasteboardItems ?? [] {
+        for item in items {
             images = item.types.compactMap { type in
                 guard let uniformType = UTType(type.rawValue),
                       // PDF is kept so a clipboard whose only image is vector content reads as unreadable.
@@ -142,7 +146,7 @@ final class ClipboardPasteController {
             session = environment.makeSession(png)
             showBox()
             startRequest(.extract, targetLanguage: environment.targetLanguageCode())
-        case .text:
+        case .text, .file:
             showProblem(.text)
         case .empty:
             showProblem(.empty)
