@@ -1,38 +1,40 @@
-# ADR-0008: 历史数据库故障时禁止静默重建
+# ADR-0008: Never silently rebuild a failed history database
 
-- 状态: 已接受（2026-08-25）
+- Status: Accepted (2026-11-18)
 
-## 背景与问题
+## Context
 
-VLMSnapper 把上传前历史记录作为调用在线模型的必要门槛，并依赖数据库保存截图路径、SHA-256、模型结果、删除资格和自动清理状态。数据库损坏或迁移失败时，如果继续请求模型，会产生无法可靠保存或管理的结果；如果自动删除并重建数据库，则会静默丢失历史，并使 Pictures 目录中的 PNG 失去可验证的管理关系。
+VLMSnapper requires a saved history record before it calls an online model, and the database holds image paths, SHA-256 values, model results, deletion eligibility and cleanup state. Calling the model while the database is broken produces results that cannot be reliably saved or managed. Deleting and rebuilding the database on its own silently loses history and leaves the PNGs in Pictures with no verifiable managing record.
 
-## 备选项
+## Options
 
-1. 数据库不可用时仍允许模型操作，只跳过历史——否决，因为违反先持久化后上传的隐私与一致性边界
-2. 自动删除损坏数据库并创建新库——否决，因为会静默丢失文字结果、索引和删除资格
-3. **阻断模型操作；仅在用户明确确认后保留原库并重置**
+1. Keep model operations available when the database is unavailable and skip history — rejected: it breaks the save-before-upload privacy and consistency boundary.
+2. Delete a damaged database and create a new one automatically — rejected: it silently loses text results, the index and deletion eligibility.
+3. **Block model operations, and reset only after the user explicitly confirms, keeping the original database**
+4. Let an earlier app open a newer database read-only and prompt for an update — rejected on 2026-11-18: the app has no users on earlier versions yet, so the extra mode is not worth building.
 
-## 决策
+## Decision
 
-选定**方案 3**。数据库损坏或版本迁移失败时，提取文字和翻译不可用；Provider 设置、普通设置、诊断日志导出以及 Finder 目录访问仍可用。故障界面允许重试打开，但应用不得自动删除、覆盖或静默重建数据库。
+We adopt **option 3**. When the database is damaged or a schema migration fails, Text Extraction and translation are unavailable; Provider settings, general settings, diagnostic log export and Finder folder access stay available. The failure view lets the user retry opening, and the app never deletes, overwrites or silently rebuilds the database.
 
-用户明确确认“重置历史数据库”后，应用先把原数据库改名为带时间戳的恢复文件，再创建空数据库。Pictures 中的 PNG 保持不变，但由于新库没有对应路径和 SHA-256，它们不再是受管理截图，不自动导入或清理。恢复文件不自动删除，只允许用户从恢复界面明确永久删除。
+After the user explicitly confirms "reset history database", the app renames the original database to a timestamped recovery file and then creates an empty one. PNGs in Pictures stay as they are, but with no path and SHA-256 in the new database they are no longer Managed Capture Files and are neither imported nor cleaned up. Recovery files are never deleted automatically; only the user deletes them, explicitly, from the recovery view.
 
-v1 不创建每日或滚动数据库备份。数据库使用事务和 SQLite WAL；只在 schema 迁移前创建临时备份，迁移成功、重新打开并通过完整性检查后立即删除，迁移失败时才转为恢复文件。
+There are no daily or rolling database backups. The database uses transactions and SQLite WAL; a temporary backup is made only before a schema migration, deleted as soon as the migrated database reopens and passes an integrity check, and kept as a recovery file only when the migration fails.
 
-旧版应用遇到高于自身支持范围的 schema 时只读阻断，不自动降级或写入，并优先引导安装兼容的新版本。用户只有明确执行重置，才能在保留新版数据库为恢复文件后创建旧版空库。
+An earlier app that finds a schema newer than it supports does not open the database and quits at startup; it never downgrades, writes or resets it.
 
-## 后果
+## Consequences
 
-- 正面：数据库故障不会导致截图继续上传却无法可靠记录，也不会静默销毁可能仍可恢复的数据。
-- 正面：用户可恢复应用可用性，同时保留原始 PNG 和故障数据库供后续人工恢复。
-- 负面：重置后的旧 PNG 不会重新出现在历史中；第一版不提供数据库修复或图片重新导入。
-- 负面：恢复文件可能长期占用磁盘并包含未加密历史内容，需要在恢复界面明确说明并允许用户手动删除。
-- 中性：没有周期性副本可用于恢复偶发损坏，但用户已经删除的文字也不会因滚动备份而继续长期保留。
-- 中性：手动降级不会直接破坏新版数据，但旧版在用户更新或明确重置之前无法执行模型操作和历史修改。
+- Positive: a database failure never lets images keep uploading without a reliable record, and never silently destroys data that may still be recoverable.
+- Positive: the user can make the app usable again while keeping the original PNGs and the failed database for manual recovery.
+- Negative: PNGs from before a reset do not come back into history; there is no database repair or image re-import.
+- Negative: recovery files can take disk space for a long time and hold unencrypted history, so the recovery view must say so and let the user delete them.
+- Negative: an earlier app cannot start at all on a newer database until the user installs a newer version.
+- Neutral: no periodic copy exists to recover from occasional damage, but text the user deleted does not live on in rolling backups either.
+- Neutral: a manual downgrade leaves the newer database untouched.
 
-## 来源
+## Sources
 
-- [VLMSnapper v1 需求对齐记录](../.workings/v1-core/requirements-alignment.md)
-- [ADR-0002: 本地历史不做应用层加密](0002-local-history-without-app-layer-encryption.md)
-- [ADR-0006: 将原始截图与应用内部历史分层存储](0006-layer-user-screenshots-and-internal-history-storage.md)
+- The user's v1 history storage decisions of 2026-08-25 and the decision of 2026-11-18 to keep an earlier app's startup behaviour (alignment records in `docs/.workings/`, not committed).
+- [ADR-0002: Keep local history without app-layer encryption](0002-local-history-without-app-layer-encryption.md)
+- [ADR-0006: Keep original images in Pictures and history data in the app container](0006-layer-user-screenshots-and-internal-history-storage.md)

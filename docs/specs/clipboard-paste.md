@@ -25,7 +25,7 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 - clipboard-paste::REQ-002/AC-02: While a Provider credential job is active, a paste does what a capture does in v1-core Failure Modes item 44: it brings the Management Center's Provider page and the job to the front and does not read the clipboard.
 - clipboard-paste::REQ-002/AC-03: While the capture interface is open, from the pending overlay until the capture is exited, a paste does nothing.
 - clipboard-paste::REQ-002/AC-04: While the paste result box has a running request or an unsaved result, a paste does nothing.
-- clipboard-paste::REQ-002/AC-05: While the history database is unavailable or read-only (v1-core §9), a paste sends no request, as with any new model operation, and the paste result box shows the database error.
+- clipboard-paste::REQ-002/AC-05: While the history database is unavailable (v1-core §9), a paste sends no request, as with any new model operation, and the paste result box shows the database error.
 
 ### clipboard-paste::REQ-003 Reading the clipboard
 

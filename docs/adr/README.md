@@ -17,13 +17,13 @@ Entries written under earlier rules keep their form until a change touches what 
 | # | Decision | Status |
 |---|---|---|
 | [0001](0001-store-provider-api-keys-in-apple-keychain.md) | 使用 Apple Keychain 保存 Provider API Key | 已接受（2026-08-24） |
-| [0002](0002-local-history-without-app-layer-encryption.md) | 本地历史不做应用层加密 | 已接受（2026-08-25） |
+| [0002](0002-local-history-without-app-layer-encryption.md) | Keep local history without app-layer encryption | Accepted (2026-11-18) |
 | [0003](0003-v1-interface-localization-boundary.md) | 固定 v1 界面本地化边界 | 已接受（2026-08-25） |
 | [0004](0004-separate-sparkle-feeds-per-distribution-architecture.md) | 为三个发行架构使用独立 Sparkle appcast | 已接受（2026-08-25） |
 | [0005](0005-stable-direct-distribution-application-identity.md) | 固定直接分发应用身份 | 已接受（2026-08-25） |
 | [0006](0006-layer-user-screenshots-and-internal-history-storage.md) | Keep original images in Pictures and history data in the app container | Accepted (2026-11-18) |
-| [0007](0007-direct-distribution-only-for-v1.md) | v1 仅采用 Developer ID 直接分发 | 已接受（2026-08-25） |
-| [0008](0008-preserve-failed-history-database-before-reset.md) | 历史数据库故障时禁止静默重建 | 已接受（2026-08-25） |
+| [0007](0007-direct-distribution-only-for-v1.md) | Distribute v1 only as Developer ID builds | Accepted (2026-08-25) |
+| [0008](0008-preserve-failed-history-database-before-reset.md) | Never silently rebuild a failed history database | Accepted (2026-11-18) |
 | [0009](0009-single-primary-instance-per-user.md) | 每个用户只允许一个应用主实例 | 已接受（2026-08-25） |
 | [0010](0010-freeze-display-frames-before-region-selection.md) | 快捷键触发时冻结屏幕帧再选区 | 已接受（2026-08-25） |
 | [0011](0011-discover-deepseek-experimental-vision-model-per-account.md) | Discover DeepSeek vision models from the account's model list and disable their thinking | Accepted (2026-11-17) |
