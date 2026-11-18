@@ -1,12 +1,9 @@
+import AppKit
 import Foundation
 import Testing
 import VLMSnapperCore
 @testable import VLMSnapperUI
 
-// Gap: that the panel's recent row shows the text symbol in the thumbnail slot for a record without a
-// screenshot (clipboard-paste::REQ-008/AC-02) is not tested; these tests stop at the item's missing
-// screenshot. Rendering tests only check that surfaces render, so the symbol is checked on a rendered
-// panel or the installed build.
 @Suite("Ticket 13 menu bar presentation", .serialized)
 struct MenuBarPresentationTests {
     @Test("recent records map to real operation, time, status, and screenshot data")
@@ -69,6 +66,27 @@ struct MenuBarPresentationTests {
         #expect(item.screenshotURL == nil)
         #expect(item.title == "Quarterly notes")
         #expect(item.detail == "Extract Text · 2 min ago")
+    }
+
+    @Test("a recent row shows its screenshot, the text symbol for a Pasted Text record, or the capture symbol when the screenshot is missing")
+    func recentThumbnail() {
+        let image = NSImage(size: NSSize(width: 1, height: 1))
+        let captured = MenuRecentItem(id: "1", title: "t", detail: "d", screenshotURL: URL(fileURLWithPath: "/tmp/capture.png"))
+        let pasted = MenuRecentItem(id: "2", title: "t", detail: "d", screenshotURL: nil)
+
+        guard case let .image(shown) = captured.thumbnail(loading: { _ in image }) else {
+            Issue.record("A loadable screenshot should be shown")
+            return
+        }
+        #expect(shown === image)
+        guard case .missingScreenshot = captured.thumbnail(loading: { _ in nil }) else {
+            Issue.record("An unloadable screenshot should show the capture symbol")
+            return
+        }
+        guard case .pastedText = pasted.thumbnail(loading: { _ in image }) else {
+            Issue.record("A record without a screenshot should show the text symbol")
+            return
+        }
     }
 
     @Test("provider badge never claims availability before a selected model exists")

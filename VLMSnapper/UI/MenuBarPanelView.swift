@@ -45,6 +45,20 @@ public struct MenuRecentItem: Identifiable, Equatable, Sendable {
         screenshotURL = record.operation.screenshot.map { URL(fileURLWithPath: $0.path) }
     }
 
+    /// What the recent row's thumbnail slot shows (clipboard-paste::REQ-008/AC-02).
+    enum Thumbnail {
+        case image(NSImage)
+        case pastedText
+        case missingScreenshot
+    }
+
+    func thumbnail(loading load: (URL) -> NSImage? = { NSImage(contentsOf: $0) }) -> Thumbnail {
+        guard let screenshotURL else {
+            return .pastedText
+        }
+        return load(screenshotURL).map(Thumbnail.image) ?? .missingScreenshot
+    }
+
     private static func title(for record: HistoryRecord) -> String {
         if let source = record.operation.sourceMarkdown,
            let firstLine = source.split(whereSeparator: \.isNewline).first,
@@ -342,17 +356,18 @@ public struct MenuBarPanelView: View {
 
     @ViewBuilder
     private func recentThumbnail(for item: MenuRecentItem) -> some View {
-        if let url = item.screenshotURL, let image = NSImage(contentsOf: url) {
+        switch item.thumbnail() {
+        case let .image(image):
             Image(nsImage: image)
                 .resizable()
                 .scaledToFill()
-        } else if item.screenshotURL == nil {
+        case .pastedText:
             ZStack {
                 VLMSnapperTheme.surface
                 VLMSnapperIcon.pastedText.image
                     .foregroundStyle(VLMSnapperTheme.secondaryText)
             }
-        } else {
+        case .missingScreenshot:
             ZStack {
                 VLMSnapperTheme.surface
                 VLMSnapperIcon.capture.image
