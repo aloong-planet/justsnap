@@ -132,28 +132,31 @@ public struct CaptureOperationToolbar: View {
 }
 
 /// Extract and Translate with its target language: the capture toolbar's operations, which the paste
-/// result box also shows in its operation row (clipboard-paste::REQ-006/AC-03).
+/// result box also shows in its operation row, without Extract for Pasted Text (clipboard-paste::REQ-006/AC-03).
 public struct CaptureOperationControls: View {
     @ObservedObject private var state: CaptureToolbarState
     private let targetLanguages: [TargetLanguageOption]
+    private let offersExtract: Bool
     private let onStart: (WorkspaceOperationKind) -> Void
     private let onTargetLanguageChange: (String) -> Void
 
     public init(
         state: CaptureToolbarState,
         targetLanguages: [TargetLanguageOption],
+        offersExtract: Bool = true,
         onStart: @escaping (WorkspaceOperationKind) -> Void,
         onTargetLanguageChange: @escaping (String) -> Void
     ) {
         self.state = state
         self.targetLanguages = targetLanguages
+        self.offersExtract = offersExtract
         self.onStart = onStart
         self.onTargetLanguageChange = onTargetLanguageChange
     }
 
     public var body: some View {
         HStack(spacing: VLMSnapperUIConstants.toolbarControlGap) {
-            extractButton
+            if offersExtract { extractButton }
             TranslateControl(
                 state: state,
                 options: targetLanguages,

@@ -1621,6 +1621,9 @@ enum HistoryRetryAvailability {
     static func isAvailable(for record: HistoryRecord, allowsStart: Bool, isRunning: Bool, hasLoadedImage: Bool) -> Bool {
         allowsStart && !isRunning && !record.operation.status.isActive
             && (record.operation.pastedText != nil || hasLoadedImage)
+            // Text Extraction never runs on Pasted Text; such a record from an earlier version stays as it is
+            // (clipboard-paste::REQ-007/AC-08).
+            && !(record.operation.pastedText != nil && record.operation.kind == .extract)
     }
 }
 

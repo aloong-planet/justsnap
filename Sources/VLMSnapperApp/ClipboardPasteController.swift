@@ -156,13 +156,15 @@ final class ClipboardPasteController {
         }
     }
 
-    /// A paste that uses an image or Pasted Text starts Text Extraction at once (clipboard-paste::REQ-006/AC-01).
+    /// A Pasted Image starts Text Extraction at once; Pasted Text starts Screenshot Translation into the
+    /// remembered target language (clipboard-paste::REQ-006/AC-01).
     private func start(_ input: ProviderRequestInput, source: CaptureResultBoxPresentation.InputSource) {
         problem = nil
         session = environment.makeSession(input)
         sessionSource = source
         showBox()
-        startRequest(.extract, targetLanguage: environment.targetLanguageCode())
+        let operation: WorkspaceOperationKind = source == .pastedText ? .translate : .extract
+        startRequest(operation, targetLanguage: environment.targetLanguageCode())
     }
 
     private func showProblem(_ value: CaptureResultBoxPresentation.PasteClipboardProblem) {

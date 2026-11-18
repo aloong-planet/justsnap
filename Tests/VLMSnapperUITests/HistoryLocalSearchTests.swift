@@ -32,21 +32,26 @@ struct HistoryLocalSearchTests {
     }
 
     @Test(
-        "history detail offers Retry for a Pasted Text record without an image, and for an image record once it is loaded",
+        "history detail offers Retry for a Pasted Text translation without an image, never for a Pasted Text extraction, and for an image record once it is loaded",
         arguments: [
-            (OperationInput.pastedText("words"), OperationStatus.succeeded, false, true),
-            (.image(ManagedScreenshot(path: "/Pictures/a.png", sha256: "a")), .succeeded, false, false),
-            (.image(ManagedScreenshot(path: "/Pictures/a.png", sha256: "a")), .failed, true, true),
-            (.pastedText("words"), .streaming, false, false),
-        ] as [(OperationInput, OperationStatus, Bool, Bool)]
+            (OperationInput.pastedText("words"), PersistedOperationKind.translate, OperationStatus.succeeded, false, true),
+            (.pastedText("words"), .extract, .succeeded, false, false),
+            (.image(ManagedScreenshot(path: "/Pictures/a.png", sha256: "a")), .extract, .succeeded, false, false),
+            (.image(ManagedScreenshot(path: "/Pictures/a.png", sha256: "a")), .extract, .failed, true, true),
+            (.pastedText("words"), .translate, .streaming, false, false),
+        ] as [(OperationInput, PersistedOperationKind, OperationStatus, Bool, Bool)]
     )
-    func retryAvailability(input: OperationInput, status: OperationStatus, hasLoadedImage: Bool, available: Bool) {
+    func retryAvailability(
+        input: OperationInput, kind: PersistedOperationKind, status: OperationStatus, hasLoadedImage: Bool, available: Bool
+    ) {
         let record = HistoryRecord(
             operation: StoredOperation(
                 id: UUID(),
                 input: input,
                 selection: ProviderSelection(providerID: "openai", modelID: "vision"),
-                status: status
+                status: status,
+                kind: kind,
+                targetLanguage: kind == .translate ? "fr" : nil
             ),
             createdAt: Date(timeIntervalSince1970: 0),
             isPinned: false

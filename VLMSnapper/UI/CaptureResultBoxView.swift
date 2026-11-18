@@ -35,6 +35,8 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
     public let showsOperations: Bool
     /// The input the box's operations work on; it picks the advice for an oversized request.
     public let source: InputSource
+    /// Text Extraction is for images only; Pasted Text's row has Translate alone (clipboard-paste::REQ-006/AC-03).
+    public var offersExtract: Bool { source != .pastedText }
 
     public var canCopy: Bool { !copyText.isEmpty }
 
@@ -287,6 +289,7 @@ public struct CaptureResultBoxView: View {
                     CaptureOperationControls(
                         state: operations.toolbarState,
                         targetLanguages: operations.targetLanguages,
+                        offersExtract: presentation.offersExtract,
                         onStart: operations.onStart,
                         onTargetLanguageChange: operations.onTargetLanguageChange
                     )

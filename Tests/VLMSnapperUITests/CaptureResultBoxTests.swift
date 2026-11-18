@@ -226,6 +226,18 @@ struct CaptureResultBoxPresentationTests {
         }
     }
 
+    @Test("only a pasted image's operation row offers Extract; Pasted Text's offers Translate alone", arguments: [
+        (CaptureResultBoxPresentation.InputSource.paste, true), (.pastedText, false),
+    ])
+    func extractIsOfferedOnlyForImages(source: CaptureResultBoxPresentation.InputSource, offersExtract: Bool) {
+        let value = CaptureResultBoxPresentation(
+            operation: .translate, targetLanguageName: "日本語", providerSummary: "DeepSeek · chat",
+            slot: WorkspaceOperationSlot(attempt: .preparing), source: source
+        )
+        #expect(value.showsOperations)
+        #expect(value.offersExtract == offersExtract)
+    }
+
     @Test("a canceled operation says so and can be retried, without earlier text")
     func canceled() {
         LocalizationTestCoordinator.withExclusiveAccess {
@@ -694,6 +706,34 @@ extension FrozenCaptureOverlayControllerTests {
 
             #expect(text.string.contains("Paragraph 70"))
             #expect(text.visibleRect.maxY >= text.bounds.height - 4)
+        }
+
+        @Test("a Pasted Text box's operation row shows Translate and its language but no Extract")
+        func pastedTextRowHasNoExtract() throws {
+            try LocalizationTestCoordinator.withExclusiveAccess {
+                VLMSnapperLocalization.configure(effectiveLanguage: .english)
+                let (controller, panel) = try makeController()
+                defer { controller.reset() }
+                let toolbar = CaptureToolbarState(targetLanguageCode: "ja")
+                toolbar.currentOperation = .translate
+                controller.state.operations = CaptureResultBoxOperations(
+                    toolbarState: toolbar, targetLanguages: [], onStart: { _ in }, onTargetLanguageChange: { _ in }
+                )
+                @MainActor func show(_ source: CaptureResultBoxPresentation.InputSource) throws -> String {
+                    controller.state.presentation = CaptureResultBoxPresentation(
+                        operation: .translate, targetLanguageName: "Japanese", providerSummary: Self.provider,
+                        slot: finished("Body"), source: source
+                    )
+                    pump(panel)
+                    return try recognizedText(in: try #require(panel.contentView))
+                }
+
+                let text = try show(.pastedText)
+                #expect(text.contains("JA"))
+                #expect(!text.contains("Extract"))
+                // The same row for a pasted image has Extract, so the absence above is the row's doing.
+                #expect(try show(.paste).contains("Extract"))
+            }
         }
 
         @Test("the header shows the Provider and model, with the full text in its tooltip")

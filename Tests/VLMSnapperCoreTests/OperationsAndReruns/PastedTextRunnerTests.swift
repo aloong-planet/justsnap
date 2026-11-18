@@ -43,7 +43,7 @@ extension PersistedOperationWorkspaceRunnerTests {
 
         _ = try? await collect(await runner.run(
             input: .pastedText("words"),
-            operation: .extractText,
+            operation: .translate(targetLanguage: "fr"),
             selection: ProviderSelection(providerID: "gemini", modelID: "vision")
         ))
 
@@ -58,11 +58,12 @@ extension PersistedOperationWorkspaceRunnerTests {
         let text = " kept\nin memory "
         let session = OperationWorkspaceSession(input: .pastedText(text), runner: runner, activeGate: ActiveOperationGate())
         let selection = ProviderSelection(providerID: "gemini", modelID: "vision")
+        await session.select(.translate)
 
         await #expect(throws: OperationWorkspaceRunFailure(code: "operation_failed")) {
             try await session.startSelectedOperation(selection: selection, targetLanguage: "en")
         }
-        #expect(await session.snapshot().extract.attempt == .failed(code: "operation_failed"))
+        #expect(await session.snapshot().translate.attempt == .failed(code: "operation_failed"))
         #expect(await provider.streamCount == 0)
 
         await history.setPreparationError(nil)
@@ -79,23 +80,23 @@ extension PersistedOperationWorkspaceRunnerTests {
         let saved = try await history.prepareOperation(
             input: .pastedText("saved words"),
             selection: ProviderSelection(providerID: "gemini", modelID: "vision"),
-            operation: .extractText
+            operation: .translate(targetLanguage: "fr")
         )
         let stored = try #require(try await history.operation(id: saved.operationID))
         let screenshots = RunnerScreenshotStoreProbe()
-        let provider = RunnerProviderProbe(runs: [.text("Replacement")])
+        let provider = RunnerProviderProbe()
         let runner = makeRunner(screenshotStore: screenshots, history: history, provider: provider, restoring: stored)
 
         _ = try await collect(await runner.run(
             input: .pastedText("saved words"),
-            operation: .extractText,
+            operation: .translate(targetLanguage: "fr"),
             selection: ProviderSelection(providerID: "openai", modelID: "vision")
         ))
 
         #expect(await provider.inputs == [.pastedText("saved words")])
         #expect(await provider.preparedOperations.map(\.operationID) == [stored.id])
-        #expect(await history.operations == [.extractText])
-        #expect(await history.currentOutcomes[stored.id] == .succeeded(sourceMarkdown: "Replacement", translationMarkdown: nil))
+        #expect(await history.operations == [.translate(targetLanguage: "fr")])
+        #expect(await history.currentOutcomes[stored.id] == .succeeded(sourceMarkdown: "Source", translationMarkdown: "Translation"))
         #expect(await screenshots.saveCount == 0)
     }
 
@@ -105,7 +106,7 @@ extension PersistedOperationWorkspaceRunnerTests {
         let saved = try await history.prepareOperation(
             input: .pastedText("saved words"),
             selection: ProviderSelection(providerID: "gemini", modelID: "vision"),
-            operation: .extractText
+            operation: .translate(targetLanguage: "fr")
         )
         let stored = try #require(try await history.operation(id: saved.operationID))
         let provider = RunnerProviderProbe()
@@ -114,11 +115,29 @@ extension PersistedOperationWorkspaceRunnerTests {
         await #expect(throws: OperationWorkspaceRunFailure(code: "history_record_unavailable")) {
             _ = try await collect(await runner.run(
                 input: .pastedText("other words"),
+                operation: .translate(targetLanguage: "fr"),
+                selection: ProviderSelection(providerID: "gemini", modelID: "vision")
+            ))
+        }
+
+        #expect(await provider.streamCount == 0)
+    }
+
+    @Test("Text Extraction of Pasted Text is refused before any record or request")
+    func extractionOfPastedTextIsRefused() async throws {
+        let history = RunnerHistoryProbe()
+        let provider = RunnerProviderProbe()
+        let runner = makeRunner(history: history, provider: provider)
+
+        await #expect(throws: OperationWorkspaceRunFailure(code: "operation_failed")) {
+            _ = try await collect(await runner.run(
+                input: .pastedText("words"),
                 operation: .extractText,
                 selection: ProviderSelection(providerID: "gemini", modelID: "vision")
             ))
         }
 
+        #expect(await history.operations.isEmpty)
         #expect(await provider.streamCount == 0)
     }
 }

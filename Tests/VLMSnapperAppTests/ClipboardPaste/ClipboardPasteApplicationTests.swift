@@ -53,26 +53,32 @@ extension ProviderApplicationTests {
     }
 
     @Test
-    func pastingCopiedTextExtractsItWithoutAnImageOrFile() async throws {
+    func pastingCopiedTextTranslatesItIntoTheRememberedLanguageWithoutAnImageOrFile() async throws {
         try await withResultFixture { fixture, model in
+            model.changeTargetLanguage("ja")
             let text = "  A paragraph of copied\ntext that wraps 'here'.\n"
             fixture.pasteboard.clearContents()
             fixture.pasteboard.setString(text, forType: .string)
 
             model.pasteFromClipboard()
             try await eventually { await fixture.http.imageRequests.count == 1 }
-            try await eventually { resultBoxPresentation()?.title == "Extract" }
+            try await eventually { resultBoxPresentation()?.title.hasPrefix("Translate · ") == true }
 
             let request = try #require(await fixture.http.imageRequests.first)
             #expect(sentUserText(request) == text)
             #expect(sentPNG(request) == nil)
             #expect(resultBoxPresentation()?.showsOperations == true)
+            #expect(pasteBoxOperations()?.toolbarState.currentOperation == .translate)
             // The box knows its input is text, so an oversized request asks for less text (REQ-007/AC-03).
             #expect(resultBoxPresentation()?.source == .pastedText)
-            try await fixture.http.finishImage(source: "A paragraph of copied text that wraps 'here'.")
-            try await eventually { resultBoxText() == "A paragraph of copied text that wraps 'here'." }
+            try await fixture.http.finishImage(source: "A paragraph of copied text.", translation: "コピーした文章。")
+            try await eventually { resultBoxText() == "コピーした文章。" }
             try await eventually { model.historyRecords.first?.operation.status == .succeeded }
-            #expect(model.historyRecords.map(\.operation.input) == [.pastedText(text)])
+            let record = try #require(model.historyRecords.first)
+            #expect(model.historyRecords.count == 1)
+            #expect(record.operation.input == .pastedText(text))
+            #expect(record.operation.kind == .translate)
+            #expect(record.operation.targetLanguage == "ja")
             #expect(try managedFiles(in: fixture).isEmpty)
         }
     }
@@ -96,29 +102,31 @@ extension ProviderApplicationTests {
     }
 
     @Test
-    func translateAfterATextPasteMakesItsOwnRecordFromTheSameText() async throws {
+    func translateInAnotherLanguageAfterATextPasteMakesItsOwnRecordFromTheSameText() async throws {
         try await withResultFixture { fixture, model in
             model.changeTargetLanguage("ja")
             fixture.pasteboard.clearContents()
             fixture.pasteboard.setString("Hello there.\nSecond line.", forType: .string)
             model.pasteFromClipboard()
             try await eventually { await fixture.http.imageRequests.count == 1 }
-            try await fixture.http.finishImage(source: "Hello there. Second line.")
+            try await fixture.http.finishImage(source: "Hello there. Second line.", translation: "こんにちは。")
             try await eventually { model.historyRecords.count == 1 }
 
             // A later clipboard change does not reach the operations of this paste (clipboard-paste::REQ-003/AC-07).
             fixture.pasteboard.clearContents()
             fixture.pasteboard.setString("Copied since", forType: .string)
-            try #require(pasteBoxOperations()).onStart(.translate)
+            let operations = try #require(pasteBoxOperations())
+            operations.onTargetLanguageChange("fr")
+            operations.onStart(.translate)
             try await eventually { await fixture.http.imageRequests.count == 2 }
             let request = try #require(await fixture.http.imageRequests.last)
             #expect(sentUserText(request) == "Hello there.\nSecond line.")
-            try await fixture.http.finishImage(source: "Hello there.", translation: "こんにちは。")
+            try await fixture.http.finishImage(source: "Hello there.", translation: "Bonjour.")
             try await eventually { model.historyRecords.count == 2 }
 
             let records = model.historyRecords
             #expect(records.allSatisfy { $0.operation.input == .pastedText("Hello there.\nSecond line.") })
-            #expect(records.contains { $0.operation.kind == .translate && $0.operation.targetLanguage == "ja" })
+            #expect(Set(records.map(\.operation.targetLanguage)) == ["ja", "fr"])
             #expect(fixture.clipboardReader.reads == 1)
         }
     }

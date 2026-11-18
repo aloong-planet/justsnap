@@ -207,6 +207,10 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
                 }
                 persistedInput = .image(persisted.screenshot)
             case let .pastedText(text):
+                // Text Extraction reads images only; Pasted Text is translated (clipboard-paste::REQ-007/AC-08).
+                if case .extractText = operation {
+                    throw OperationWorkspaceRunFailure(code: "operation_failed")
+                }
                 persistedInput = .pastedText(text)
             }
             let slot = Self.slot(for: operation)

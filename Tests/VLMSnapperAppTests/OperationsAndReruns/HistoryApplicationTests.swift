@@ -131,9 +131,10 @@ extension ProviderApplicationTests {
             let store = try SQLiteHistoryStore(databaseURL: fixture.root.appendingPathComponent("history.sqlite"))
             let text = "Pasted words for history\nSecond pasted line"
             let prepared = try await store.prepareOperation(input: .pastedText(text),
-                selection: ProviderSelection(providerID: "deepseek", modelID: "old-model"), operation: .extractText)
+                selection: ProviderSelection(providerID: "deepseek", modelID: "old-model"),
+                operation: .translate(targetLanguage: "fr"))
             try await store.finish(operationID: prepared.operationID,
-                with: .succeeded(sourceMarkdown: "Structured result", translationMarkdown: nil))
+                with: .succeeded(sourceMarkdown: "Pasted words", translationMarkdown: "Mots collés"))
             await fixture.http.allowImageRequests()
             try await fixture.withModel { model in
                 let controls = model.providerSettingsConfiguration()
@@ -160,11 +161,12 @@ extension ProviderApplicationTests {
                 let request = try #require(await fixture.http.imageRequests.first)
                 #expect(sentUserText(request) == text)
                 #expect(sentPNG(request) == nil)
-                try await fixture.http.finishImage(source: "Rerun result")
+                try await fixture.http.finishImage(source: "Pasted words", translation: "Résultat relancé")
                 try await eventually { !model.historyRetry.isRunning }
                 #expect(model.historyRetry.slot.attempt == .succeeded)
                 let stored = try #require(try await store.operation(id: prepared.operationID))
-                #expect(stored.sourceMarkdown == "Rerun result")
+                #expect(stored.translationMarkdown?.contains("Résultat relancé") == true)
+                #expect(stored.targetLanguage == "fr")
                 #expect(stored.input == .pastedText(text))
                 #expect(model.historyRecords.count == 1)
             }
