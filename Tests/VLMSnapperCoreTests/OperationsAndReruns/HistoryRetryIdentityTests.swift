@@ -178,7 +178,7 @@ private actor RetryProvider: PreparedOperationStreaming {
     init(beforeCompletion: @escaping @Sendable () async throws -> Void = {}) {
         self.beforeCompletion = beforeCompletion
     }
-    func stream(originalPNG: Data, preparedOperation: PreparedOperation) async
+    func stream(input: ProviderRequestInput, preparedOperation: PreparedOperation) async
         -> AsyncThrowingStream<ProviderStreamEvent, Error> {
         operations.append(preparedOperation.operation)
         do { try await beforeCompletion() }

@@ -181,7 +181,7 @@ actor RunnerHistoryProbe: OperationHistoryWriting {
     }
 
     func prepareOperation(
-        screenshot: ManagedScreenshot,
+        input: OperationInput,
         selection: ProviderSelection,
         operation: ProviderOperation
     ) async throws -> PreparedOperation {
@@ -200,7 +200,7 @@ actor RunnerHistoryProbe: OperationHistoryWriting {
         case .selection:
             return PreparedOperation(
                 operationID: UUID(),
-                screenshot: screenshot,
+                input: input,
                 selection: ProviderSelection(providerID: selection.providerID, modelID: "another-model"),
                 operation: operation
             )
@@ -213,12 +213,12 @@ actor RunnerHistoryProbe: OperationHistoryWriting {
         case .extractText: targetLanguage = nil
         case let .translate(language): targetLanguage = language
         }
-        stored[id] = StoredOperation(id: id, screenshot: screenshot, selection: selection,
+        stored[id] = StoredOperation(id: id, input: input, selection: selection,
             status: .succeeded, kind: targetLanguage == nil ? .extract : .translate,
             targetLanguage: targetLanguage)
         return PreparedOperation(
             operationID: id,
-            screenshot: screenshot,
+            input: input,
             selection: selection,
             operation: operation
         )
@@ -314,7 +314,10 @@ actor RunnerProviderProbe: PreparedOperationStreaming {
     }
 
     private(set) var streamCount = 0
-    private(set) var originalPNGs: [Data] = []
+    private(set) var inputs: [ProviderRequestInput] = []
+    var originalPNGs: [Data] {
+        inputs.compactMap { if case let .png(data) = $0 { data } else { nil } }
+    }
     private(set) var preparedOperations: [PreparedOperation] = []
     private var runs: [Run]
     private var openStreams: [AsyncThrowingStream<ProviderStreamEvent, Error>.Continuation] = []
@@ -332,11 +335,11 @@ actor RunnerProviderProbe: PreparedOperationStreaming {
     }
 
     func stream(
-        originalPNG: Data,
+        input: ProviderRequestInput,
         preparedOperation: PreparedOperation
     ) async -> AsyncThrowingStream<ProviderStreamEvent, Error> {
         streamCount += 1
-        originalPNGs.append(originalPNG)
+        inputs.append(input)
         preparedOperations.append(preparedOperation)
         let run = runs.count > 1 ? runs.removeFirst() : runs[0]
         let (stream, continuation) = AsyncThrowingStream<ProviderStreamEvent, Error>.makeStream()

@@ -245,14 +245,6 @@ public actor SQLiteHistoryStore {
         """
 
     public func prepareOperation(
-        screenshot: ManagedScreenshot,
-        selection: ProviderSelection,
-        operation: ProviderOperation
-    ) async throws -> PreparedOperation {
-        try await prepareOperation(input: .image(screenshot), selection: selection, operation: operation)
-    }
-
-    public func prepareOperation(
         input: OperationInput,
         selection: ProviderSelection,
         operation: ProviderOperation

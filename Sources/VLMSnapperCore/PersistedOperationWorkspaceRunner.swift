@@ -4,7 +4,7 @@ public protocol OperationHistoryWriting: Sendable {
     func operation(id: UUID) async throws -> StoredOperation?
 
     func prepareOperation(
-        screenshot: ManagedScreenshot,
+        input: OperationInput,
         selection: ProviderSelection,
         operation: ProviderOperation
     ) async throws -> PreparedOperation
@@ -40,6 +40,14 @@ public protocol OperationHistoryWriting: Sendable {
 }
 
 public extension OperationHistoryWriting {
+    func prepareOperation(
+        screenshot: ManagedScreenshot,
+        selection: ProviderSelection,
+        operation: ProviderOperation
+    ) async throws -> PreparedOperation {
+        try await prepareOperation(input: .image(screenshot), selection: selection, operation: operation)
+    }
+
     func finish(
         operationID: UUID,
         with outcome: PersistedOperationOutcome,
@@ -55,7 +63,7 @@ extension SQLiteHistoryStore: HistoryRecordManaging {}
 
 public protocol PreparedOperationStreaming: Sendable {
     func stream(
-        originalPNG: Data,
+        input: ProviderRequestInput,
         preparedOperation: PreparedOperation
     ) async -> AsyncThrowingStream<ProviderStreamEvent, Error>
 }
@@ -138,14 +146,14 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
     }
 
     public func run(
-        originalPNG: Data,
+        input: ProviderRequestInput,
         operation: ProviderOperation,
         selection: ProviderSelection
     ) async -> AsyncThrowingStream<OperationWorkspaceRunEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 await self.execute(
-                    originalPNG: originalPNG,
+                    input: input,
                     operation: operation,
                     selection: selection,
                     continuation: continuation
@@ -177,7 +185,7 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
     }
 
     private func execute(
-        originalPNG: Data,
+        input: ProviderRequestInput,
         operation: ProviderOperation,
         selection: ProviderSelection,
         continuation: AsyncThrowingStream<OperationWorkspaceRunEvent, Error>
@@ -189,9 +197,17 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
         var replacesExistingResult = false
         var unownedScreenshot: ManagedScreenshot?
         do {
-            let persisted = try await persistedScreenshot(for: originalPNG)
-            if persisted.isNew {
-                unownedScreenshot = persisted.screenshot
+            // A Pasted Text is kept only in its record: no file is written (clipboard-paste::REQ-007/AC-02).
+            let persistedInput: OperationInput
+            switch input {
+            case let .png(originalPNG):
+                let persisted = try await persistedScreenshot(for: originalPNG)
+                if persisted.isNew {
+                    unownedScreenshot = persisted.screenshot
+                }
+                persistedInput = .image(persisted.screenshot)
+            case let .pastedText(text):
+                persistedInput = .pastedText(text)
             }
             let slot = Self.slot(for: operation)
             let newPrepared: PreparedOperation
@@ -201,6 +217,7 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
                isBoundToRestoredRecord || existing.operation == operation {
                 guard let stored = try await historyStore.operation(id: existing.operationID),
                       stored.input == existing.input,
+                      stored.input == persistedInput,
                       !stored.status.isActive else {
                     throw OperationWorkspaceRunFailure(code: "history_record_unavailable")
                 }
@@ -217,19 +234,19 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
                 }
                 newPrepared = PreparedOperation(
                     operationID: existing.operationID,
-                    screenshot: persisted.screenshot,
+                    input: persistedInput,
                     selection: selection,
                     operation: existing.operation
                 )
                 replacesExistingResult = true
             } else {
                 newPrepared = try await historyStore.prepareOperation(
-                    screenshot: persisted.screenshot,
+                    input: persistedInput,
                     selection: selection,
                     operation: operation
                 )
             }
-            guard newPrepared.screenshot == persisted.screenshot,
+            guard newPrepared.input == persistedInput,
                   newPrepared.selection == selection,
                   Self.slot(for: newPrepared.operation) == slot
             else {
@@ -248,7 +265,7 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
             }
             try Task.checkCancellation()
             let stream = await provider.stream(
-                originalPNG: originalPNG,
+                input: input,
                 preparedOperation: newPrepared
             )
             if !replacesExistingResult {
@@ -277,7 +294,10 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
                     break
                 }
                 if let output = try accumulator.consume(event) {
-                    await recordVisionSuccess(for: newPrepared.selection)
+                    // Only an image request shows whether the model reads images (clipboard-paste::REQ-007/AC-06).
+                    if case .png = input {
+                        await recordVisionSuccess(for: newPrepared.selection)
+                    }
                     let result = WorkspaceCommittedResult(
                         sourceMarkdown: output.source,
                         translationMarkdown: output.translation,
@@ -351,7 +371,7 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
                 continuation.finish(throwing: CancellationError())
                 return
             }
-            if let prepared, (error as? ProviderAdapterError) == .imageInputUnsupported {
+            if let prepared, case .png = input, (error as? ProviderAdapterError) == .imageInputUnsupported {
                 await recordVisionFailure(for: prepared.selection)
             }
             let failureCode: String

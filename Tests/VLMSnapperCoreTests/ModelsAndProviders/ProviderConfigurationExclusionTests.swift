@@ -318,7 +318,7 @@ extension ProviderConfigurationCoordinatorTests {
 private actor WorkflowProviderBoundary: PreparedOperationStreaming {
     private(set) var requests = 0
 
-    func stream(originalPNG: Data, preparedOperation: PreparedOperation) async -> AsyncThrowingStream<ProviderStreamEvent, Error> {
+    func stream(input: ProviderRequestInput, preparedOperation: PreparedOperation) async -> AsyncThrowingStream<ProviderStreamEvent, Error> {
         requests += 1
         let result = "Result \(requests)"
         return AsyncThrowingStream { continuation in

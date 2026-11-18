@@ -354,7 +354,7 @@ private actor WorkspaceRunnerProbe: OperationWorkspaceRunning {
     }
 
     func run(
-        originalPNG: Data,
+        input: ProviderRequestInput,
         operation: ProviderOperation,
         selection: ProviderSelection
     ) async -> AsyncThrowingStream<OperationWorkspaceRunEvent, Error> {
@@ -382,7 +382,7 @@ private actor SuspendedWorkspaceRunnerProbe: OperationWorkspaceRunning {
     private var startWaiters: [CheckedContinuation<Void, Never>] = []
 
     func run(
-        originalPNG: Data,
+        input: ProviderRequestInput,
         operation: ProviderOperation,
         selection: ProviderSelection
     ) async -> AsyncThrowingStream<OperationWorkspaceRunEvent, Error> {
