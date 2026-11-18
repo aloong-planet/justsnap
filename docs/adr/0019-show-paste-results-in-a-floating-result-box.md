@@ -4,7 +4,7 @@
 
 ## Context
 
-Paste sends a Pasted Image to the model without freezing the screen, so there is no capture overlay for the result box to sit on, while ADR-0015 ties the result box to that overlay. The user usually pastes while working in another app and wants the result without leaving it.
+Paste sends a Pasted Image or a Pasted Text to the model without freezing the screen, so there is no capture overlay for the result box to sit on, while ADR-0015 ties the result box to that overlay. The user usually pastes while working in another app and wants the result without leaving it.
 
 ## Options
 

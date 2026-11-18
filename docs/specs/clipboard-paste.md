@@ -1,6 +1,6 @@
 # Clipboard Paste
 
-> Related: ADR-0019, ADR-0015, ADR-0006
+> Related: ADR-0019, ADR-0015, ADR-0006, ADR-0008
 
 ## Problem Statement
 
@@ -117,7 +117,7 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 - A single URL is plain text that, with surrounding whitespace removed, contains no whitespace and is an absolute URL whose scheme is followed by `//`, such as `https://…` or `file://…`.
 - Clipboard decision order, evaluated once per paste, judging the plain text with surrounding whitespace removed (text that is only whitespace counts as empty): (0) any item carries a file reference → file clipboard; (1) image data present and plain text empty or a single URL → image; (2) any other plain text → text clipboard, whose Pasted Text is the plain text as read; (3) image data present → image, or unreadable when it cannot be decoded as a bitmap; (4) nothing usable → empty clipboard.
 - A Pasted Image becomes an ordinary Managed Capture File and its records ordinary history records; no record stores whether its image came from a paste (ADR-0006).
-- History database schema version 5: each operation record holds either an original image reference (path and SHA-256) or a Pasted Text, never both and never neither. Each record of one Pasted Text stores its own copy of the text. Migrating a version 4 database keeps every record and its image reference unchanged. An earlier app that finds version 5 reports the database unavailable, as for any newer version.
+- History database schema version 5: each operation record holds either an original image reference (path and SHA-256) or a Pasted Text, never both and never neither. Each record of one Pasted Text stores its own copy of the text. Migrating a version 4 database keeps every record and its image reference unchanged. An earlier app that finds version 5 does not open it, as for any newer version (failure mode 15).
 - A request for Pasted Text uses each Provider's text-only message form and the same streaming, result parsing and Normalized Errors as an image request. The built-in instructions go in the Provider's separate instruction field (OpenAI `instructions`, Gemini `systemInstruction`, DeepSeek system message), and the Pasted Text alone is the user message.
 - The paste shortcut is stored like the capture shortcut, as its own preference.
 - A paste request is a model request under the app's single owner-token mutual exclusion with captures and Provider credential jobs (v1-core Implementation Decisions). The paste result box is not part of the capture interface (ADR-0019).
