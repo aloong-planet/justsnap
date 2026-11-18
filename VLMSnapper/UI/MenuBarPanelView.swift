@@ -41,7 +41,7 @@ public struct MenuRecentItem: Identifiable, Equatable, Sendable {
         title = Self.title(for: record)
         detail = "\(Self.operationLabel(for: record.operation.kind)) · \(Self.relativeTime(from: record.createdAt, to: now))"
         status = Self.status(for: record.operation.status)
-        screenshotURL = URL(fileURLWithPath: record.operation.screenshot.path)
+        screenshotURL = URL(fileURLWithPath: record.operation.screenshot?.path ?? "/dev/null")
     }
 
     private static func title(for record: HistoryRecord) -> String {

@@ -305,7 +305,7 @@ struct SQLiteHistoryStoreTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let databaseURL = directory.appendingPathComponent("history.sqlite")
-        try makeDatabase(at: databaseURL, schemaVersion: 5)
+        try makeDatabase(at: databaseURL, schemaVersion: 6)
         let bytesBeforeOpen = try Data(contentsOf: databaseURL)
 
         do {
@@ -313,7 +313,7 @@ struct SQLiteHistoryStoreTests {
             Issue.record("Expected a newer schema to block the history store")
         } catch {
             #expect(
-                error as? SQLiteHistoryStoreError == .schemaTooNew(found: 5, supported: 4)
+                error as? SQLiteHistoryStoreError == .schemaTooNew(found: 6, supported: 5)
             )
         }
         #expect(try Data(contentsOf: databaseURL) == bytesBeforeOpen)
@@ -394,6 +394,128 @@ struct SQLiteHistoryStoreTests {
         #expect(row.isPinned)
         #expect(row.createdAt == Date(timeIntervalSince1970: 1234))
         #expect(try await store.history(matching: HistoryQuery(searchText: "你好")).map(\.id) == [id])
+    }
+
+    @Test("a Pasted Text operation keeps its text exactly and has no image")
+    func pastedTextOperationKeepsItsText() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("history.sqlite")
+        let text = "  第一行\n\tsecond line 'quoted' \n"
+        let store = try SQLiteHistoryStore(databaseURL: url)
+
+        let prepared = try await store.prepareOperation(
+            input: .pastedText(text),
+            selection: ProviderSelection(providerID: "openai", modelID: "vision"),
+            operation: .translate(targetLanguage: "en")
+        )
+
+        #expect(prepared.input == .pastedText(text))
+        let reopened = try SQLiteHistoryStore(databaseURL: url)
+        let stored = try #require(try await reopened.operation(id: prepared.operationID))
+        #expect(stored.input == .pastedText(text))
+        #expect(stored.screenshot == nil)
+        #expect(stored.kind == .translate)
+        #expect(stored.status == .preparing)
+        let listed = try await reopened.history(matching: HistoryQuery())
+        #expect(listed.map(\.operation.input) == [.pastedText(text)])
+    }
+
+    @Test("history search matches a record by its Pasted Text")
+    func historySearchMatchesPastedText() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = try SQLiteHistoryStore(databaseURL: directory.appendingPathComponent("history.sqlite"))
+        let pasted = try await store.prepareOperation(
+            input: .pastedText("Quarterly Revenue notes"),
+            selection: ProviderSelection(providerID: "openai", modelID: "vision"),
+            operation: .translate(targetLanguage: "zh-Hans")
+        )
+        try await store.finish(
+            operationID: pasted.operationID,
+            with: .succeeded(sourceMarkdown: "季度", translationMarkdown: "季度收入")
+        )
+        let other = try await makeOperation(in: store, suffix: "other")
+        try await store.finish(
+            operationID: other.operationID,
+            with: .succeeded(sourceMarkdown: "Unrelated", translationMarkdown: nil)
+        )
+
+        let records = try await store.history(matching: HistoryQuery(searchText: "revenue"))
+
+        #expect(records.map(\.id) == [pasted.operationID])
+    }
+
+    @Test("version-four records migrate to version five with every field and image reference unchanged")
+    func versionFourRecordsMigrateUnchanged() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("history.sqlite")
+        let extractID = UUID()
+        let translateID = UUID()
+        try makeDatabase(at: url, schemaVersion: 4, operationsSQL: """
+            id TEXT PRIMARY KEY NOT NULL, screenshot_path TEXT NOT NULL, screenshot_sha256 TEXT NOT NULL,
+            provider_id TEXT NOT NULL, model_id TEXT NOT NULL, status TEXT NOT NULL,
+            source_markdown TEXT, translation_markdown TEXT, normalized_error_code TEXT,
+            operation_kind TEXT NOT NULL, target_language TEXT, created_at REAL NOT NULL,
+            is_pinned INTEGER NOT NULL DEFAULT 0, first_text_latency_ms INTEGER, total_latency_ms INTEGER,
+            input_tokens INTEGER, output_tokens INTEGER, total_tokens INTEGER, translation_segments TEXT
+            """)
+        try executeSQL("""
+            INSERT INTO operations VALUES ('\(extractID.uuidString)', '/Pictures/VLMSnapper/a.png', 'sha-a',
+            'deepseek', 'vision-a', 'failed', NULL, NULL, 'authentication', 'extract', NULL, 1000.5, 0,
+            NULL, 640, NULL, NULL, NULL, NULL);
+            INSERT INTO operations VALUES ('\(translateID.uuidString)', '/Pictures/VLMSnapper/b.png', 'sha-b',
+            'gemini', 'vision-b', 'succeeded', 'Hello', '你好', NULL, 'translate', 'zh-Hans', 2000.25, 1,
+            120, 900, 11, 7, 18,
+            '[{"id":"s1","block":"b1","kind":"heading","source":"Hello","translation":"你好"}]');
+            """, at: url)
+
+        let store = try SQLiteHistoryStore(databaseURL: url)
+
+        let extract = try #require(try await store.historyRecord(id: extractID))
+        #expect(extract.operation == StoredOperation(
+            id: extractID,
+            screenshot: ManagedScreenshot(path: "/Pictures/VLMSnapper/a.png", sha256: "sha-a"),
+            selection: ProviderSelection(providerID: "deepseek", modelID: "vision-a"),
+            status: .failed,
+            normalizedErrorCode: "authentication"
+        ))
+        #expect(extract.createdAt == Date(timeIntervalSince1970: 1000.5))
+        #expect(!extract.isPinned)
+        #expect(extract.metrics == PersistedOperationMetrics(totalLatencyMilliseconds: 640))
+        let translate = try #require(try await store.historyRecord(id: translateID))
+        #expect(translate.operation == StoredOperation(
+            id: translateID,
+            screenshot: ManagedScreenshot(path: "/Pictures/VLMSnapper/b.png", sha256: "sha-b"),
+            selection: ProviderSelection(providerID: "gemini", modelID: "vision-b"),
+            status: .succeeded,
+            sourceMarkdown: "Hello",
+            translationMarkdown: "你好",
+            kind: .translate,
+            targetLanguage: "zh-Hans",
+            segments: [TranslationSegment(id: "s1", block: "b1", kind: .heading, source: "Hello", translation: "你好")]
+        ))
+        #expect(translate.createdAt == Date(timeIntervalSince1970: 2000.25))
+        #expect(translate.isPinned)
+        #expect(translate.metrics == PersistedOperationMetrics(
+            firstTextLatencyMilliseconds: 120,
+            totalLatencyMilliseconds: 900,
+            usage: ProviderTokenUsage(inputTokens: 11, outputTokens: 7, totalTokens: 18)
+        ))
+        #expect(try await store.history(matching: HistoryQuery()).count == 2)
+        // The migrated database takes Pasted Text records and opens again as version 5.
+        _ = try await store.prepareOperation(
+            input: .pastedText("after migration"),
+            selection: ProviderSelection(providerID: "openai", modelID: "vision"),
+            operation: .extractText
+        )
+        let reopened = try SQLiteHistoryStore(databaseURL: url)
+        #expect(try await reopened.history(matching: HistoryQuery()).count == 3)
+        #expect(try schemaVersion(at: url) == 5)
     }
 
     @Test("a corrupted database is blocked without changing its bytes")
@@ -569,6 +691,23 @@ struct SQLiteHistoryStoreTests {
         guard sqlite3_exec(database, sql, nil, nil, nil) == SQLITE_OK else {
             throw SQLiteHistoryStoreError.databaseFailure
         }
+    }
+
+    private func schemaVersion(at url: URL) throws -> Int {
+        var database: OpaquePointer?
+        guard sqlite3_open(url.path, &database) == SQLITE_OK, let database else {
+            throw SQLiteHistoryStoreError.databaseFailure
+        }
+        defer { sqlite3_close(database) }
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, "SELECT value FROM metadata WHERE key = 'schema_version'", -1,
+                                 &statement, nil) == SQLITE_OK, let statement,
+              sqlite3_step(statement) == SQLITE_ROW
+        else {
+            throw SQLiteHistoryStoreError.databaseFailure
+        }
+        defer { sqlite3_finalize(statement) }
+        return Int(sqlite3_column_int(statement, 0))
     }
 
     private func executeSQL(_ sql: String, at url: URL) throws {

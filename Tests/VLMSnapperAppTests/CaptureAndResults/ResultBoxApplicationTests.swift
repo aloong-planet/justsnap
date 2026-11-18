@@ -149,7 +149,7 @@ extension ProviderApplicationTests {
             try await waitForResultIdle(model)
             try await eventually { model.historyRecords.count == 2 }
             #expect(languages() == ["ja", "zh-Hans"])
-            let shared = Set(model.historyRecords.map(\.operation.screenshot.path))
+            let shared = Set(model.historyRecords.map(\.operation.screenshot!.path))
             #expect(shared.count == 1)
 
             // Retry stays on its record and language, whatever the toolbar's language is by then.

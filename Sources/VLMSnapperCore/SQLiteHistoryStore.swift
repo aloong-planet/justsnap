@@ -32,16 +32,56 @@ public enum PersistedOperationKind: String, Equatable, Sendable {
     case translate
 }
 
+/// What an operation record works on: an original image's Managed Capture File or a Pasted Text, never
+/// both (clipboard-paste's Implementation Decisions, ADR-0006).
+public enum OperationInput: Equatable, Sendable {
+    case image(ManagedScreenshot)
+    case pastedText(String)
+
+    public var screenshot: ManagedScreenshot? {
+        if case let .image(screenshot) = self { return screenshot }
+        return nil
+    }
+
+    public var pastedText: String? {
+        if case let .pastedText(text) = self { return text }
+        return nil
+    }
+}
+
 public struct PreparedOperation: Equatable, Sendable {
     public let operationID: UUID
-    public let screenshot: ManagedScreenshot
+    public let input: OperationInput
     public let selection: ProviderSelection
     public let operation: ProviderOperation
+
+    public init(
+        operationID: UUID,
+        input: OperationInput,
+        selection: ProviderSelection,
+        operation: ProviderOperation
+    ) {
+        self.operationID = operationID
+        self.input = input
+        self.selection = selection
+        self.operation = operation
+    }
+
+    public init(
+        operationID: UUID,
+        screenshot: ManagedScreenshot,
+        selection: ProviderSelection,
+        operation: ProviderOperation
+    ) {
+        self.init(operationID: operationID, input: .image(screenshot), selection: selection, operation: operation)
+    }
+
+    public var screenshot: ManagedScreenshot? { input.screenshot }
 }
 
 public struct StoredOperation: Equatable, Sendable {
     public let id: UUID
-    public let screenshot: ManagedScreenshot
+    public let input: OperationInput
     public let selection: ProviderSelection
     public let status: OperationStatus
     public let sourceMarkdown: String?
@@ -50,6 +90,30 @@ public struct StoredOperation: Equatable, Sendable {
     public let kind: PersistedOperationKind
     public let targetLanguage: String?
     public let segments: [TranslationSegment]?
+
+    public init(
+        id: UUID,
+        input: OperationInput,
+        selection: ProviderSelection,
+        status: OperationStatus,
+        sourceMarkdown: String? = nil,
+        translationMarkdown: String? = nil,
+        normalizedErrorCode: String? = nil,
+        kind: PersistedOperationKind = .extract,
+        targetLanguage: String? = nil,
+        segments: [TranslationSegment]? = nil
+    ) {
+        self.id = id
+        self.input = input
+        self.selection = selection
+        self.status = status
+        self.sourceMarkdown = sourceMarkdown
+        self.translationMarkdown = translationMarkdown
+        self.normalizedErrorCode = normalizedErrorCode
+        self.kind = kind
+        self.targetLanguage = targetLanguage
+        self.segments = segments
+    }
 
     public init(
         id: UUID,
@@ -63,17 +127,22 @@ public struct StoredOperation: Equatable, Sendable {
         targetLanguage: String? = nil,
         segments: [TranslationSegment]? = nil
     ) {
-        self.id = id
-        self.screenshot = screenshot
-        self.selection = selection
-        self.status = status
-        self.sourceMarkdown = sourceMarkdown
-        self.translationMarkdown = translationMarkdown
-        self.normalizedErrorCode = normalizedErrorCode
-        self.kind = kind
-        self.targetLanguage = targetLanguage
-        self.segments = segments
+        self.init(
+            id: id,
+            input: .image(screenshot),
+            selection: selection,
+            status: status,
+            sourceMarkdown: sourceMarkdown,
+            translationMarkdown: translationMarkdown,
+            normalizedErrorCode: normalizedErrorCode,
+            kind: kind,
+            targetLanguage: targetLanguage,
+            segments: segments
+        )
     }
+
+    public var screenshot: ManagedScreenshot? { input.screenshot }
+    public var pastedText: String? { input.pastedText }
 }
 
 public enum SQLiteHistoryStoreError: Error, Equatable {
@@ -83,7 +152,7 @@ public enum SQLiteHistoryStoreError: Error, Equatable {
 }
 
 public actor SQLiteHistoryStore {
-    private static let supportedSchemaVersion = 4
+    private static let supportedSchemaVersion = 5
     private nonisolated(unsafe) let database: OpaquePointer
     private let now: @Sendable () -> Date
 
@@ -119,35 +188,10 @@ public actor SQLiteHistoryStore {
                     on: connection
                 )
                 try Self.execute(
-                    "INSERT INTO metadata (key, value) VALUES ('schema_version', 4)",
+                    "INSERT INTO metadata (key, value) VALUES ('schema_version', \(Self.supportedSchemaVersion))",
                     on: connection
                 )
-                try Self.execute(
-                    """
-                    CREATE TABLE operations (
-                        id TEXT PRIMARY KEY NOT NULL,
-                        screenshot_path TEXT NOT NULL,
-                        screenshot_sha256 TEXT NOT NULL,
-                        provider_id TEXT NOT NULL,
-                        model_id TEXT NOT NULL,
-                        status TEXT NOT NULL,
-                        source_markdown TEXT,
-                        translation_markdown TEXT,
-                        normalized_error_code TEXT
-                        , operation_kind TEXT NOT NULL
-                        , target_language TEXT
-                        , created_at REAL NOT NULL
-                        , is_pinned INTEGER NOT NULL DEFAULT 0
-                        , first_text_latency_ms INTEGER
-                        , total_latency_ms INTEGER
-                        , input_tokens INTEGER
-                        , output_tokens INTEGER
-                        , total_tokens INTEGER
-                        , translation_segments TEXT
-                    )
-                    """,
-                    on: connection
-                )
+                try Self.execute(Self.createOperationsTableSQL(named: "operations"), on: connection)
             }
         } catch {
             sqlite3_close(connection)
@@ -159,8 +203,57 @@ public actor SQLiteHistoryStore {
         sqlite3_close(database)
     }
 
+    /// The version 5 operations table: a record holds an image reference or a Pasted Text, never both and
+    /// never neither.
+    private static func createOperationsTableSQL(named name: String) -> String {
+        """
+        CREATE TABLE \(name) (
+            id TEXT PRIMARY KEY NOT NULL,
+            screenshot_path TEXT,
+            screenshot_sha256 TEXT,
+            pasted_text TEXT,
+            provider_id TEXT NOT NULL,
+            model_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            source_markdown TEXT,
+            translation_markdown TEXT,
+            normalized_error_code TEXT,
+            operation_kind TEXT NOT NULL,
+            target_language TEXT,
+            created_at REAL NOT NULL,
+            is_pinned INTEGER NOT NULL DEFAULT 0,
+            first_text_latency_ms INTEGER,
+            total_latency_ms INTEGER,
+            input_tokens INTEGER,
+            output_tokens INTEGER,
+            total_tokens INTEGER,
+            translation_segments TEXT,
+            CHECK (
+                (screenshot_path IS NOT NULL AND screenshot_sha256 IS NOT NULL AND pasted_text IS NULL)
+                OR (screenshot_path IS NULL AND screenshot_sha256 IS NULL AND pasted_text IS NOT NULL)
+            )
+        )
+        """
+    }
+
+    /// Columns every version 4 record has, copied unchanged into the version 5 table.
+    private static let versionFourColumns = """
+        id, screenshot_path, screenshot_sha256, provider_id, model_id, status,
+        source_markdown, translation_markdown, normalized_error_code, operation_kind, target_language,
+        created_at, is_pinned, first_text_latency_ms, total_latency_ms,
+        input_tokens, output_tokens, total_tokens, translation_segments
+        """
+
     public func prepareOperation(
         screenshot: ManagedScreenshot,
+        selection: ProviderSelection,
+        operation: ProviderOperation
+    ) async throws -> PreparedOperation {
+        try await prepareOperation(input: .image(screenshot), selection: selection, operation: operation)
+    }
+
+    public func prepareOperation(
+        input: OperationInput,
         selection: ProviderSelection,
         operation: ProviderOperation
     ) async throws -> PreparedOperation {
@@ -178,8 +271,8 @@ public actor SQLiteHistoryStore {
         let sql = """
             INSERT INTO operations (
                 id, screenshot_path, screenshot_sha256, provider_id, model_id, status,
-                operation_kind, target_language, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                operation_kind, target_language, created_at, pasted_text
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
@@ -189,20 +282,21 @@ public actor SQLiteHistoryStore {
         }
         defer { sqlite3_finalize(statement) }
         try Self.bind(operationID.uuidString, at: 1, to: statement)
-        try Self.bind(screenshot.path, at: 2, to: statement)
-        try Self.bind(screenshot.sha256, at: 3, to: statement)
+        try Self.bind(input.screenshot?.path, at: 2, to: statement)
+        try Self.bind(input.screenshot?.sha256, at: 3, to: statement)
         try Self.bind(selection.providerID, at: 4, to: statement)
         try Self.bind(selection.modelID, at: 5, to: statement)
         try Self.bind(OperationStatus.preparing.rawValue, at: 6, to: statement)
         try Self.bind(kind.rawValue, at: 7, to: statement)
         try Self.bind(targetLanguage, at: 8, to: statement)
         try Self.bind(now().timeIntervalSince1970, at: 9, to: statement)
+        try Self.bind(input.pastedText, at: 10, to: statement)
         guard sqlite3_step(statement) == SQLITE_DONE else {
             throw SQLiteHistoryStoreError.databaseFailure
         }
         return PreparedOperation(
             operationID: operationID,
-            screenshot: screenshot,
+            input: input,
             selection: selection,
             operation: operation
         )
@@ -212,7 +306,7 @@ public actor SQLiteHistoryStore {
         let sql = """
             SELECT screenshot_path, screenshot_sha256, provider_id, model_id, status,
                    source_markdown, translation_markdown, normalized_error_code,
-                   operation_kind, target_language, translation_segments
+                   operation_kind, target_language, translation_segments, pasted_text
             FROM operations WHERE id = ?
             """
         var statement: OpaquePointer?
@@ -230,8 +324,7 @@ public actor SQLiteHistoryStore {
             }
             throw SQLiteHistoryStoreError.databaseFailure
         }
-        guard let path = Self.text(at: 0, from: statement),
-              let sha256 = Self.text(at: 1, from: statement),
+        guard let input = Self.input(path: 0, sha256: 1, pastedText: 11, from: statement),
               let providerID = Self.text(at: 2, from: statement),
               let modelID = Self.text(at: 3, from: statement),
               let statusValue = Self.text(at: 4, from: statement),
@@ -243,7 +336,7 @@ public actor SQLiteHistoryStore {
         }
         return StoredOperation(
             id: id,
-            screenshot: ManagedScreenshot(path: path, sha256: sha256),
+            input: input,
             selection: ProviderSelection(
                 providerID: providerID,
                 modelID: modelID
@@ -319,8 +412,10 @@ public actor SQLiteHistoryStore {
         if !searchText.isEmpty {
             predicates.append(
                 "(instr(lower(coalesce(source_markdown, '')), lower(?)) > 0 "
-                    + "OR instr(lower(coalesce(translation_markdown, '')), lower(?)) > 0)"
+                    + "OR instr(lower(coalesce(translation_markdown, '')), lower(?)) > 0 "
+                    + "OR instr(lower(coalesce(pasted_text, '')), lower(?)) > 0)"
             )
+            parameters.append(.text(searchText))
             parameters.append(.text(searchText))
             parameters.append(.text(searchText))
         }
@@ -330,7 +425,7 @@ public actor SQLiteHistoryStore {
                    source_markdown, translation_markdown, normalized_error_code,
                    operation_kind, target_language, created_at, is_pinned,
                    first_text_latency_ms, total_latency_ms,
-                   input_tokens, output_tokens, total_tokens, translation_segments
+                   input_tokens, output_tokens, total_tokens, translation_segments, pasted_text
             FROM operations\(whereClause)
             ORDER BY created_at DESC, id DESC
             """
@@ -360,8 +455,7 @@ public actor SQLiteHistoryStore {
             guard result == SQLITE_ROW,
                   let idValue = Self.text(at: 0, from: statement),
                   let id = UUID(uuidString: idValue),
-                  let path = Self.text(at: 1, from: statement),
-                  let sha256 = Self.text(at: 2, from: statement),
+                  let input = Self.input(path: 1, sha256: 2, pastedText: 19, from: statement),
                   let providerID = Self.text(at: 3, from: statement),
                   let modelID = Self.text(at: 4, from: statement),
                   let statusValue = Self.text(at: 5, from: statement),
@@ -383,7 +477,7 @@ public actor SQLiteHistoryStore {
                 HistoryRecord(
                     operation: StoredOperation(
                         id: id,
-                        screenshot: ManagedScreenshot(path: path, sha256: sha256),
+                        input: input,
                         selection: ProviderSelection(providerID: providerID, modelID: modelID),
                         status: status,
                         sourceMarkdown: Self.text(at: 6, from: statement),
@@ -761,8 +855,31 @@ public actor SQLiteHistoryStore {
                 throw error
             }
         }
+        if schemaVersion == 4 {
+            // SQLite cannot drop NOT NULL from a column in place, so the table is rebuilt; every record
+            // and its image reference are copied unchanged.
+            guard try hasRequiredOperationColumns(on: database, schemaVersion: 4) else {
+                throw SQLiteHistoryStoreError.databaseFailure
+            }
+            try execute("BEGIN IMMEDIATE", on: database)
+            do {
+                try execute(createOperationsTableSQL(named: "operations_v5"), on: database)
+                try execute(
+                    "INSERT INTO operations_v5 (\(versionFourColumns)) SELECT \(versionFourColumns) FROM operations",
+                    on: database
+                )
+                try execute("DROP TABLE operations", on: database)
+                try execute("ALTER TABLE operations_v5 RENAME TO operations", on: database)
+                try execute("UPDATE metadata SET value = 5 WHERE key = 'schema_version'", on: database)
+                try execute("COMMIT", on: database)
+                schemaVersion = 5
+            } catch {
+                try? execute("ROLLBACK", on: database)
+                throw error
+            }
+        }
         guard schemaVersion == supportedSchemaVersion,
-              try hasRequiredOperationColumns(on: database, schemaVersion: 4) else {
+              try hasRequiredOperationColumns(on: database, schemaVersion: supportedSchemaVersion) else {
             throw SQLiteHistoryStoreError.databaseFailure
         }
     }
@@ -807,6 +924,7 @@ public actor SQLiteHistoryStore {
             ])
         }
         if schemaVersion >= 4 { requiredColumns.insert("translation_segments") }
+        if schemaVersion >= 5 { requiredColumns.insert("pasted_text") }
         let sql = "PRAGMA table_info(operations)"
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK,
@@ -828,6 +946,20 @@ public actor SQLiteHistoryStore {
             }
             foundColumns.insert(columnName)
         }
+    }
+
+    /// A record's image reference or its Pasted Text; `nil` for a row that has neither.
+    private static func input(
+        path pathIndex: Int32,
+        sha256 sha256Index: Int32,
+        pastedText pastedTextIndex: Int32,
+        from statement: OpaquePointer
+    ) -> OperationInput? {
+        if let path = text(at: pathIndex, from: statement),
+           let sha256 = text(at: sha256Index, from: statement) {
+            return .image(ManagedScreenshot(path: path, sha256: sha256))
+        }
+        return text(at: pastedTextIndex, from: statement).map(OperationInput.pastedText)
     }
 
     private static func encodeSegments(_ value: [TranslationSegment]?) throws -> String? {

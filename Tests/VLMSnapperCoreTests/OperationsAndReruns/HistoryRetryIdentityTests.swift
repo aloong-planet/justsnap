@@ -40,7 +40,7 @@ struct HistoryRetryIdentityTests {
             if removeRecord {
                 #expect(try await store.deleteHistoryRecord(id: record.id) == .deleted)
             } else {
-                try Data("replacement".utf8).write(to: URL(fileURLWithPath: record.operation.screenshot.path))
+                try Data("replacement".utf8).write(to: URL(fileURLWithPath: record.operation.screenshot!.path))
             }
             await #expect(throws: OperationWorkspaceRunFailure.self) {
                 _ = try await collect(await runner.run(originalPNG: png,
@@ -85,7 +85,7 @@ struct HistoryRetryIdentityTests {
     @Test
     func pinChangedDuringRetryAndUnrelatedRowsSurviveCommit() async throws {
         try await withHistory { store, screenshots, record, png in
-            let other = try await store.prepareOperation(screenshot: record.operation.screenshot,
+            let other = try await store.prepareOperation(screenshot: record.operation.screenshot!,
                 selection: record.operation.selection,
                 operation: .extractText)
             try await store.finish(operationID: other.operationID,
@@ -101,13 +101,13 @@ struct HistoryRetryIdentityTests {
             #expect(try await store.historyRecord(id: record.id)?.isPinned == false)
             #expect(try await store.historyRecord(id: other.operationID) == originalOther)
             #expect(try await store.history(matching: HistoryQuery()).count == 2)
-            let reopened = try SQLiteHistoryStore(databaseURL: URL(fileURLWithPath: record.operation.screenshot.path)
+            let reopened = try SQLiteHistoryStore(databaseURL: URL(fileURLWithPath: record.operation.screenshot!.path)
                 .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
                 .appendingPathComponent("history.sqlite"))
             #expect(try await reopened.operation(id: record.id)?.sourceMarkdown == "New source")
             #expect(try await reopened.operation(id: record.id)?.segments?.map(\.id) == ["replacement"])
-            #expect(try await screenshots.loadIfOwned(record.operation.screenshot) == png)
-            let imageDirectory = URL(fileURLWithPath: record.operation.screenshot.path).deletingLastPathComponent()
+            #expect(try await screenshots.loadIfOwned(record.operation.screenshot!) == png)
+            let imageDirectory = URL(fileURLWithPath: record.operation.screenshot!.path).deletingLastPathComponent()
             #expect(try FileManager.default.contentsOfDirectory(atPath: imageDirectory.path).filter { $0.hasSuffix(".png") }.count == 1)
         }
     }

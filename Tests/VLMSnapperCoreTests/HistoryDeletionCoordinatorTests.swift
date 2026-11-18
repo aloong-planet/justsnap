@@ -16,7 +16,7 @@ struct HistoryDeletionCoordinatorTests {
         let summary = await coordinator.delete(recordIDs: [record.id], includePinned: false)
 
         #expect(summary == HistoryDeletionSummary(deleted: 0, failed: 0, skipped: 1))
-        #expect(await screenshots.attemptedPaths == [record.operation.screenshot.path])
+        #expect(await screenshots.attemptedPaths == [record.operation.screenshot!.path])
         #expect(await store.remainingIDs == [record.id])
     }
 
@@ -27,7 +27,7 @@ struct HistoryDeletionCoordinatorTests {
         let active = makeRecord(id: UUID(), status: .streaming)
         let pinned = makeRecord(id: UUID(), status: .succeeded, isPinned: true)
         let store = DeletionHistoryProbe(records: [failed, deleted, active, pinned])
-        let screenshots = DeletionScreenshotProbe(failingPaths: [failed.operation.screenshot.path])
+        let screenshots = DeletionScreenshotProbe(failingPaths: [failed.operation.screenshot!.path])
         let coordinator = HistoryDeletionCoordinator(
             historyStore: store,
             screenshotStore: screenshots
@@ -41,8 +41,8 @@ struct HistoryDeletionCoordinatorTests {
         #expect(summary == HistoryDeletionSummary(deleted: 1, failed: 1, skipped: 2))
         #expect(await store.remainingIDs == Set([failed.id, active.id, pinned.id]))
         #expect(await screenshots.attemptedPaths == [
-            failed.operation.screenshot.path,
-            deleted.operation.screenshot.path,
+            failed.operation.screenshot!.path,
+            deleted.operation.screenshot!.path,
         ])
     }
 
@@ -53,8 +53,8 @@ struct HistoryDeletionCoordinatorTests {
         let store = DeletionHistoryProbe(records: [missing, replaced])
         let screenshots = DeletionScreenshotProbe(
             errors: [
-                missing.operation.screenshot.path: ScreenshotStoreError.missingFile,
-                replaced.operation.screenshot.path: ScreenshotStoreError.ownershipMismatch,
+                missing.operation.screenshot!.path: ScreenshotStoreError.missingFile,
+                replaced.operation.screenshot!.path: ScreenshotStoreError.ownershipMismatch,
             ]
         )
         let coordinator = HistoryDeletionCoordinator(
@@ -69,6 +69,30 @@ struct HistoryDeletionCoordinatorTests {
 
         #expect(summary == HistoryDeletionSummary(deleted: 2, failed: 0, skipped: 0))
         #expect(await store.remainingIDs.isEmpty)
+    }
+
+    @Test("deleting a Pasted Text record removes only the record and touches no file")
+    func pastedTextRecordDeletesOnlyTheRecord() async {
+        let text = HistoryRecord(
+            operation: StoredOperation(
+                id: UUID(),
+                input: .pastedText("Pasted words"),
+                selection: ProviderSelection(providerID: "openai", modelID: "vision"),
+                status: .succeeded
+            ),
+            createdAt: Date(timeIntervalSince1970: 100),
+            isPinned: false
+        )
+        let image = makeRecord(id: UUID(), status: .succeeded)
+        let store = DeletionHistoryProbe(records: [text, image])
+        let screenshots = DeletionScreenshotProbe()
+        let coordinator = HistoryDeletionCoordinator(historyStore: store, screenshotStore: screenshots)
+
+        let summary = await coordinator.delete(recordIDs: [text.id], includePinned: false)
+
+        #expect(summary == HistoryDeletionSummary(deleted: 1, failed: 0, skipped: 0))
+        #expect(await store.remainingIDs == [image.id])
+        #expect(await screenshots.attemptedPaths.isEmpty)
     }
 
     private func makeRecord(

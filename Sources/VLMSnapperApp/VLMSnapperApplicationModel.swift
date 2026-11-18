@@ -795,7 +795,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
         publish()
         let image: NSImage?
         if let record = try? await historyStore.historyRecord(id: id),
-           let data = try? await historyImageLoader.loadIfOwned(record.operation.screenshot) {
+           let screenshot = record.operation.screenshot,
+           let data = try? await historyImageLoader.loadIfOwned(screenshot) {
             image = NSImage(data: data)
         } else {
             image = nil
@@ -829,7 +830,8 @@ final class VLMSnapperApplicationModel: ObservableObject {
                           !record.operation.status.isActive else {
                         throw OperationWorkspaceRunFailure(code: "history_record_unavailable")
                     }
-                    guard let png = try? await screenshotStore.loadIfOwned(record.operation.screenshot),
+                    guard let screenshot = record.operation.screenshot,
+                          let png = try? await screenshotStore.loadIfOwned(screenshot),
                           NSImage(data: png) != nil else {
                         throw OperationWorkspaceRunFailure(code: "history_screenshot_unavailable")
                     }

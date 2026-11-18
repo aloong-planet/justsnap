@@ -44,7 +44,7 @@ extension ProviderApplicationTests {
             try await eventually { model.historyRecords.count == 1 }
 
             let record = try #require(model.historyRecords.first)
-            let saved = try Data(contentsOf: URL(fileURLWithPath: record.operation.screenshot.path))
+            let saved = try Data(contentsOf: URL(fileURLWithPath: record.operation.screenshot!.path))
             let sent = try #require(await fixture.http.imageRequests.first.flatMap(sentPNG))
             #expect(sent == saved)
             let size = try pngSize(saved)
@@ -235,7 +235,7 @@ extension ProviderApplicationTests {
 
             #expect(resultBox()?.frame == dragged)
             try await eventually { model.historyRecords.count == 2 }
-            let paths = Set(model.historyRecords.map(\.operation.screenshot.path))
+            let paths = Set(model.historyRecords.map(\.operation.screenshot!.path))
             #expect(paths.count == 2)
         }
     }
@@ -291,7 +291,7 @@ extension ProviderApplicationTests {
             try await eventually { model.historyRecords.count == 2 }
 
             let records = model.historyRecords
-            #expect(Set(records.map(\.operation.screenshot.path)).count == 1)
+            #expect(Set(records.map(\.operation.screenshot!.path)).count == 1)
             #expect(records.contains { $0.operation.kind == .translate && $0.operation.targetLanguage == "ja" })
 
             // Back to Extract shows its result again without a request (clipboard-paste::REQ-006/AC-04).

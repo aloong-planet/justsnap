@@ -130,7 +130,7 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
                 : .translate(targetLanguage: operation.targetLanguage ?? "")
             preparedOperations[Self.slot(for: restoredOperation)] = PreparedOperation(
                 operationID: operation.id,
-                screenshot: operation.screenshot,
+                input: operation.input,
                 selection: operation.selection,
                 operation: restoredOperation
             )
@@ -200,7 +200,7 @@ public actor PersistedOperationWorkspaceRunner: OperationWorkspaceRunning {
             if let existing = preparedOperations[slot],
                isBoundToRestoredRecord || existing.operation == operation {
                 guard let stored = try await historyStore.operation(id: existing.operationID),
-                      stored.screenshot == existing.screenshot,
+                      stored.input == existing.input,
                       !stored.status.isActive else {
                     throw OperationWorkspaceRunFailure(code: "history_record_unavailable")
                 }
