@@ -81,7 +81,7 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 ### clipboard-paste::REQ-008 History of Pasted Text records
 
 - clipboard-paste::REQ-008/AC-01: Records whose input is Pasted Text behave like other records in list, detail, search, filters, retry, Pin, deletion and cleanup (v1-core §9, §10), except as AC-02–06 say. History does not mark them as pasted and has no source filter.
-- clipboard-paste::REQ-008/AC-02: In the menu bar panel's recent records, such a record shows a text symbol in the thumbnail slot. The Management Center history list shows no thumbnail for any record and is unchanged.
+- clipboard-paste::REQ-008/AC-02: In the menu bar panel's recent records, such a record shows a text symbol in the thumbnail slot, the one the Extract button uses. The Management Center history list shows no thumbnail for any record and is unchanged.
 - clipboard-paste::REQ-008/AC-03: History detail shows the record's Pasted Text where a record's original image is shown: read-only, scrollable, selectable, with ⌘C and ⌘A, laid out as local read-only text as in v1-core REQ-010/AC-11. It has no enlarged preview.
 - clipboard-paste::REQ-008/AC-04: History search also matches a record's Pasted Text.
 - clipboard-paste::REQ-008/AC-05: Deleting such a record, clearing history and automatic cleanup remove only the record; they touch no file. Retention and Pin rules are those of every record.
@@ -118,7 +118,7 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 - Clipboard decision order, evaluated once per paste, judging the plain text with surrounding whitespace removed (text that is only whitespace counts as empty): (0) any item carries a file reference → file clipboard; (1) image data present and plain text empty or a single URL → image; (2) any other plain text → text clipboard, whose Pasted Text is the plain text as read; (3) image data present → image, or unreadable when it cannot be decoded as a bitmap; (4) nothing usable → empty clipboard.
 - A Pasted Image becomes an ordinary Managed Capture File and its records ordinary history records; no record stores whether its image came from a paste (ADR-0006).
 - History database schema version 5: each operation record holds either an original image reference (path and SHA-256) or a Pasted Text, never both and never neither. Each record of one Pasted Text stores its own copy of the text. Migrating a version 4 database keeps every record and its image reference unchanged. An earlier app that finds version 5 reports the database unavailable, as for any newer version.
-- A request for Pasted Text uses each Provider's text-only message form and the same streaming, result parsing and Normalized Errors as an image request.
+- A request for Pasted Text uses each Provider's text-only message form and the same streaming, result parsing and Normalized Errors as an image request. The built-in instructions go in the Provider's separate instruction field (OpenAI `instructions`, Gemini `systemInstruction`, DeepSeek system message), and the Pasted Text alone is the user message.
 - The paste shortcut is stored like the capture shortcut, as its own preference.
 - A paste request is a model request under the app's single owner-token mutual exclusion with captures and Provider credential jobs (v1-core Implementation Decisions). The paste result box is not part of the capture interface (ADR-0019).
 
