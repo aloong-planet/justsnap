@@ -569,7 +569,7 @@ extension ProviderApplicationTests {
             try await eventually { resultBoxPresentation()?.title == "Paste" }
 
             #expect(panelCloses == 1)
-            #expect(resultBoxPresentation()?.body == .message("There is no image on the clipboard. Copy an image, then paste."))
+            #expect(resultBoxPresentation()?.body == .message("There's no text or image on the clipboard."))
             #expect(await fixture.capture.requests == 0)
         }
     }
