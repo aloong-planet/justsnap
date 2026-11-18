@@ -3,6 +3,10 @@ import Testing
 import VLMSnapperCore
 @testable import VLMSnapperUI
 
+// Gap: that the panel's recent row shows the text symbol in the thumbnail slot for a record without a
+// screenshot (clipboard-paste::REQ-008/AC-02) is not tested; these tests stop at the item's missing
+// screenshot. Rendering tests only check that surfaces render, so the symbol is checked on a rendered
+// panel or the installed build.
 @Suite("Ticket 13 menu bar presentation", .serialized)
 struct MenuBarPresentationTests {
     @Test("recent records map to real operation, time, status, and screenshot data")

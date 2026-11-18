@@ -10,6 +10,9 @@ import VLMSnapperUI
 // History retry tests exercise production callbacks and rebuild the model from disk.
 // History retries remain inline; double clicking no longer opens a result window.
 // Production callback tests do not claim installed-app physical Retry clicks.
+// Gap: whether history detail's Retry button is enabled is decided by HistoryRetryAvailability, which is
+// unit-tested; that the button uses it is not tested, because the in-process accessibility walk does not
+// reach the SwiftUI button. It is checked on the installed build, with text selection and ⌘C in the detail.
 extension ProviderApplicationTests {
     @Test
     func historyImageDoesNotReportFailureBeforeLoadingCompletes() async throws {
@@ -118,8 +121,8 @@ extension ProviderApplicationTests {
         }
     }
 
-    // clipboard-paste::REQ-008/AC-03, AC-06 and REQ-007/AC-07. Whether the detail's Retry is enabled is the
-    // HistoryRetryAvailability rule's unit test; text selection and ⌘C in the detail are checked on the installed build.
+    // clipboard-paste::REQ-008/AC-03, AC-06 and REQ-007/AC-07. This test calls the Retry callback directly, so it
+    // does not show the detail's Retry button is enabled for a Pasted Text record (see the gap in the file header).
     @Test
     func aPastedTextRecordShowsItsTextInDetailAndRetriesWithIt() async throws {
         try await withFixture { fixture in

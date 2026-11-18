@@ -50,6 +50,29 @@ extension PersistedOperationWorkspaceRunnerTests {
         #expect(await recorder.calls.isEmpty)
     }
 
+    @Test("when the Pasted Text record cannot be saved nothing is sent, and Retry sends the same text")
+    func unsavedPastedTextRecordIsRetriedWithTheSameText() async throws {
+        let history = RunnerHistoryProbe(preparationError: RunnerProbeError.failed)
+        let provider = RunnerProviderProbe()
+        let runner = makeRunner(history: history, provider: provider)
+        let text = " kept\nin memory "
+        let session = OperationWorkspaceSession(input: .pastedText(text), runner: runner, activeGate: ActiveOperationGate())
+        let selection = ProviderSelection(providerID: "gemini", modelID: "vision")
+
+        await #expect(throws: OperationWorkspaceRunFailure(code: "operation_failed")) {
+            try await session.startSelectedOperation(selection: selection, targetLanguage: "en")
+        }
+        #expect(await session.snapshot().extract.attempt == .failed(code: "operation_failed"))
+        #expect(await provider.streamCount == 0)
+
+        await history.setPreparationError(nil)
+        try await session.startSelectedOperation(selection: selection, targetLanguage: "en")
+
+        #expect(await provider.inputs == [.pastedText(text)])
+        let prepared = try #require(await provider.preparedOperations.first)
+        #expect(try await history.operation(id: prepared.operationID)?.input == .pastedText(text))
+    }
+
     @Test("rerunning a saved Pasted Text record sends its saved text and keeps the record")
     func rerunOfSavedPastedTextKeepsTheRecord() async throws {
         let history = RunnerHistoryProbe()
