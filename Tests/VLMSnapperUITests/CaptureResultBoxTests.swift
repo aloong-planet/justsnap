@@ -143,7 +143,7 @@ struct CaptureResultBoxPresentationTests {
                 committedResult: WorkspaceCommittedResult(sourceMarkdown: "Earlier", translationMarkdown: nil),
                 sourceDelta: "Partial"
             ))
-            #expect(value.body == .failure("等待 Provider 响应超时，请检查网络后手动重试。"))
+            #expect(value.body == .failure("等待模型服务商响应超时，请检查网络后手动重试。"))
             #expect(!value.canCopy)
             #expect(value.canRetry)
         }
