@@ -14,7 +14,7 @@ This directory records JustSnap's architecture decisions.
 
 Entries written under earlier rules keep their form until a change touches what they state.
 
-Entries first written before the product was renamed to JustSnap use its former name, VLMSnapper.
+Entries first written before the product was renamed to JustSnap keep its former name, VLMSnapper, until a change touches them.
 
 | # | Decision | Status |
 |---|---|---|
