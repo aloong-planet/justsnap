@@ -48,7 +48,7 @@ public final class ManagementCenterWindowController: NSWindowController, NSWindo
             backing: .buffered,
             defer: false
         )
-        window.title = "JustSnap"
+        window.title = JustSnapStrings.appName
         window.contentMinSize = NSSize(width: 920, height: 620)
         super.init(window: window)
         window.delegate = self

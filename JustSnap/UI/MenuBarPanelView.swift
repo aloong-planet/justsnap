@@ -260,7 +260,7 @@ public struct MenuBarPanelView: View {
     public var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Text("JustSnap")
+                Text(JustSnapStrings.appName)
                     .font(.title3.bold())
                 Spacer()
                 providerBadge

@@ -118,6 +118,7 @@ enum JustSnapStrings {
     static var menuSettings: String { localized("menu.settings") }
     static var menuGeneralSettings: String { localized("menu.generalSettings") }
     static var historyLibrary: String { localized("history.library") }
+    static var appName: String { localized("app.name") }
     static var menuQuit: String { localized("menu.quit") }
     static var menuFile: String { localized("applicationMenu.file") }
     static var menuEdit: String { localized("applicationMenu.edit") }

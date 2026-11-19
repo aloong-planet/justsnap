@@ -23,6 +23,7 @@ The Keychain service, login item, Screen Recording permission and Sparkle config
 - Positive: the three architectures share one application identity, so the Keychain, TCC permissions, login item and automatic updates stay continuous across versions.
 - Negative: changing the reverse-domain name after release needs a compatible migration, not just a build setting.
 - Negative: the identifier no longer matches the product name, so it must not be "corrected" to follow the display name.
+- Neutral: the application stores its data in the `JustSnap` directories and does not read or migrate data left in the directories of the pre-rename name.
 - Neutral: the architectures keep separate update artifacts through the separate appcasts of ADR-0004, but macOS sees one application identity, so users should not install several architecture variants side by side.
 
 ## Sources

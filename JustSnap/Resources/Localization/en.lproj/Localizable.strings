@@ -137,6 +137,7 @@
 "menu.settings" = "Settings Center";
 "menu.generalSettings" = "Settings";
 "history.library" = "Library";
+"app.name" = "JustSnap";
 "menu.quit" = "Quit JustSnap";
 "menu.noRecentItems" = "No recent items";
 "menu.providerRequestFailed" = "Provider request failed";

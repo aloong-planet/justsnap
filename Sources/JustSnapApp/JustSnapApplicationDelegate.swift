@@ -190,7 +190,7 @@ final class JustSnapApplicationDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "JustSnap"
+        window.title = JustSnapLocalization.localizedString(forKey: "app.name")
         window.center()
         let hostingController = NSHostingController(rootView: model.onboardingView())
         onboardingHostingController = hostingController
