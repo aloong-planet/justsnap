@@ -10,7 +10,7 @@ CHECKER = Path(__file__).resolve().parents[1] / "verify-swift-testing-log.py"
 
 class SwiftTestingLogTests(unittest.TestCase):
     def check_log(self, content):
-        with tempfile.TemporaryDirectory(prefix="vlmsnapper-test-completion-") as directory:
+        with tempfile.TemporaryDirectory(prefix="justsnap-test-completion-") as directory:
             log = Path(directory) / "test.log"
             log.write_text(content, encoding="utf-8")
             return subprocess.run(
@@ -56,7 +56,7 @@ class SwiftTestingLogTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_missing_file_fails(self):
-        with tempfile.TemporaryDirectory(prefix="vlmsnapper-missing-log-") as directory:
+        with tempfile.TemporaryDirectory(prefix="justsnap-missing-log-") as directory:
             result = subprocess.run(
                 [sys.executable, str(CHECKER), str(Path(directory) / "missing.log")],
                 capture_output=True, text=True, check=False,

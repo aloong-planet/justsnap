@@ -35,7 +35,7 @@ Project facts that apply across skills are in `capabilities.toml` at the reposit
 
 ### 本地安装偏好
 
-- 用户已授权：本项目每次代码改动完成、相关验证及安装包构建/签名校验通过后，自动更新并启动 `/Applications/VLMSnapper.app`，无需再次等待安装指令。
+- 用户已授权：本项目每次代码改动完成、相关验证及安装包构建/签名校验通过后，自动更新并启动 `/Applications/JustSnap.app`，无需再次等待安装指令。
 - 直接覆盖安装，不创建旧 App 备份；保留用户历史、设置、截图、Keychain 凭据及系统权限，不清理已有备份。
 - 构建或安装校验失败时停止安装并说明；正常退出遇到未保存内容确认时，不强杀进程或自动丢弃内容。
 - 本地安装不代表提交、推送、合并或发布授权，也不替代实机交互验收。

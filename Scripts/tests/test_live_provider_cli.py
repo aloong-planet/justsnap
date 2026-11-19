@@ -14,13 +14,13 @@ class LiveProviderCLITests(unittest.TestCase):
     def setUpClass(cls):
         cls.env = {key: value for key, value in os.environ.items()
                    if key not in ("OPENAI_API_KEY", "GEMINI_API_KEY", "DEEPSEEK_API_KEY",
-                                  "VLMSNAPPER_OPENAI_MODEL", "VLMSNAPPER_GEMINI_MODEL",
-                                  "VLMSNAPPER_DEEPSEEK_MODEL")}
-        subprocess.run(["swift", "build", "--product", "VLMSnapperLiveProviderGate"],
+                                  "JUSTSNAP_OPENAI_MODEL", "JUSTSNAP_GEMINI_MODEL",
+                                  "JUSTSNAP_DEEPSEEK_MODEL")}
+        subprocess.run(["swift", "build", "--product", "JustSnapLiveProviderGate"],
                        cwd=ROOT, env=cls.env, check=True, capture_output=True, timeout=180)
         binary_dir = subprocess.check_output(["swift", "build", "--show-bin-path"],
                                             cwd=ROOT, env=cls.env, text=True, timeout=30).strip()
-        cls.binary = str(Path(binary_dir) / "VLMSnapperLiveProviderGate")
+        cls.binary = str(Path(binary_dir) / "JustSnapLiveProviderGate")
 
     def test_selected_provider_without_key_is_blocked_not_skipped(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -4,7 +4,7 @@
 
 ## Context
 
-VLMSnapper requires a saved history record before it calls an online model, and the database holds image paths, SHA-256 values, model results, deletion eligibility and cleanup state. Calling the model while the database is broken produces results that cannot be reliably saved or managed. Deleting and rebuilding the database on its own silently loses history and leaves the PNGs in Pictures with no verifiable managing record.
+JustSnap requires a saved history record before it calls an online model, and the database holds image paths, SHA-256 values, model results, deletion eligibility and cleanup state. Calling the model while the database is broken produces results that cannot be reliably saved or managed. Deleting and rebuilding the database on its own silently loses history and leaves the PNGs in Pictures with no verifiable managing record.
 
 ## Options
 

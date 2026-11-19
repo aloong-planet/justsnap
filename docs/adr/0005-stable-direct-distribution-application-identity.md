@@ -1,30 +1,31 @@
-# ADR-0005: 固定直接分发应用身份
+# ADR-0005: Fix the direct-distribution application identity
 
-- 状态: 已接受（2026-08-25）
+- Status: Accepted (2026-08-25)
 
-## 背景与问题
+## Context
 
-VLMSnapper 的 Bundle Identifier 会参与 macOS 屏幕录制权限、Keychain 访问、登录项注册、Sparkle 更新和代码签名身份判断。产品还会提供 Universal、arm64 和 x64 三个直接分发构建；如果它们使用不同身份或发布后更换身份，用户可能丢失权限、凭据访问和更新连续性。
+The Bundle Identifier takes part in the macOS Screen Recording permission, Keychain access, login item registration, Sparkle updates and code-signing identity. The product ships three direct-distribution builds (Universal, arm64, x64); if they used different identities, or the identity changed after release, users could lose permissions, credential access and update continuity.
 
-## 备选项
+## Options
 
-1. **直接分发版本固定使用 `com.loong.vlmsnapper`，三个架构共享身份**
-2. 使用 `com.aloongplanet.vlmsnapper`——否决，因为现有 Transfer 的直接分发版本采用 `com.loong.*`，`com.aloongplanet.*` 用于其 Mac App Store 变体
-3. 为三个架构使用不同 Bundle Identifier——否决，因为会把同一产品拆成三个独立的权限、Keychain、登录项和更新身份
+1. **One Bundle Identifier, `com.loong.vlmsnapper`, shared by all three architectures**
+2. Use `com.aloongplanet.vlmsnapper` — rejected: the existing Transfer app's direct-distribution build uses `com.loong.*`, and `com.aloongplanet.*` is for its Mac App Store variant.
+3. A different Bundle Identifier per architecture — rejected: it would split one product into three separate permission, Keychain, login item and update identities.
 
-## 决策
+## Decision
 
-选定**方案 1**：应用显示名为 `VLMSnapper`，v1 直接分发 Bundle Identifier 固定为 `com.loong.vlmsnapper`。Universal、arm64 和 x64 构建共享该 Bundle Identifier，只允许构建架构和 Sparkle appcast 地址不同。
+We adopt **option 1**. The application's display name is `JustSnap` and the v1 direct-distribution Bundle Identifier is `com.loong.vlmsnapper`, the name the product had before it was renamed. The Universal, arm64 and x64 builds share it; only the build architecture and the Sparkle appcast address may differ.
 
-Keychain service、登录项、屏幕录制权限和 Sparkle 配置均以该 Bundle Identifier 作为稳定根标识。正式发布后不得在普通升级中修改；如果未来确需迁移，必须另建 ADR 和显式迁移方案。
+The Keychain service, login item, Screen Recording permission and Sparkle configuration all use this Bundle Identifier as their stable root. It is not changed in an ordinary upgrade; a change needs its own ADR and an explicit migration plan.
 
-## 后果
+## Consequences
 
-- 正面：三个架构共享同一应用身份，Keychain、TCC 权限、登录项和自动更新在版本升级中保持连续。
-- 负面：发布后更名或改变反向域名需要兼容迁移，不能只修改构建配置。
-- 中性：不同架构仍通过 ADR-0004 的独立 appcast 保持更新产物隔离，但它们在 macOS 看来是同一个应用身份，用户不应并行安装多个架构变体。
+- Positive: the three architectures share one application identity, so the Keychain, TCC permissions, login item and automatic updates stay continuous across versions.
+- Negative: changing the reverse-domain name after release needs a compatible migration, not just a build setting.
+- Negative: the identifier no longer matches the product name, so it must not be "corrected" to follow the display name.
+- Neutral: the architectures keep separate update artifacts through the separate appcasts of ADR-0004, but macOS sees one application identity, so users should not install several architecture variants side by side.
 
-## 来源
+## Sources
 
-- [VLMSnapper v1 需求对齐记录](../.workings/v1-core/requirements-alignment.md)
+- The user's v1 identity decisions of 2026-08-25 (alignment record in `docs/.workings/`, not committed).
 - [ADR-0004: 为三个发行架构使用独立 Sparkle appcast](0004-separate-sparkle-feeds-per-distribution-architecture.md)

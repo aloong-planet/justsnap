@@ -63,7 +63,7 @@ jobs:
         env:
           VERSION: 0.0.0-ci
           BUILD_VERSION: ${{ github.run_number }}
-          APPCAST_BASE_URL: https://ci.invalid/vlmsnapper
+          APPCAST_BASE_URL: https://ci.invalid/justsnap
           SPARKLE_PUBLIC_ED_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-          OUTPUT_ROOT: ${{ runner.temp }}/vlmsnapper-development-dmgs
+          OUTPUT_ROOT: ${{ runner.temp }}/justsnap-development-dmgs
         run: Scripts/build-development-dmgs.sh

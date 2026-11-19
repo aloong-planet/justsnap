@@ -5,15 +5,15 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>zh-Hans</string>
     <key>CFBundleDisplayName</key>
-    <string>VLMSnapper</string>
+    <string>JustSnap</string>
     <key>CFBundleExecutable</key>
-    <string>VLMSnapperApp</string>
+    <string>JustSnapApp</string>
     <key>CFBundleIdentifier</key>
     <string>com.loong.vlmsnapper</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>VLMSnapper</string>
+    <string>JustSnap</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -29,7 +29,7 @@
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>NSScreenCaptureUsageDescription</key>
-    <string>VLMSnapper needs access to screen content so you can capture a selected area for text extraction or translation.</string>
+    <string>JustSnap needs access to screen content so you can capture a selected area for text extraction or translation.</string>
     <key>SUAllowsAutomaticUpdates</key>
     <false/>
     <key>SUEnableAutomaticChecks</key>

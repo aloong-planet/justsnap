@@ -14,7 +14,7 @@ download_base_url="${4%/}"
 sparkle_public_key="$5"
 output_root="$6"
 project_root="$(cd "$(dirname "$0")/.." && pwd)"
-scratch_path="${VLMSNAPPER_SCRATCH_PATH:-$project_root/.build}"
+scratch_path="${JUSTSNAP_SCRATCH_PATH:-$project_root/.build}"
 signing_identity="${MACOS_SIGNING_IDENTITY:-}"
 notary_profile="${MACOS_NOTARY_PROFILE:-}"
 sparkle_private_key_file="${SPARKLE_PRIVATE_KEY_FILE:-}"
@@ -69,7 +69,7 @@ DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
         --scratch-path "$scratch_path" \
         --disable-build-manifest-caching \
         --configuration release \
-        --product VLMSnapperSigningTool \
+        --product JustSnapSigningTool \
         -Xswiftc -warnings-as-errors
 signing_tool_bin="$({
     DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
@@ -78,10 +78,10 @@ signing_tool_bin="$({
             --disable-build-manifest-caching \
             --configuration release \
             --show-bin-path
-})/VLMSnapperSigningTool"
+})/JustSnapSigningTool"
 [[ -x "$signing_tool_bin" ]]
 
-staging_root="$(mktemp -d "${TMPDIR:-/tmp}/vlmsnapper-release.XXXXXX")"
+staging_root="$(mktemp -d "${TMPDIR:-/tmp}/justsnap-release.XXXXXX")"
 publish_staging=""
 cleanup() {
     rm -rf "$staging_root"
@@ -129,15 +129,15 @@ create_dmg() {
     local dmg="$2"
     (
         local staging
-        staging="$(mktemp -d "${TMPDIR:-/tmp}/vlmsnapper-release-dmg.XXXXXX")"
+        staging="$(mktemp -d "${TMPDIR:-/tmp}/justsnap-release-dmg.XXXXXX")"
         trap 'rm -rf "$staging"' EXIT
-        /usr/bin/ditto "$app" "$staging/VLMSnapper.app"
+        /usr/bin/ditto "$app" "$staging/JustSnap.app"
         ln -s /Applications "$staging/Applications"
         /usr/bin/hdiutil create \
             -quiet \
             -fs HFS+ \
             -format UDZO \
-            -volname VLMSnapper \
+            -volname JustSnap \
             -srcfolder "$staging" \
             "$dmg"
     )
@@ -151,7 +151,7 @@ verify_final_dmg() {
     (
         local mountpoint
         local attached=false
-        mountpoint="$(mktemp -d "${TMPDIR:-/tmp}/vlmsnapper-release-mount.XXXXXX")"
+        mountpoint="$(mktemp -d "${TMPDIR:-/tmp}/justsnap-release-mount.XXXXXX")"
         cleanup_mount() {
             if [[ "$attached" == true ]]; then
                 /usr/bin/hdiutil detach -quiet "$mountpoint" || true
@@ -162,7 +162,7 @@ verify_final_dmg() {
         /usr/bin/hdiutil attach -quiet -nobrowse -readonly -mountpoint "$mountpoint" "$dmg"
         attached=true
         "$project_root/Scripts/verify-macos-app.sh" \
-            "$mountpoint/VLMSnapper.app" \
+            "$mountpoint/JustSnap.app" \
             "$architecture" \
             "$version" \
             "$build_version" \
@@ -170,9 +170,9 @@ verify_final_dmg() {
             "$sparkle_public_key" \
             "$signing_metadata" \
             "$signing_identity"
-        /usr/sbin/spctl --assess --type execute --verbose=4 "$mountpoint/VLMSnapper.app"
+        /usr/sbin/spctl --assess --type execute --verbose=4 "$mountpoint/JustSnap.app"
         DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}" \
-            /usr/bin/xcrun stapler validate "$mountpoint/VLMSnapper.app"
+            /usr/bin/xcrun stapler validate "$mountpoint/JustSnap.app"
         /usr/bin/hdiutil detach -quiet "$mountpoint"
         attached=false
         rmdir "$mountpoint"
@@ -183,7 +183,7 @@ verify_final_dmg() {
 
 for architecture in arm64 x64 universal; do
     feed_url="$appcast_base_url/appcast-$architecture.xml"
-    app="$staging_root/apps/$architecture/VLMSnapper.app"
+    app="$staging_root/apps/$architecture/JustSnap.app"
     signing_metadata="$staging_root/apps/signing-$architecture.plist"
     "$project_root/Scripts/build-macos-app.sh" \
         "$architecture" \
@@ -194,17 +194,17 @@ for architecture in arm64 x64 universal; do
         "$app"
     sign_application "$app" "$signing_metadata"
     if [[ "$architecture" == "universal" ]]; then
-        "$app/Contents/MacOS/VLMSnapperApp" \
+        "$app/Contents/MacOS/JustSnapApp" \
             --verify-data-protection-keychain
     fi
-    app_zip="$staging_root/apps/VLMSnapper-$version-mac-$architecture.zip"
+    app_zip="$staging_root/apps/JustSnap-$version-mac-$architecture.zip"
     /usr/bin/ditto -c -k --keepParent "$app" "$app_zip"
     notarize_and_staple \
         "$app_zip" \
         "$app" \
         "$staging_root/apps/notary-$architecture.json"
 
-    dmg="$staging_root/dmgs/VLMSnapper-$version-mac-$architecture.dmg"
+    dmg="$staging_root/dmgs/JustSnap-$version-mac-$architecture.dmg"
     create_dmg "$app" "$dmg"
     /usr/bin/codesign --force --timestamp --sign "$signing_identity" "$dmg"
     notarize_and_staple \
@@ -251,11 +251,11 @@ done
 output_parent="$(dirname "$output_root")"
 mkdir -p "$output_parent"
 output_parent="$(cd "$output_parent" && pwd)"
-publish_staging="$(mktemp -d "$output_parent/.vlmsnapper-publish.XXXXXX")"
+publish_staging="$(mktemp -d "$output_parent/.justsnap-publish.XXXXXX")"
 for architecture in universal arm64 x64; do
     /usr/bin/ditto \
-        "$staging_root/dmgs/VLMSnapper-$version-mac-$architecture.dmg" \
-        "$publish_staging/VLMSnapper-$version-mac-$architecture.dmg"
+        "$staging_root/dmgs/JustSnap-$version-mac-$architecture.dmg" \
+        "$publish_staging/JustSnap-$version-mac-$architecture.dmg"
     /usr/bin/ditto \
         "$staging_root/appcasts/$architecture/appcast-$architecture.xml" \
         "$publish_staging/appcast-$architecture.xml"

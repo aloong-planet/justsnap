@@ -13,7 +13,7 @@ SPECIFIER = re.compile(r"%(?:(\d+)\$)?[-+#0]*\d*(?:\.\d+)?(?:hh|h|ll|l|q|z|t|j)?
 NAMED_KEY = re.compile(r'(?:\blocalized\(\s*|\blocalizedString\(\s*forKey:\s*)"([^"\\]+)"')
 DOTTED_LITERAL = re.compile(r'"([a-z][A-Za-z]*(?:\.[A-Za-z0-9]+)+)"')
 # This file maps failure codes to keys through bare literals, so every dotted literal in it is a key.
-STRINGS_FILE = "VLMSnapperStrings.swift"
+STRINGS_FILE = "JustSnapStrings.swift"
 
 
 def without_comments(text):
@@ -109,8 +109,8 @@ def check(dictionaries, sources):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dictionaries", type=Path, default=ROOT / "VLMSnapper/Resources/Localization")
-    parser.add_argument("--sources", type=Path, nargs="+", default=[ROOT / "Sources", ROOT / "VLMSnapper"])
+    parser.add_argument("--dictionaries", type=Path, default=ROOT / "JustSnap/Resources/Localization")
+    parser.add_argument("--sources", type=Path, nargs="+", default=[ROOT / "Sources", ROOT / "JustSnap"])
     args = parser.parse_args()
     problems = check(args.dictionaries, args.sources)
     for problem in problems:

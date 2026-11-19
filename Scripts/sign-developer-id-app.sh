@@ -22,7 +22,7 @@ if [[ -e "$output_metadata" ]]; then
     exit 73
 fi
 
-temporary_root="$(mktemp -d "${TMPDIR:-/tmp}/vlmsnapper-signing.XXXXXX")"
+temporary_root="$(mktemp -d "${TMPDIR:-/tmp}/justsnap-signing.XXXXXX")"
 cleanup() {
     rm -rf "$temporary_root"
 }
@@ -33,7 +33,7 @@ effective_entitlements="$temporary_root/effective-entitlements.plist"
     "$profile" \
     com.loong.vlmsnapper \
     "$signing_identity" \
-    "$project_root/Distribution/VLMSnapper.entitlements" \
+    "$project_root/Distribution/JustSnap.entitlements" \
     "$effective_entitlements" \
     "$output_metadata"
 

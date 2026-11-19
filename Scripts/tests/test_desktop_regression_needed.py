@@ -11,14 +11,14 @@ SPEC = importlib.util.spec_from_file_location("desktop_regression_needed", SCRIP
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
-COVERED_FILE = "VLMSnapper/UI/ProviderAPIKeyField.swift"
-OTHER_FILE = "VLMSnapper/UI/CaptureOperationToolbar.swift"
+COVERED_FILE = "JustSnap/UI/ProviderAPIKeyField.swift"
+OTHER_FILE = "JustSnap/UI/CaptureOperationToolbar.swift"
 NOT_NEEDED = 10
 
 
 class DesktopRegressionNeededTests(unittest.TestCase):
     def setUp(self):
-        directory = tempfile.TemporaryDirectory(prefix="vlmsnapper-desktop-scope-")
+        directory = tempfile.TemporaryDirectory(prefix="justsnap-desktop-scope-")
         self.addCleanup(directory.cleanup)
         self.repository = Path(directory.name)
         self.git("init", "-q")
@@ -71,7 +71,7 @@ class DesktopRegressionNeededTests(unittest.TestCase):
         self.assertEqual(self.run_script().returncode, 0)
 
     def test_untracked_covered_file_needs_them(self):
-        self.write("VLMSnapper/UI/ProviderNewField.swift")
+        self.write("JustSnap/UI/ProviderNewField.swift")
         self.assertEqual(self.run_script().returncode, 0)
 
     def test_deleted_covered_file_needs_them(self):
@@ -80,7 +80,7 @@ class DesktopRegressionNeededTests(unittest.TestCase):
         self.assertEqual(self.run_script().returncode, 0)
 
     def test_covered_file_renamed_away_needs_them(self):
-        self.git("mv", COVERED_FILE, "VLMSnapper/UI/Moved.swift")
+        self.git("mv", COVERED_FILE, "JustSnap/UI/Moved.swift")
         self.commit("rename")
         self.assertEqual(self.run_script().returncode, 0)
 

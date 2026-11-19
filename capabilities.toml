@@ -3,7 +3,7 @@ working-language = "en"
 
 [i18n]
 enabled = true
-source = "VLMSnapper/Resources/Localization"
+source = "JustSnap/Resources/Localization"
 enforced-by = ["python3 Scripts/verify-localization-keys.py"]
 
 [enumeration-wording-gate]

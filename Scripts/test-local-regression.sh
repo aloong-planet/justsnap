@@ -32,7 +32,7 @@ fi
 export DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
-evidence="$(mktemp -d "${TMPDIR:-/tmp}/vlmsnapper-full-regression.XXXXXX")"
+evidence="$(mktemp -d "${TMPDIR:-/tmp}/justsnap-full-regression.XXXXXX")"
 echo "Evidence: $evidence"
 run_stage() {
     local name="$1"

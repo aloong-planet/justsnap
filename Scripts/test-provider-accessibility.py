@@ -104,7 +104,7 @@ def run_case(runner, directory, app, name, arguments, steps, expected_failure):
     scenario = directory / f"{name}.json"
     scenario.write_text(json.dumps({
         "version": 1,
-        "target": {"app": str(app), "bundleID": "com.aloong.tests.VLMSnapperAXFixture",
+        "target": {"app": str(app), "bundleID": "com.aloong.tests.JustSnapAXFixture",
                    "arguments": arguments},
         "steps": steps,
     }, indent=2) + "\n")
@@ -140,21 +140,21 @@ def main():
         parser.error("Unknown case")
     if not options.runner.is_file():
         parser.error("Install and authorize AXRunner first; missing runner is not a pass")
-    directory = Path(tempfile.mkdtemp(prefix="vlmsnapper-ax-regression-"))
+    directory = Path(tempfile.mkdtemp(prefix="justsnap-ax-regression-"))
     print(f"Evidence: {directory}", flush=True)
     env = dict(os.environ, DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer")
     with (directory / "build.log").open("w") as log:
-        subprocess.run(["swift", "build", "--product", "VLMSnapperAXFixture",
+        subprocess.run(["swift", "build", "--product", "JustSnapAXFixture",
                         "-Xswiftc", "-warnings-as-errors"], cwd=ROOT, env=env,
                        stdout=log, stderr=subprocess.STDOUT, check=True)
     binary_dir = Path(subprocess.check_output(["swift", "build", "--show-bin-path"],
                                              cwd=ROOT, env=env, text=True).strip())
-    app = directory / "VLMSnapperAXFixture.app"
+    app = directory / "JustSnapAXFixture.app"
     (app / "Contents/MacOS").mkdir(parents=True)
-    shutil.copy2(binary_dir / "VLMSnapperAXFixture", app / "Contents/MacOS/VLMSnapperAXFixture")
+    shutil.copy2(binary_dir / "JustSnapAXFixture", app / "Contents/MacOS/JustSnapAXFixture")
     shutil.copy2(ROOT / "Tests/AXFixture/Info.plist", app / "Contents/Info.plist")
-    shutil.copytree(binary_dir / "VLMSnapper_VLMSnapperUI.bundle",
-                    app / "Contents/Resources/VLMSnapper_VLMSnapperUI.bundle")
+    shutil.copytree(binary_dir / "JustSnap_JustSnapUI.bundle",
+                    app / "Contents/Resources/JustSnap_JustSnapUI.bundle")
     subprocess.run(["codesign", "--force", "--sign", "-", str(app)], check=True)
     for name, arguments, steps, expected_failure in selected:
         run_case(options.runner.resolve(), directory, app, name, arguments, steps, expected_failure)

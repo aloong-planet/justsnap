@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
-import VLMSnapperCore
-import VLMSnapperUI
+import JustSnapCore
+import JustSnapUI
 
 // An isolated host for the production view. No network, Keychain or user store.
 // AX actions are not evidence of physical mouse hit testing or keyboard focus.
@@ -16,7 +16,7 @@ final class FixtureDelegate: NSObject, NSApplicationDelegate {
     var submissions = 0
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        VLMSnapperLocalization.configure(effectiveLanguage: .english)
+        JustSnapLocalization.configure(effectiveLanguage: .english)
         window = NSWindow(
             contentRect: NSRect(x: 100, y: 100,
                                 width: CommandLine.arguments.contains("--narrow") ? 920 : 1200,

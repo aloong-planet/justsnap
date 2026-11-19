@@ -21,29 +21,29 @@ cd "$repo_root"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 if [[ $# -eq 4 ]]; then
     : "${MACOS_SIGNING_IDENTITY:?Required for protected Keychain test access}"
-    profile="${MACOS_PROVISIONING_PROFILE:-/Applications/VLMSnapper.app/Contents/embedded.provisionprofile}"
+    profile="${MACOS_PROVISIONING_PROFILE:-/Applications/JustSnap.app/Contents/embedded.provisionprofile}"
     [[ -f "$profile" ]]
 fi
-swift build --product VLMSnapperLiveProviderGate
+swift build --product JustSnapLiveProviderGate
 bin="$(swift build --show-bin-path)"
-executable="$bin/VLMSnapperLiveProviderGate"
+executable="$bin/JustSnapLiveProviderGate"
 credential_args=()
 if [[ $# -eq 4 ]]; then
-    swift build --product VLMSnapperSigningTool
-    staging_root="$(mktemp -d "${TMPDIR:-/tmp}/vlmsnapper-live-gate.XXXXXX")"
+    swift build --product JustSnapSigningTool
+    staging_root="$(mktemp -d "${TMPDIR:-/tmp}/justsnap-live-gate.XXXXXX")"
     trap 'rm -rf "$staging_root"' EXIT
     app="$staging_root/LiveProviderGate.app"
     mkdir -p "$app/Contents/MacOS"
-    cp "$executable" "$app/Contents/MacOS/VLMSnapperLiveProviderGate"
+    cp "$executable" "$app/Contents/MacOS/JustSnapLiveProviderGate"
     cp Distribution/LiveProviderGate-Info.plist "$app/Contents/Info.plist"
     cp "$profile" "$app/Contents/embedded.provisionprofile"
-    "$bin/VLMSnapperSigningTool" prepare "$profile" com.loong.vlmsnapper \
+    "$bin/JustSnapSigningTool" prepare "$profile" com.loong.vlmsnapper \
         "$MACOS_SIGNING_IDENTITY" Distribution/LiveProviderGate.entitlements \
         "$staging_root/entitlements.plist" "$staging_root/signing.plist"
     codesign --force --sign "$MACOS_SIGNING_IDENTITY" --options runtime --timestamp \
         --entitlements "$staging_root/entitlements.plist" "$app"
     bash Scripts/verify-developer-id-app.sh "$app" "$staging_root/signing.plist" "$MACOS_SIGNING_IDENTITY"
-    executable="$app/Contents/MacOS/VLMSnapperLiveProviderGate"
+    executable="$app/Contents/MacOS/JustSnapLiveProviderGate"
     credential_args=(--keychain)
 fi
 echo "Live gate: $provider / $model; two requests maximum; report: $report"
