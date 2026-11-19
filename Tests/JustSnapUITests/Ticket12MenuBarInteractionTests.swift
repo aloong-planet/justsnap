@@ -126,7 +126,7 @@ struct Ticket12MenuBarInteractionTests {
         let chineseController = MenuBarPanelController(content: EmptyView(), onQuit: {})
         let chineseItem = try #require(chineseController.contextMenu.items.first)
         #expect(chineseController.contextMenu.items.count == 1)
-        #expect(chineseItem.title == "\u{9000}\u{51FA} JustSnap")
+        #expect(chineseItem.title == "\u{9000}\u{51FA}\u{968F}\u{8BD1}")
     }
 
     @Test("every capture route enters application readiness handling immediately")
