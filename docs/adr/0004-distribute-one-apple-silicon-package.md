@@ -9,8 +9,8 @@ JustSnap is distributed directly as a Developer ID DMG and updated through Spark
 ## Options
 
 1. **One Apple silicon (arm64) package with one appcast, released all-or-nothing**
-2. Universal, Apple silicon and Intel packages, each with its own appcast — rejected: the user chose to ship Apple silicon only, and the reason was not recorded.
-3. A single Universal package with one appcast — rejected: the user chose to ship Apple silicon only, and the reason was not recorded.
+2. Universal, Apple silicon and Intel packages, each with its own appcast — rejected (not recorded; positioning exclusion): the user chose to ship Apple silicon only.
+3. A single Universal package with one appcast — rejected (not recorded; positioning exclusion): the user chose to ship Apple silicon only.
 
 ## Decision
 
