@@ -97,25 +97,47 @@ struct CaptureToolbarIconButtonTests {
         try press(window, at: NSPoint(x: translateControlRightEdge(window) - 8, y: try #require(window.contentView).bounds.midY))
         try waitUntil { popoverCount() > before }
         let popover = try #require(NSApp.windows.first { $0.className.contains("Popover") && $0.isVisible })
-        let content = try #require(popover.contentView)
-        var table: NSTableView?
-        try waitUntil {
-            content.layoutSubtreeIfNeeded()
-            table = allSubviews(content).compactMap { $0 as? NSTableView }.first
-            return (table?.numberOfRows ?? 0) == 2
-        }
-        let rows = try recognizedText(in: content)
+        let rows = try recognizedListText(
+            options: [
+                TargetLanguageOption(code: "en", name: "English"),
+                TargetLanguageOption(code: "zh-Hans", name: "简体中文"),
+            ],
+            selectedCode: "en"
+        )
         #expect(rows.contains("EN"))
         #expect(rows.contains("English"))
         #expect(rows.contains("ZH"))
 
-        let list = try #require(table)
-        let row = list.rect(ofRow: 1)
-        try press(popover, at: list.convert(NSPoint(x: row.minX + 60, y: row.midY), to: nil))
+        try press(popover, at: try languageRowPoint(in: popover, row: 1))
 
         try waitUntil { state.targetLanguageCode == "zh-Hans" }
         #expect(presses.names == ["language zh-Hans"])
         try waitUntil { popoverCount() == before }
+    }
+
+    @Test("the language list has one row for each language and no search box")
+    func languageListIsPlainRowsWithoutSearch() throws {
+        let languages = TargetLanguageCatalog.standard.codes.map { TargetLanguageOption(code: $0, name: "Language \($0)") }
+        let presses = PressLog()
+        let state = CaptureToolbarState(targetLanguageCode: "en")
+        let window = try toolbarWindow(presses, state: state, languages: languages)
+        defer { window.orderOut(nil) }
+        defer { closePopovers() }
+        let before = popoverCount()
+        try press(window, at: NSPoint(x: translateControlRightEdge(window) - 8, y: try #require(window.contentView).bounds.midY))
+        try waitUntil { popoverCount() > before }
+        let popover = try #require(NSApp.windows.first { $0.className.contains("Popover") && $0.isVisible })
+        let list = try languageListView(in: popover)
+        list.layoutSubtreeIfNeeded()
+
+        #expect(languages.count == 11)
+        let insets = list.safeAreaInsets
+        #expect(list.bounds.height == insets.top + insets.bottom + 2 * TargetLanguageListMetrics.padding
+            + CGFloat(languages.count) * TargetLanguageListMetrics.rowHeight)
+        #expect(!allSubviews(list).contains { ($0 as? NSTextField)?.isEditable == true })
+        // The last row sits where the metrics put it: a press there picks the last language.
+        try press(popover, at: try languageRowPoint(in: popover, row: languages.count - 1))
+        try waitUntil { state.targetLanguageCode == "ar" }
     }
 
     // The hint itself appears only under a real pointer: that is checked on the installed build.
@@ -226,14 +248,11 @@ struct CaptureToolbarIconButtonTests {
         try waitUntil { (try? renderedColor(view, at: languagePart)) == plainLanguage }
     }
 
-    @Test("the language part grows with the abbreviation, and the toolbar shows no Provider or model")
-    func languagePartFollowsAbbreviation() throws {
-        let short = NSHostingView(rootView: toolbar(state: CaptureToolbarState(targetLanguageCode: "zh-Hans"), presses: PressLog()))
-        let long = NSHostingView(rootView: toolbar(state: CaptureToolbarState(targetLanguageCode: "aeb"), presses: PressLog()))
-        let growth = long.fittingSize.width - short.fittingSize.width
-        #expect(growth > 0 && growth < 15, "growth \(growth)")
+    @Test("the toolbar shows no Provider or model")
+    func toolbarShowsNoProviderOrModel() throws {
+        let hosting = NSHostingView(rootView: toolbar(state: CaptureToolbarState(targetLanguageCode: "zh-Hans"), presses: PressLog()))
         // Extract, Translate and the abbreviation with its chevron, then Copy, Save and Close, without a model label.
-        #expect(short.fittingSize.width < 300, "width \(short.fittingSize.width)")
+        #expect(hosting.fittingSize.width < 300, "width \(hosting.fittingSize.width)")
     }
 
     // The Copy symbol is 13 pt wide and 16 pt tall at the toolbar's 13 pt symbol size; a square is
@@ -268,13 +287,17 @@ private final class PressLog {
 }
 
 @MainActor
-private func toolbar(state: CaptureToolbarState, presses: PressLog) -> CaptureOperationToolbar {
+private func toolbar(
+    state: CaptureToolbarState,
+    presses: PressLog,
+    languages: [TargetLanguageOption] = [
+        TargetLanguageOption(code: "en", name: "English"),
+        TargetLanguageOption(code: "zh-Hans", name: "简体中文"),
+    ]
+) -> CaptureOperationToolbar {
     CaptureOperationToolbar(
         state: state,
-        targetLanguages: [
-            TargetLanguageOption(code: "en", name: "English"),
-            TargetLanguageOption(code: "zh-Hans", name: "简体中文"),
-        ],
+        targetLanguages: languages,
         onStart: { presses.names.append($0 == .extract ? "extract" : "translate") },
         onTargetLanguageChange: { presses.names.append("language \($0)") },
         onCopy: { presses.names.append("copy") },
@@ -308,9 +331,12 @@ private func renderedColor(_ view: NSView, at point: NSPoint) throws -> [CGFloat
 @MainActor
 private func toolbarWindow(
     _ presses: PressLog,
-    state: CaptureToolbarState = CaptureToolbarState(targetLanguageCode: "en")
+    state: CaptureToolbarState = CaptureToolbarState(targetLanguageCode: "en"),
+    languages: [TargetLanguageOption]? = nil
 ) throws -> NSWindow {
-    let hosting = NSHostingView(rootView: toolbar(state: state, presses: presses))
+    let root = languages.map { toolbar(state: state, presses: presses, languages: $0) }
+        ?? toolbar(state: state, presses: presses)
+    let hosting = NSHostingView(rootView: root)
     hosting.frame = CGRect(origin: .zero, size: hosting.fittingSize)
     let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
     window.contentView = hosting

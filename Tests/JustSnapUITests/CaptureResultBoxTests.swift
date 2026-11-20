@@ -328,19 +328,6 @@ struct CaptureResultBoxPresentationTests {
             #expect(!value.canRetry)
         }
     }
-
-    @Test("the language list's search matches an abbreviation or a name")
-    func languageSearch() {
-        let tunisian = TargetLanguageOption(code: "aeb", name: "突尼斯阿拉伯语")
-        let chinese = TargetLanguageOption(code: "zh-Hans", name: "简体中文")
-        #expect(tunisian.abbreviation == "AEB")
-        #expect(chinese.abbreviation == "ZH")
-        #expect(tunisian.matches("aeb"))
-        #expect(tunisian.matches("阿拉伯"))
-        #expect(!tunisian.matches("中文"))
-        #expect(chinese.matches("zh"))
-        #expect(chinese.matches("  "))
-    }
 }
 
 // Nested in the overlay's serialized suite so that the two never overlap: a press on the box takes the

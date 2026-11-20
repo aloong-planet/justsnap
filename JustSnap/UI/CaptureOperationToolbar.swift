@@ -14,13 +14,6 @@ public struct TargetLanguageOption: Identifiable, Equatable, Sendable {
         self.code = code
         self.name = name
     }
-
-    /// The list's search matches the abbreviation or the name (v1-core::REQ-013/AC-04).
-    func matches(_ query: String) -> Bool {
-        let query = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return true }
-        return abbreviation.lowercased().contains(query) || name.lowercased().contains(query)
-    }
 }
 
 /// What the toolbar shows as operations run, updated in place so an open language list stays open.
@@ -196,7 +189,6 @@ private struct TranslateControl: View {
     let onStart: () -> Void
     let onTargetLanguageChange: (String) -> Void
     @State private var isPresented = false
-    @State private var searchText = ""
 
     private var isCurrent: Bool { state.currentOperation == .translate }
 
@@ -239,7 +231,6 @@ private struct TranslateControl: View {
 
     private var languageButton: some View {
         Button {
-            searchText = ""
             isPresented.toggle()
         } label: {
             HStack(spacing: 2) {
@@ -259,8 +250,7 @@ private struct TranslateControl: View {
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             TargetLanguageList(
                 options: options,
-                selectedCode: state.targetLanguageCode,
-                searchText: $searchText
+                selectedCode: state.targetLanguageCode
             ) { code in
                 state.targetLanguageCode = code
                 onTargetLanguageChange(code)
@@ -275,7 +265,7 @@ private struct TranslateControl: View {
     }
 }
 
-/// The searchable target language list that the toolbar's language part, the menu panel's language row and
+/// The target language list that the toolbar's language part, the menu panel's language row and
 /// the result box's title menu open (v1-core::REQ-013/AC-04, v1-core::REQ-017/AC-02, v1-core::REQ-011/AC-08).
 struct TargetLanguageList: View {
     /// A row above the languages, for the title menu's Extract (clipboard-paste::REQ-006/AC-03).
@@ -290,7 +280,6 @@ struct TargetLanguageList: View {
     let selectedCode: String
     var leadingRow: LeadingRow?
     var isEnabled: (String) -> Bool = { _ in true }
-    @Binding var searchText: String
     let onSelect: (String) -> Void
 
     var body: some View {
@@ -314,34 +303,36 @@ struct TargetLanguageList: View {
                 .foregroundStyle(leadingRow.isEnabled ? JustSnapTheme.primaryText : JustSnapTheme.tertiaryText)
                 Divider()
             }
-            TextField(JustSnapStrings.targetLanguageSearch, text: $searchText)
-                .textFieldStyle(.roundedBorder)
-            List(options.filter { $0.matches(searchText) }) { option in
-                Button {
-                    onSelect(option.code)
-                } label: {
-                    HStack(spacing: 8) {
-                        Text(option.abbreviation)
-                            .font(.system(size: 12, weight: .semibold))
-                            .frame(width: 30, alignment: .leading)
-                        Text(option.name)
-                            .foregroundStyle(JustSnapTheme.secondaryText)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Spacer(minLength: 0)
-                        if selectedCode == option.code {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(JustSnapTheme.accent)
+            // A short fixed list in a plain stack: a `List` builds a table whose cost grows with its rows.
+            VStack(spacing: 0) {
+                ForEach(options) { option in
+                    Button {
+                        onSelect(option.code)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(option.abbreviation)
+                                .font(.system(size: 12, weight: .semibold))
+                                .frame(width: 30, alignment: .leading)
+                            Text(option.name)
+                                .foregroundStyle(JustSnapTheme.secondaryText)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            Spacer(minLength: 0)
+                            if selectedCode == option.code {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(JustSnapTheme.accent)
+                            }
                         }
+                        .padding(.horizontal, 4)
+                        .frame(height: TargetLanguageListMetrics.rowHeight)
+                        .contentShape(Rectangle())
                     }
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    .disabled(!isEnabled(option.code))
                 }
-                .buttonStyle(.plain)
-                .disabled(!isEnabled(option.code))
             }
-            .listStyle(.plain)
         }
-        .padding(10)
-        .frame(width: 260, height: 340)
+        .padding(TargetLanguageListMetrics.padding)
+        .frame(width: TargetLanguageListMetrics.width)
     }
 }

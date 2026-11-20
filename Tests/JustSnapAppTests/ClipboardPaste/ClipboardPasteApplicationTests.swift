@@ -716,6 +716,18 @@ extension ProviderApplicationTests {
         }
     }
 
+    // v1-core §5: only the 11 common languages are restored; a stored value outside them gives way to the default.
+    @Test(arguments: [("ja", "ja"), ("pl", "zh-Hans")])
+    func aStoredTargetLanguageIsRestoredOnlyWithinTheCommonEleven(stored: String, shown: String) async throws {
+        try await withFixture { fixture in
+            let defaults = try #require(UserDefaults(suiteName: fixture.suite))
+            defaults.set(stored, forKey: "targetLanguageCode")
+            try await fixture.withModel { model in
+                #expect(model.menuView().targetLanguageCode == shown)
+            }
+        }
+    }
+
     // v1-core::REQ-017/AC-02, AC-03: a language chosen in the panel leaves the open paste box's result alone.
     @Test
     func aLanguageChosenInThePanelShowsThereAndLeavesTheOpenPasteBoxAsItIs() async throws {
