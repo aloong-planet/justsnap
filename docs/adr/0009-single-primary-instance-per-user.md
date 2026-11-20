@@ -14,7 +14,7 @@ JustSnap is a menu-bar app without a Dock icon. It owns the global capture hotke
 
 ## Decision
 
-We adopt **option 2**. A second instance must not open or change the history database, register the global hotkey, run automatic cleanup or trigger an update check; it only sends an activation notice to the primary instance and exits at once. On that notice the primary instance brings a visible window or capture interface that can become the key window to the front, and opens the menu-bar panel when there is none.
+We adopt **option 2**. A second instance must not open or change the history database, register the global hotkey, run automatic cleanup or trigger an update check; it only sends an activation notice to the primary instance and exits at once. On that notice the primary instance brings the result window to the front when a model task is active, and otherwise opens the menu-bar menu.
 
 Exclusion is per macOS user. Stale state left by an abnormal exit must be safely reclaimed by a later launch and must never block the app permanently. Builds that share the Bundle Identifier and are installed side by side still leave the first one started as the primary instance.
 
@@ -30,4 +30,5 @@ Exclusion is per macOS user. Stale state left by an abnormal exit must be safely
 - [ADR-0004: Distribute one Apple silicon package with its own Sparkle appcast](0004-distribute-one-apple-silicon-package.md)
 - [ADR-0005: Fix the direct-distribution application identity](0005-stable-direct-distribution-application-identity.md)
 - [ADR-0008: Never silently rebuild a failed history database](0008-preserve-failed-history-database-before-reset.md)
+- [ADR-0015: 在截图界面内显示模型结果，弃用独立结果窗口](0015-show-results-inside-capture-overlay.md) (proposed): would change which interface the activation brings to the front.
 - The v1 requirements alignment record (`docs/.workings/v1-core/requirements-alignment.md`, not committed).

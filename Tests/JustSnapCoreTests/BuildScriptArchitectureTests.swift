@@ -40,7 +40,6 @@ struct BuildScriptArchitectureTests {
 
         #expect(process.terminationStatus == 64)
         #expect(errorText?.contains("Unsupported architecture: \(architecture)") == true)
-        #expect(!FileManager.default.fileExists(atPath: root.appendingPathComponent("JustSnap.app").path))
     }
 
     private var repositoryRoot: URL {

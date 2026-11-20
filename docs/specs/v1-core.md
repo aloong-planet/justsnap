@@ -407,7 +407,7 @@ JustSnap 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和 D
 - 发现新版本后在菜单栏和通用设置中提示，由用户显式开始下载。菜单栏与设置页监听同一应用级 Sparkle 状态，只有 Sparkle 确认下载完成后才显示“已下载”。下载完成不打断截图或模型任务，在退出时安装，也允许用户选择立即重启并更新；应用连续运行 7 天仍未安装时温和提醒一次。手动检查更新只在通用设置中提供。
 - appcast 使用 HTTPS；应用和 DMG 通过 Developer ID 签名、Apple 公证与 stapling，更新包另有 Sparkle EdDSA 签名。
 - 只发布 Apple Silicon（arm64）一个安装包并订阅其 appcast，遵循 ADR-0004。签名、公证、stapling 或更新签名任一步失败，该版本不发布。
-- 三个 Developer ID 应用必须嵌入同一份与 `com.loong.vlmsnapper` 匹配的分发 provisioning profile。正式签名从 profile 动态派生 App ID Prefix、Team ID、完整 application identifier 和精确 Keychain access group，不在仓库中硬编码账号前缀。
+- Developer ID 应用必须嵌入同一份与 `com.loong.vlmsnapper` 匹配的分发 provisioning profile。正式签名从 profile 动态派生 App ID Prefix、Team ID、完整 application identifier 和精确 Keychain access group，不在仓库中硬编码账号前缀。
 - provisioning profile 是仓库外的发布输入，不进入 Git。缺失、无法验签或解码、过期、分发渠道错误，或与 Bundle ID、Team ID、Developer ID Application 证书、Keychain allowlist 不一致时，正式流水线必须在签名前失败，不得回退到无 profile 或 legacy Keychain 构建。
 - 最终已签名 App 必须声明 profile 授权的精确 application identifier、Team ID 和 Keychain access group。该安装包做 profile/签名静态一致性验证，并必须由最终已签名的应用进程执行一次 Data Protection Keychain 的增、读、改、删验收。
 
