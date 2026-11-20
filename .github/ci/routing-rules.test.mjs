@@ -26,9 +26,11 @@ test('each pattern of routing.json routes a real path to the scopes written here
     ['Distribution/Info.plist', ['app']],
     ['Package.swift', ['app']],
     ['Package.resolved', ['app']],
+    ['site/src/releases.ts', ['site']],
+    ['site/package.json', ['site']],
     // No rule matches: every scope runs
-    ['capabilities.toml', ['app']],
-    ['docs/unlisted.md', ['app']]
+    ['capabilities.toml', ['app', 'site']],
+    ['docs/unlisted.md', ['app', 'site']]
   ]
   const hit = new Set()
   for (const [path, expected] of cases) {

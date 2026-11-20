@@ -1,7 +1,8 @@
 name: CI
 
-# A pull request that changes only documents runs the repository checks and the gate; one that changes
-# anything else also runs the full test suite and the development packages. A push to main runs everything.
+# A pull request that changes only documents runs the repository checks and the gate; one that changes the
+# application also runs the full test suite and the development packages; one that changes the landing page
+# (site/) runs its checks. A push to main runs everything.
 # Which is decided by .github/ci/routing.json (ci-scope.mjs); the github-ops skill's checks-gate.md describes it.
 on:
   pull_request:
@@ -24,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       app: ${{ steps.scope.outputs.app }}
+      site: ${{ steps.scope.outputs.site }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
@@ -108,11 +110,37 @@ jobs:
           OUTPUT_ROOT: ${{ runner.temp }}/justsnap-development-dmgs
         run: Scripts/build-development-dmgs.sh
 
+  # The landing page (site/) is a package of its own, with its own lockfile (landing-page spec). Its type check,
+  # its unit tests and the built-site check (on a fresh build) need Node and pnpm only.
+  site-checks:
+    name: Site checks
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: site/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.23.3
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm test
+
   # The one required check. `needs` lists every other job of this workflow; `always()` makes it run after a
   # failure or a skip upstream, which the default `success()` would not.
   ci-gate:
     name: CI gate
-    needs: [changes, repo-checks, test-and-package]
+    needs: [changes, repo-checks, test-and-package, site-checks]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
