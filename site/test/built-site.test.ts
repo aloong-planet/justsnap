@@ -1,4 +1,4 @@
-// The built-site check (landing-page::REQ-004, QR-001): the pages one build produces, read as files.
+// The built-site check (landing-page::REQ-003/AC-01, REQ-004/AC-03, REQ-005, REQ-006, CON-003, CON-004): the pages one build produces, read as files.
 //
 // It reads the HTML as served, before any script runs, so what it sees is what a visitor without scripts gets
 // (landing-page::REQ-001/AC-04).

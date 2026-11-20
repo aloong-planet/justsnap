@@ -61,7 +61,7 @@ CI runs `pnpm check` and `pnpm test` in the `site-checks` job whenever a pull re
 ## Deploying (Cloudflare Pages)
 
 The page is served by Cloudflare Pages at `justsnap.aloongplanet.com`; the project is defined by the `justsnap` entry in the infra
-repository's `stacks/apps/landing-pages.tf` (added by the infra PR; it takes effect once the Terraform apps workflow is applied). The Pages project needs:
+repository's `stacks/apps/landing-pages.tf`, and exists once the Terraform apps workflow has applied that entry. The Pages project needs:
 
 | Setting | Value |
 |---|---|
