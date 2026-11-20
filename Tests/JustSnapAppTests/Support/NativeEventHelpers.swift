@@ -175,6 +175,12 @@ func resultBoxPresentation() -> CaptureResultBoxPresentation? {
     (resultBox()?.contentView as? NSHostingView<CaptureResultBoxView>)?.rootView.presentation
 }
 
+/// What the open box's title menu runs.
+@MainActor
+func resultBoxOperations() -> CaptureResultBoxOperations? {
+    (resultBox()?.contentView as? NSHostingView<CaptureResultBoxView>)?.rootView.operations
+}
+
 @MainActor
 func resultBoxText() -> String? {
     guard let content = resultBox()?.contentView else { return nil }

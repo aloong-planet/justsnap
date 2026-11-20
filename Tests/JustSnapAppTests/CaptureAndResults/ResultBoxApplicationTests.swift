@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import SQLite3
 import SwiftUI
 import Testing
 import JustSnapCore
@@ -217,6 +218,88 @@ extension ProviderApplicationTests {
             try await eventually { model.historyRecords.first?.operation.sourceMarkdown == "Second try" }
             #expect(model.historyRecords.count == 1)
             #expect(model.historyRecords.first?.id == id)
+        }
+    }
+
+    // v1-core::REQ-011/AC-08: the capture result box's title menu translates the same screenshot at once.
+    @Test
+    func choosingALanguageInTheTitleMenuTranslatesTheSameScreenshotAndRetryKeepsIt() async throws {
+        try await withResultFixture { fixture, model in
+            let (_, toolbar) = try await completeSelection(fixture)
+            model.changeTargetLanguage("zh-Hans")
+            try await clickTranslate(toolbar)
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Source", translation: "中文译文")
+            try await eventually { resultBoxText() == "中文译文" && resultBoxPresentation()?.showsProgress == false }
+            try await waitForResultIdle(model)
+            try await eventually { model.historyRecords.count == 1 }
+            #expect(resultBoxPresentation()?.titleMenu?.languageCode == "zh-Hans")
+            #expect(resultBoxPresentation()?.titleMenu?.offersExtract == false)
+            let operations = try #require(resultBoxOperations())
+
+            operations.chooseLanguage("ja")
+            try await eventually { await fixture.http.imageRequests.count == 2 }
+            try await fixture.http.finishImage(source: "Source", translation: "日本語の訳")
+            try await eventually { resultBoxText() == "日本語の訳" && resultBoxPresentation()?.showsProgress == false }
+            try await waitForResultIdle(model)
+            try await eventually { model.historyRecords.count == 2 }
+
+            #expect(model.selectedTargetLanguageCode == "ja")
+            #expect(resultBoxPresentation()?.titleMenu?.languageCode == "ja")
+            #expect(Set(model.historyRecords.map(\.operation.screenshot!.path)).count == 1)
+            #expect(model.historyRecords.contains { $0.operation.targetLanguage == "zh-Hans" && $0.operation.translationMarkdown?.contains("中文译文") == true })
+
+            // Retry afterwards reruns in the language the menu chose.
+            let box = try #require(resultBox())
+            try clickResultBoxButton(box, fromEnd: 1)
+            try await eventually { await fixture.http.imageRequests.count == 3 }
+            try await fixture.http.finishImage(source: "Source", translation: "新しい訳")
+            try await eventually { resultBoxText() == "新しい訳" && resultBoxPresentation()?.showsProgress == false }
+            try await waitForResultIdle(model)
+            #expect(model.historyRecords.count == 2)
+            #expect(model.historyRecords.contains { $0.operation.targetLanguage == "ja" && $0.operation.translationMarkdown?.contains("新しい訳") == true })
+        }
+    }
+
+    // v1-core::REQ-011/AC-04, AC-07: the capture box's title menu offers no language while a request runs, and
+    // with an unsaved translation only the language that translation is in.
+    @Test
+    func theTitleMenuOffersNoLanguageWhileARequestRunsAndWithAnUnsavedTranslationOnlyItsOwn() async throws {
+        try await withResultFixture { fixture, model in
+            let (overlay, toolbar) = try await completeSelection(fixture)
+            model.changeTargetLanguage("ja")
+            let database = try failSuccessfulSaves(fixture)
+            defer { sqlite3_close(database) }
+            try await clickTranslate(toolbar)
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            let operations = try #require(resultBoxOperations())
+            #expect(!operations.canChooseLanguage("ja"))
+            #expect(!operations.canChooseLanguage("ko"))
+
+            operations.chooseLanguage("ko")
+            await settleMainActor()
+            #expect(model.selectedTargetLanguageCode == "ja")
+            #expect(await fixture.http.imageRequests.count == 1)
+
+            try await fixture.http.finishImage(source: "Source", translation: "Unsaved translation")
+            try await eventually { resultBoxPresentation()?.saveNotice != nil }
+            try await waitForResultIdle(model)
+            #expect(operations.canChooseLanguage("ja"))
+            #expect(!operations.canChooseLanguage("ko"))
+
+            operations.chooseLanguage("ko")
+            await settleMainActor()
+            #expect(model.selectedTargetLanguageCode == "ja")
+            #expect(await fixture.http.imageRequests.count == 1)
+            #expect(resultBoxText() == "Unsaved translation")
+
+            // Retry Save writes it, which lets the capture end as the other unsaved-result tests do.
+            try #require(sqlite3_exec(database, "DROP TRIGGER box_save_failure", nil, nil, nil) == SQLITE_OK)
+            let box = try #require(resultBox())
+            try click(box, at: NSPoint(x: try #require(box.contentView).bounds.maxX - 32, y: 20))
+            try await eventually { resultBoxPresentation()?.saveNotice == nil }
+            try pressEscape(overlay)
+            try await eventually { try mainScreenOverlay() == nil && resultBox() == nil }
         }
     }
 

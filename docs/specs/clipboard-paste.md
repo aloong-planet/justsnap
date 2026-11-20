@@ -34,7 +34,7 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 - clipboard-paste::REQ-003/AC-03: When no clipboard item carries a file reference and the clipboard holds any other plain text, it is a text clipboard, whether or not it also holds image data: the paste uses that text as the Pasted Text (clipboard-paste::REQ-007) and sends no image.
 - clipboard-paste::REQ-003/AC-04: When the clipboard holds no file reference, no image data and no plain text, the paste result box says “剪贴板里没有文字或图片” (English: “There's no text or image on the clipboard.”).
 - clipboard-paste::REQ-003/AC-05: The paste accepts any bitmap format macOS can decode, such as PNG, JPEG, TIFF, HEIC, WebP and GIF; an animated image uses its first frame. When the clipboard's image data cannot be decoded as a bitmap, including when its only image is vector PDF content, the paste result box says the clipboard content cannot be read as an image.
-- clipboard-paste::REQ-003/AC-06: For AC-04, AC-05 and AC-08 the box is titled Paste, shows the reason in its body, has no operation row, and has Copy and Retry disabled; Close works. No file is written, no history record is added and no request is sent.
+- clipboard-paste::REQ-003/AC-06: For AC-04, AC-05 and AC-08 the box is titled Paste, shows the reason in its body, has no title menu, and has Copy and Retry disabled; Close works. No file is written, no history record is added and no request is sent.
 - clipboard-paste::REQ-003/AC-07: Changing the clipboard after a paste does not change the box or its records; retries use the saved Pasted Image or Pasted Text.
 - clipboard-paste::REQ-003/AC-08: When any clipboard item carries a file reference, as a file copied in Finder does, it is a file clipboard, whatever text or image comes with it: the paste result box says that files cannot be pasted for now and asks the user to copy text or an image.
 
@@ -65,8 +65,8 @@ The menu bar panel offers Paste next to Capture, and a global paste shortcut doe
 
 - clipboard-paste::REQ-006/AC-01: A paste that uses an image starts Text Extraction at once, and a paste that uses Pasted Text starts Screenshot Translation into the app's remembered target language (v1-core §5) at once; either way with one request and a new history record.
 - clipboard-paste::REQ-006/AC-02: The box's header, body states, copying and Retry are those of the capture result box in v1-core REQ-010/AC-04–11; Retry is a Current Result Rerun (v1-core REQ-002).
-- clipboard-paste::REQ-006/AC-03: Below the header, an operation row holds the capture toolbar's Translate and target-language control, with the look and behavior of v1-core REQ-013/AC-02–05; for a Pasted Image it also holds the Extract button before it, and for Pasted Text it has no Extract button. The target language is the app's remembered target language (v1-core §5).
-- clipboard-paste::REQ-006/AC-04: The operations work on the one Pasted Image or Pasted Text as the capture result box's operations work on one capture (v1-core REQ-011/AC-01–07): one result per operation, an operation never run starts a request, one with a result shows it again, and Translate after a target-language change starts a new record that reuses the same Managed Capture File, or for Pasted Text the same text.
+- clipboard-paste::REQ-006/AC-03: The box has no operation row. For Pasted Text the title of the translation box is the target-language menu of v1-core REQ-011/AC-08. For a Pasted Image the title of both the translation box and the extraction box is that menu with Extract above the languages: choosing Extract acts as the capture toolbar's Extract button; the extraction box has Extract checked and no language checked. The target language is the app's remembered target language (v1-core §5).
+- clipboard-paste::REQ-006/AC-04: The operations work on the one Pasted Image or Pasted Text as the capture result box's operations work on one capture (v1-core REQ-011/AC-01–07): one result per operation, an operation never run starts a request, one with a result shows it again, and choosing another target language starts a new record that reuses the same Managed Capture File, or for Pasted Text the same text.
 
 ### clipboard-paste::REQ-007 Operations on Pasted Text
 
@@ -132,4 +132,4 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 - Vector PDF content, more than one image per paste, and shrinking images to fit a Provider's limit.
 - Marking pasted records in history, or a source filter.
 - Watching the clipboard in the background.
-- A thumbnail of the Pasted Image in the paste result box, and an operation row in the capture result box.
+- A thumbnail of the Pasted Image in the paste result box, and an operation row in either result box.

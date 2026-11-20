@@ -108,7 +108,6 @@ final class ClipboardPasteController {
         guard !holdsWork else { return }
         let clipboard = environment.reader.read()
         retireSession()
-        toolbarState.targetLanguageCode = environment.targetLanguageCode()
         if clipboard.images.isEmpty {
             show(ClipboardPaste.resolve(clipboard))
             return
@@ -182,7 +181,8 @@ final class ClipboardPasteController {
             toolbarState: toolbarState,
             targetLanguages: environment.targetLanguages(),
             onStart: { [weak self] in self?.handleOperationPress($0) },
-            onTargetLanguageChange: { [weak self] in self?.changeTargetLanguage($0) }
+            onTargetLanguageChange: { [environment] in environment.changeTargetLanguage($0) },
+            canChooseLanguage: { [weak self] in self?.canChooseLanguage($0) ?? false }
         )
         let pointer = NSEvent.mouseLocation
         guard let screen = NSScreen.screens.first(where: { NSMouseInRect(pointer, $0.frame, false) })
@@ -233,6 +233,14 @@ final class ClipboardPasteController {
     private func wouldStartRequest(_ operation: WorkspaceOperationKind) -> Bool {
         if slot(operation).attempt == .neverStarted { return true }
         return operation == .translate && sessionTargetLanguageCode != environment.targetLanguageCode()
+    }
+
+    /// The title menu's languages are not available while a request runs, nor while an unsaved result would
+    /// make the choice start a new request (v1-core::REQ-011/AC-04, v1-core::REQ-011/AC-07).
+    private func canChooseLanguage(_ code: String) -> Bool {
+        guard session != nil, runningOperation == nil, !isPreparingImage else { return false }
+        guard hasUnsavedResult else { return true }
+        return slot(.translate).attempt != .neverStarted && sessionTargetLanguageCode == code
     }
 
     private func startRequest(_ operation: WorkspaceOperationKind, targetLanguage: String) {
@@ -310,18 +318,6 @@ final class ClipboardPasteController {
         await environment.refreshHistory()
     }
 
-    private func changeTargetLanguage(_ code: String) {
-        environment.changeTargetLanguage(code)
-        targetLanguageDidChange()
-    }
-
-    /// The remembered target language changed here or elsewhere; the shown result stays as it is
-    /// (v1-core::REQ-017/AC-03).
-    func targetLanguageDidChange() {
-        toolbarState.targetLanguageCode = environment.targetLanguageCode()
-        refresh()
-    }
-
     // MARK: Closing
 
     private func requestClose() {
@@ -366,11 +362,11 @@ final class ClipboardPasteController {
         if let problem {
             presentation = .pasteProblem(problem)
         } else if let operation = shownOperation {
+            let languageCode = sessionTargetLanguageCode ?? environment.targetLanguageCode()
             presentation = CaptureResultBoxPresentation(
                 operation: operation,
-                targetLanguageName: JustSnapLocalization.localizedLanguageName(
-                    for: sessionTargetLanguageCode ?? environment.targetLanguageCode()
-                ),
+                targetLanguageName: JustSnapLocalization.localizedLanguageName(for: languageCode),
+                targetLanguageCode: languageCode,
                 providerSummary: sessionProviderSummary
                     ?? environment.selection().map(environment.providerSummary) ?? "",
                 slot: slot(operation),
