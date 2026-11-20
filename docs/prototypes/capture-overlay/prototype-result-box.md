@@ -41,3 +41,7 @@ Not part of the design; do not implement.
 - Interface language: only Simplified Chinese is drawn. Longer English labels are not tested in the box header.
 - Appearance: only light is drawn. The page uses the shared tokens, which also define dark.
 - Multiple displays: only one is drawn. Other displays keep their overlay until capture ends.
+
+## Superseded on 2026-11-20
+
+The user decided the target-language list offers only the 11 common languages, with no search box (user, 2026-11-20). The shipped list also highlights the row under the pointer, opens and closes without animation, and is narrower than this page draws it. This page still draws the earlier searchable list; for the list, the shipped app and v1-core::REQ-013/AC-04 are the reference. The rest of the page still holds.

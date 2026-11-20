@@ -277,7 +277,13 @@ final class JustSnapApplicationModel: ObservableObject {
         try await refreshProviderReadiness()
         let loginState = try await loginCoordinator.configureAtPrimaryLaunch()
         let language = await languageStore.load()
-        if defaults.string(forKey: "targetLanguageCode") == nil {
+        if let saved = defaults.string(forKey: "targetLanguageCode") {
+            // A value outside the common languages gives way to the interface language's default; it is
+            // left stored until the user picks another language.
+            if !TargetLanguageCatalog.standard.contains(saved) {
+                selectedTargetLanguageCode = defaultTargetLanguage(for: language)
+            }
+        } else {
             selectedTargetLanguageCode = defaultTargetLanguage(for: language)
             defaults.set(selectedTargetLanguageCode, forKey: "targetLanguageCode")
         }

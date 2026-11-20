@@ -118,12 +118,13 @@ final class ApplicationFixture {
     }
 
     func withModel(historyImageLoader: ControlledHistoryImages? = nil,
+                   interfaceLanguage: ApplicationLanguagePreference = .english,
                    _ operation: (JustSnapApplicationModel) async throws -> Void) async throws {
         // Strong references: a freed window's address can be reused by a window this
         // fixture creates, so identifiers alone would skip that window at cleanup.
         let existingWindows = NSApp.windows
         let defaults = try requireFixture(UserDefaults(suiteName: suite))
-        await UserDefaultsApplicationLanguageStore(defaults: defaults).save(.english)
+        await UserDefaultsApplicationLanguageStore(defaults: defaults).save(interfaceLanguage)
         let model = try JustSnapApplicationModel(
             applicationSupportRoot: root,
             languageStore: UserDefaultsApplicationLanguageStore(defaults: defaults),
