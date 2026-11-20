@@ -131,32 +131,28 @@ public struct CaptureOperationToolbar: View {
     }
 }
 
-/// Extract and Translate with its target language: the capture toolbar's operations, which the paste
-/// result box also shows in its operation row, without Extract for Pasted Text (clipboard-paste::REQ-006/AC-03).
+/// Extract and Translate with its target language: the capture toolbar's operations.
 public struct CaptureOperationControls: View {
     @ObservedObject private var state: CaptureToolbarState
     private let targetLanguages: [TargetLanguageOption]
-    private let offersExtract: Bool
     private let onStart: (WorkspaceOperationKind) -> Void
     private let onTargetLanguageChange: (String) -> Void
 
     public init(
         state: CaptureToolbarState,
         targetLanguages: [TargetLanguageOption],
-        offersExtract: Bool = true,
         onStart: @escaping (WorkspaceOperationKind) -> Void,
         onTargetLanguageChange: @escaping (String) -> Void
     ) {
         self.state = state
         self.targetLanguages = targetLanguages
-        self.offersExtract = offersExtract
         self.onStart = onStart
         self.onTargetLanguageChange = onTargetLanguageChange
     }
 
     public var body: some View {
         HStack(spacing: JustSnapUIConstants.toolbarControlGap) {
-            if offersExtract { extractButton }
+            extractButton
             TranslateControl(
                 state: state,
                 options: targetLanguages,
@@ -279,16 +275,45 @@ private struct TranslateControl: View {
     }
 }
 
-/// The searchable target language list that the toolbar's language part and the menu panel's language row
-/// open (v1-core::REQ-013/AC-04, REQ-017/AC-02).
+/// The searchable target language list that the toolbar's language part, the menu panel's language row and
+/// the result box's title menu open (v1-core::REQ-013/AC-04, REQ-017/AC-02, REQ-011/AC-08).
 struct TargetLanguageList: View {
+    /// A row above the languages, for the title menu's Extract (clipboard-paste::REQ-006/AC-03).
+    struct LeadingRow {
+        let title: String
+        let isChecked: Bool
+        let isEnabled: Bool
+        let action: () -> Void
+    }
+
     let options: [TargetLanguageOption]
     let selectedCode: String
+    var leadingRow: LeadingRow?
+    var isEnabled: (String) -> Bool = { _ in true }
     @Binding var searchText: String
     let onSelect: (String) -> Void
 
     var body: some View {
         VStack(spacing: 8) {
+            if let leadingRow {
+                Button(action: leadingRow.action) {
+                    HStack(spacing: 8) {
+                        Text(leadingRow.title)
+                            .font(.system(size: 12, weight: .semibold))
+                        Spacer(minLength: 0)
+                        if leadingRow.isChecked {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(JustSnapTheme.accent)
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(!leadingRow.isEnabled)
+                .foregroundStyle(leadingRow.isEnabled ? JustSnapTheme.primaryText : JustSnapTheme.tertiaryText)
+                Divider()
+            }
             TextField(JustSnapStrings.targetLanguageSearch, text: $searchText)
                 .textFieldStyle(.roundedBorder)
             List(options.filter { $0.matches(searchText) }) { option in
@@ -312,6 +337,7 @@ struct TargetLanguageList: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .disabled(!isEnabled(option.code))
             }
             .listStyle(.plain)
         }

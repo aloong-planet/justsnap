@@ -31,12 +31,19 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
     public let copyText: String
     public let canRetry: Bool
     public let saveNotice: String?
-    /// The paste result box's operation row under the header (clipboard-paste::REQ-006/AC-03).
-    public let showsOperations: Bool
+    /// The title as a menu of target languages (v1-core::REQ-011/AC-08); nil when the title is plain text.
+    public let titleMenu: TitleMenu?
     /// The input the box's operations work on; it picks the advice for an oversized request.
     public let source: InputSource
-    /// Text Extraction is for images only; Pasted Text's row has Translate alone (clipboard-paste::REQ-006/AC-03).
-    public var offersExtract: Bool { source != .pastedText }
+
+    /// What the title menu lists and checks. Extract is offered for images only, so Pasted Text's menu has
+    /// languages alone (clipboard-paste::REQ-006/AC-03).
+    public struct TitleMenu: Equatable, Sendable {
+        public let offersExtract: Bool
+        /// Checked in the translation box; the extraction box checks Extract instead.
+        public let checksExtract: Bool
+        public let languageCode: String?
+    }
 
     public var canCopy: Bool { !copyText.isEmpty }
 
@@ -62,7 +69,7 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
             copyText: "",
             canRetry: false,
             saveNotice: nil,
-            showsOperations: false,
+            titleMenu: nil,
             source: .paste
         )
     }
@@ -76,7 +83,7 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
         copyText: String,
         canRetry: Bool,
         saveNotice: String?,
-        showsOperations: Bool,
+        titleMenu: TitleMenu?,
         source: InputSource
     ) {
         self.title = title
@@ -87,13 +94,14 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
         self.copyText = copyText
         self.canRetry = canRetry
         self.saveNotice = saveNotice
-        self.showsOperations = showsOperations
+        self.titleMenu = titleMenu
         self.source = source
     }
 
     public init(
         operation: WorkspaceOperationKind,
         targetLanguageName: String,
+        targetLanguageCode: String? = nil,
         providerSummary: String,
         slot: WorkspaceOperationSlot,
         retryAvailable: Bool = true,
@@ -105,7 +113,14 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
             ? JustSnapStrings.captureExtract
             : "\(JustSnapStrings.translate) · \(targetLanguageName)"
         self.providerSummary = providerSummary
-        showsOperations = source != .capture
+        // A capture's extraction box keeps a plain title: the capture toolbar under the selection has Extract.
+        titleMenu = operation == .translate || source != .capture
+            ? TitleMenu(
+                offersExtract: source == .paste,
+                checksExtract: operation == .extract,
+                languageCode: operation == .translate ? targetLanguageCode : nil
+            )
+            : nil
         self.source = source
 
         func text(_ result: WorkspaceCommittedResult?) -> (CaptureResultBoxText, String) {
@@ -196,30 +211,49 @@ public struct CaptureResultBoxPresentation: Equatable, Sendable {
 @MainActor
 public final class CaptureResultBoxState: ObservableObject {
     @Published public var presentation: CaptureResultBoxPresentation?
-    /// The operation row's controls, shown when the presentation asks for them.
+    /// What the title menu runs, once the box's owner has set it up.
     @Published public var operations: CaptureResultBoxOperations?
 
     public init() {}
 }
 
-/// What the paste result box's operation row runs (clipboard-paste::REQ-006/AC-03).
+/// What the title menu of a result box runs (v1-core::REQ-011/AC-08, clipboard-paste::REQ-006/AC-03).
 @MainActor
 public struct CaptureResultBoxOperations {
     public let toolbarState: CaptureToolbarState
     public let targetLanguages: [TargetLanguageOption]
     public let onStart: (WorkspaceOperationKind) -> Void
     public let onTargetLanguageChange: (String) -> Void
+    /// Whether choosing a language is allowed now; it is not while a request runs or an unsaved result
+    /// would make the choice start a new request (v1-core::REQ-011/AC-04, AC-07).
+    public let canChooseLanguage: (String) -> Bool
 
     public init(
         toolbarState: CaptureToolbarState,
         targetLanguages: [TargetLanguageOption],
         onStart: @escaping (WorkspaceOperationKind) -> Void,
-        onTargetLanguageChange: @escaping (String) -> Void
+        onTargetLanguageChange: @escaping (String) -> Void,
+        canChooseLanguage: @escaping (String) -> Bool = { _ in true }
     ) {
         self.toolbarState = toolbarState
         self.targetLanguages = targetLanguages
         self.onStart = onStart
         self.onTargetLanguageChange = onTargetLanguageChange
+        self.canChooseLanguage = canChooseLanguage
+    }
+
+    /// Choosing a language saves it as the remembered target language and translates (v1-core::REQ-011/AC-08).
+    public func chooseLanguage(_ code: String) {
+        guard canChooseLanguage(code) else { return }
+        toolbarState.targetLanguageCode = code
+        onTargetLanguageChange(code)
+        onStart(.translate)
+    }
+
+    /// Choosing Extract acts as the capture toolbar's Extract button (clipboard-paste::REQ-006/AC-03).
+    public func chooseExtract() {
+        guard !toolbarState.isBlocked(.extract) else { return }
+        onStart(.extract)
     }
 }
 
@@ -248,6 +282,8 @@ public struct CaptureResultBoxView: View {
     private let onMove: @MainActor (CGPoint) -> Void
     @State private var copiedCount = 0
     @State private var showsCopied = false
+    @State private var isTitleMenuPresented = false
+    @State private var titleSearchText = ""
 
     public init(
         state: CaptureResultBoxState,
@@ -261,7 +297,7 @@ public struct CaptureResultBoxView: View {
 
     /// What the box is showing.
     public var presentation: CaptureResultBoxPresentation? { state.presentation }
-    /// What its operation row runs, when it has one.
+    /// What its title menu runs, when it has one.
     public var operations: CaptureResultBoxOperations? { state.operations }
 
     public var body: some View {
@@ -284,21 +320,6 @@ public struct CaptureResultBoxView: View {
         VStack(spacing: 0) {
             header(presentation)
             Divider()
-            if presentation.showsOperations, let operations = state.operations {
-                HStack(spacing: 0) {
-                    CaptureOperationControls(
-                        state: operations.toolbarState,
-                        targetLanguages: operations.targetLanguages,
-                        offersExtract: presentation.offersExtract,
-                        onStart: operations.onStart,
-                        onTargetLanguageChange: operations.onTargetLanguageChange
-                    )
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 3)
-                Divider()
-            }
             resultBody(presentation)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             if let notice = presentation.saveNotice {
@@ -318,10 +339,7 @@ public struct CaptureResultBoxView: View {
 
     private func header(_ presentation: CaptureResultBoxPresentation) -> some View {
         HStack(spacing: 8) {
-            Text(presentation.title)
-                .font(.system(size: 13, weight: .semibold))
-                .fixedSize()
-                .allowsHitTesting(false)
+            title(presentation)
             HStack(spacing: 6) {
                 if presentation.showsProgress {
                     ProgressView()
@@ -361,6 +379,51 @@ public struct CaptureResultBoxView: View {
             guard showsCopied else { return }
             try? await Task.sleep(for: .seconds(1.2))
             if !Task.isCancelled { showsCopied = false }
+        }
+    }
+
+    /// The title is the target-language menu where the box has one (v1-core::REQ-011/AC-08).
+    @ViewBuilder
+    private func title(_ presentation: CaptureResultBoxPresentation) -> some View {
+        let label = Text(presentation.title)
+            .font(.system(size: 13, weight: .semibold))
+            .fixedSize()
+        if let menu = presentation.titleMenu, let operations = state.operations {
+            Button {
+                titleSearchText = ""
+                isTitleMenuPresented.toggle()
+            } label: {
+                HStack(spacing: 4) {
+                    label
+                    JustSnapIcon.chevronDown.image
+                        .frame(width: 8, height: 8)
+                        .foregroundStyle(JustSnapTheme.secondaryText)
+                }
+                .padding(.horizontal, 6)
+                .frame(height: JustSnapUIConstants.toolbarControlHeight)
+            }
+            .buttonStyle(CaptureToolbarButtonStyle(kind: .field))
+            .accessibilityLabel(presentation.title)
+            .popover(isPresented: $isTitleMenuPresented, arrowEdge: .bottom) {
+                TargetLanguageList(
+                    options: operations.targetLanguages,
+                    selectedCode: menu.languageCode ?? "",
+                    leadingRow: menu.offersExtract
+                        ? .init(title: JustSnapStrings.captureExtract, isChecked: menu.checksExtract,
+                                isEnabled: !operations.toolbarState.isBlocked(.extract)) {
+                            isTitleMenuPresented = false
+                            if !menu.checksExtract { operations.chooseExtract() }
+                        }
+                        : nil,
+                    isEnabled: operations.canChooseLanguage,
+                    searchText: $titleSearchText
+                ) { code in
+                    isTitleMenuPresented = false
+                    if code != menu.languageCode { operations.chooseLanguage(code) }
+                }
+            }
+        } else {
+            label.allowsHitTesting(false)
         }
     }
 

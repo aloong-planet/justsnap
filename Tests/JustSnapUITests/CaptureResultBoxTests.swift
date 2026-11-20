@@ -9,7 +9,9 @@ import JustSnapCore
 // so only an installed build can show them: whether the box sits above the overlay on screen, and ⌘C
 // while the application is not active. Hovering needs a real pointer: the toolbar's selected state under
 // the pointer (REQ-013/AC-05) and tooltips appearing are checked on the installed build. The language
-// list's check mark is an image with no text to read, also checked there. "Copied" going away after a
+// list's check mark is an image with no text to read, also checked there. The title menu's popover (its rows,
+// the Extract row and the disabled languages) is likewise not opened here: what a row does is tested through
+// CaptureResultBoxOperations, and how the popover looks is checked on the installed build. "Copied" going away after a
 // moment needs the main actor free, which a test holding the localization lock cannot give: installed
 // build too. SwiftUI exposes no accessibility tree to these windows, so tests read what is rendered with
 // text recognition.
@@ -207,35 +209,95 @@ struct CaptureResultBoxPresentationTests {
             #expect(!value.canCopy)
             #expect(!value.canRetry)
             #expect(!value.showsProgress)
-            #expect(!value.showsOperations)
+            #expect(value.titleMenu == nil)
         }
     }
 
-    @Test("a pasted image's operations show the operation row; a capture's do not")
-    func operationRowBelongsToPaste() {
-        LocalizationTestCoordinator.withExclusiveAccess {
-            JustSnapLocalization.configure(effectiveLanguage: .simplifiedChinese)
-            let slot = WorkspaceOperationSlot(attempt: .preparing)
-            let paste = CaptureResultBoxPresentation(
-                operation: .extract, targetLanguageName: "简体中文", providerSummary: "DeepSeek · vision",
-                slot: slot, source: .paste
-            )
-            #expect(paste.showsOperations)
-            #expect(paste.title == "提取")
-            #expect(!presentation(.extract, slot).showsOperations)
-        }
-    }
-
-    @Test("only a pasted image's operation row offers Extract; Pasted Text's offers Translate alone", arguments: [
-        (CaptureResultBoxPresentation.InputSource.paste, true), (.pastedText, false),
-    ])
-    func extractIsOfferedOnlyForImages(source: CaptureResultBoxPresentation.InputSource, offersExtract: Bool) {
-        let value = CaptureResultBoxPresentation(
-            operation: .translate, targetLanguageName: "日本語", providerSummary: "DeepSeek · chat",
-            slot: WorkspaceOperationSlot(attempt: .preparing), source: source
+    @Test("a capture's translation box has the language menu without Extract; its extraction box keeps a plain title")
+    func captureTitleMenu() {
+        let translate = presentation(.translate, WorkspaceOperationSlot(attempt: .preparing))
+        let extract = presentation(.extract, WorkspaceOperationSlot(attempt: .preparing))
+        #expect(translate.titleMenu == CaptureResultBoxPresentation.TitleMenu(
+            offersExtract: false, checksExtract: false, languageCode: nil
+        ))
+        #expect(extract.titleMenu == nil)
+        let japanese = CaptureResultBoxPresentation(
+            operation: .translate, targetLanguageName: "日本語", targetLanguageCode: "ja",
+            providerSummary: "DeepSeek · chat", slot: WorkspaceOperationSlot(attempt: .preparing)
         )
-        #expect(value.showsOperations)
-        #expect(value.offersExtract == offersExtract)
+        #expect(japanese.titleMenu?.languageCode == "ja")
+    }
+
+    @Test("a pasted image's boxes have the menu with Extract checked in the extraction box; Pasted Text's has languages only", arguments: [
+        (CaptureResultBoxPresentation.InputSource.paste, WorkspaceOperationKind.extract, true, true, nil as String?),
+        (.paste, .translate, true, false, "ja"),
+        (.pastedText, .translate, false, false, "ja"),
+    ])
+    func pasteTitleMenu(
+        source: CaptureResultBoxPresentation.InputSource,
+        operation: WorkspaceOperationKind,
+        offersExtract: Bool,
+        checksExtract: Bool,
+        languageCode: String?
+    ) {
+        let value = CaptureResultBoxPresentation(
+            operation: operation, targetLanguageName: "日本語", targetLanguageCode: "ja",
+            providerSummary: "DeepSeek · chat", slot: WorkspaceOperationSlot(attempt: .preparing), source: source
+        )
+        #expect(value.titleMenu == CaptureResultBoxPresentation.TitleMenu(
+            offersExtract: offersExtract, checksExtract: checksExtract, languageCode: languageCode
+        ))
+    }
+
+    @Test("choosing a language remembers it on the toolbar state, tells the app, then translates, in that order")
+    func choosingALanguageRunsInOrder() {
+        var events: [String] = []
+        let toolbar = CaptureToolbarState(targetLanguageCode: "zh-Hans")
+        let operations = CaptureResultBoxOperations(
+            toolbarState: toolbar, targetLanguages: [],
+            onStart: { events.append("start \($0) with \(toolbar.targetLanguageCode)") },
+            onTargetLanguageChange: { events.append("change \($0) from \(toolbar.targetLanguageCode)") }
+        )
+
+        operations.chooseLanguage("ja")
+
+        #expect(events == ["change ja from ja", "start translate with ja"])
+        #expect(toolbar.targetLanguageCode == "ja")
+    }
+
+    @Test("a language that cannot be chosen now changes nothing and starts nothing")
+    func disabledLanguageDoesNothing() {
+        var events: [String] = []
+        let toolbar = CaptureToolbarState(targetLanguageCode: "zh-Hans")
+        let operations = CaptureResultBoxOperations(
+            toolbarState: toolbar, targetLanguages: [],
+            onStart: { events.append("start \($0)") },
+            onTargetLanguageChange: { events.append("change \($0)") },
+            canChooseLanguage: { $0 == "fr" }
+        )
+
+        operations.chooseLanguage("ja")
+        #expect(events.isEmpty)
+        #expect(toolbar.targetLanguageCode == "zh-Hans")
+
+        operations.chooseLanguage("fr")
+        #expect(events == ["change fr", "start translate"])
+    }
+
+    @Test("Extract in the menu acts as the toolbar's Extract and waits while it is blocked")
+    func extractRowActsLikeTheToolbarButton() {
+        var started: [WorkspaceOperationKind] = []
+        let toolbar = CaptureToolbarState(targetLanguageCode: "ja")
+        let operations = CaptureResultBoxOperations(
+            toolbarState: toolbar, targetLanguages: [], onStart: { started.append($0) }, onTargetLanguageChange: { _ in }
+        )
+
+        operations.chooseExtract()
+        #expect(started == [.extract])
+
+        toolbar.unavailableOperations = [.extract]
+        operations.chooseExtract()
+        #expect(started == [.extract])
     }
 
     @Test("a canceled operation says so and can be retried, without earlier text")
@@ -708,8 +770,8 @@ extension FrozenCaptureOverlayControllerTests {
             #expect(text.visibleRect.maxY >= text.bounds.height - 4)
         }
 
-        @Test("a Pasted Text box's operation row shows Translate and its language but no Extract")
-        func pastedTextRowHasNoExtract() throws {
+        @Test("a translation box's title is the language menu's button and no operation row sits under the header")
+        func titleIsTheMenuButtonAndNoOperationRow() throws {
             try LocalizationTestCoordinator.withExclusiveAccess {
                 JustSnapLocalization.configure(effectiveLanguage: .english)
                 let (controller, panel) = try makeController()
@@ -721,18 +783,20 @@ extension FrozenCaptureOverlayControllerTests {
                 )
                 @MainActor func show(_ source: CaptureResultBoxPresentation.InputSource) throws -> String {
                     controller.state.presentation = CaptureResultBoxPresentation(
-                        operation: .translate, targetLanguageName: "Japanese", providerSummary: Self.provider,
-                        slot: finished("Body"), source: source
+                        operation: .translate, targetLanguageName: "Japanese", targetLanguageCode: "ja",
+                        providerSummary: Self.provider, slot: finished("Body"), source: source
                     )
                     pump(panel)
                     return try recognizedText(in: try #require(panel.contentView))
                 }
 
-                let text = try show(.pastedText)
-                #expect(text.contains("JA"))
-                #expect(!text.contains("Extract"))
-                // The same row for a pasted image has Extract, so the absence above is the row's doing.
-                #expect(try show(.paste).contains("Extract"))
+                for source in [CaptureResultBoxPresentation.InputSource.paste, .pastedText, .capture] {
+                    let text = try show(source)
+                    #expect(text.contains("Translate"))
+                    // The old row's abbreviation and Extract button are gone from the box.
+                    #expect(!text.contains("JA"))
+                    #expect(!text.contains("Extract"))
+                }
             }
         }
 

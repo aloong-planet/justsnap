@@ -37,7 +37,7 @@ extension ProviderApplicationTests {
             try await eventually { resultBoxPresentation()?.title == "Extract" }
 
             #expect(try mainScreenOverlay() == nil)
-            #expect(resultBoxPresentation()?.showsOperations == true)
+            #expect(resultBoxPresentation()?.titleMenu?.offersExtract == true)
             #expect(resultBox()?.level == .floating)
             try await fixture.http.finishImage(source: "Pasted text")
             try await eventually { resultBoxText() == "Pasted text" }
@@ -67,8 +67,9 @@ extension ProviderApplicationTests {
             let request = try #require(await fixture.http.imageRequests.first)
             #expect(sentUserText(request) == text)
             #expect(sentPNG(request) == nil)
-            #expect(resultBoxPresentation()?.showsOperations == true)
-            #expect(pasteBoxOperations()?.toolbarState.currentOperation == .translate)
+            #expect(resultBoxPresentation()?.titleMenu?.offersExtract == false)
+            #expect(resultBoxPresentation()?.titleMenu?.languageCode == "ja")
+            #expect(resultBoxOperations()?.toolbarState.currentOperation == .translate)
             // The box knows its input is text, so an oversized request asks for less text (REQ-007/AC-03).
             #expect(resultBoxPresentation()?.source == .pastedText)
             try await fixture.http.finishImage(source: "A paragraph of copied text.", translation: "コピーした文章。")
@@ -93,7 +94,7 @@ extension ProviderApplicationTests {
 
             #expect(resultBoxPresentation()?.body == .message("Files can't be pasted for now. Copy text or an image instead."))
             #expect(resultBoxPresentation()?.canRetry == false)
-            #expect(resultBoxPresentation()?.showsOperations == false)
+            #expect(resultBoxPresentation()?.titleMenu == nil)
             await settleMainActor()
             #expect(await fixture.http.imageRequests.isEmpty)
             #expect(model.historyRecords.isEmpty)
@@ -115,7 +116,7 @@ extension ProviderApplicationTests {
             // A later clipboard change does not reach the operations of this paste (clipboard-paste::REQ-003/AC-07).
             fixture.pasteboard.clearContents()
             fixture.pasteboard.setString("Copied since", forType: .string)
-            let operations = try #require(pasteBoxOperations())
+            let operations = try #require(resultBoxOperations())
             operations.onTargetLanguageChange("fr")
             operations.onStart(.translate)
             try await eventually { await fixture.http.imageRequests.count == 2 }
@@ -333,7 +334,7 @@ extension ProviderApplicationTests {
     }
 
     @Test
-    func translateInTheOperationRowMakesItsOwnRecordFromTheSameFile() async throws {
+    func choosingALanguageInTheTitleMenuMakesItsOwnRecordFromTheSameFile() async throws {
         try await withResultFixture { fixture, model in
             model.changeTargetLanguage("ja")
             putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
@@ -341,10 +342,11 @@ extension ProviderApplicationTests {
             try await eventually { await fixture.http.imageRequests.count == 1 }
             try await fixture.http.finishImage(source: "Source")
             try await eventually { model.historyRecords.count == 1 }
-            let operations = try #require(pasteBoxOperations())
+            let operations = try #require(resultBoxOperations())
             #expect(operations.toolbarState.targetLanguageCode == "ja")
 
-            operations.onStart(.translate)
+            // A language never translated into starts a request, even the one already remembered.
+            operations.chooseLanguage("ja")
             try await eventually { await fixture.http.imageRequests.count == 2 }
             #expect(resultBoxPresentation()?.title.hasPrefix("Translate · ") == true)
             #expect(operations.toolbarState.currentOperation == .translate)
@@ -356,7 +358,7 @@ extension ProviderApplicationTests {
             #expect(records.contains { $0.operation.kind == .translate && $0.operation.targetLanguage == "ja" })
 
             // Back to Extract shows its result again without a request (clipboard-paste::REQ-006/AC-04).
-            operations.onStart(.extract)
+            operations.chooseExtract()
             await settleMainActor()
             #expect(resultBoxText() == "Source")
             #expect(await fixture.http.imageRequests.count == 2)
@@ -365,9 +367,8 @@ extension ProviderApplicationTests {
             try await clickPasteBoxButton(try #require(resultBox()), fromEnd: 2)
             #expect(fixture.clipboard.writtenTexts.last == "Source")
 
-            // Translate after a target-language change starts a new record (clipboard-paste::REQ-006/AC-04).
-            operations.onTargetLanguageChange("fr")
-            operations.onStart(.translate)
+            // Choosing another target language starts a new record (clipboard-paste::REQ-006/AC-04).
+            operations.chooseLanguage("fr")
             try await eventually { await fixture.http.imageRequests.count == 3 }
             try await fixture.http.finishImage(source: "Source", translation: "Traduction")
             try await eventually { model.historyRecords.count == 3 }
@@ -385,6 +386,115 @@ extension ProviderApplicationTests {
             #expect(model.historyRecords.count == 3)
             let rerun = model.historyRecords.first { $0.operation.translationMarkdown?.contains("Rerun") == true }
             #expect(rerun?.operation.targetLanguage == "fr")
+        }
+    }
+
+    // v1-core::REQ-011/AC-08: choosing a language in the title menu translates the same text into it.
+    @Test
+    func choosingAnotherLanguageForPastedTextTranslatesItAgainAndRemembersTheLanguage() async throws {
+        try await withResultFixture { fixture, model in
+            model.changeTargetLanguage("ja")
+            fixture.pasteboard.clearContents()
+            fixture.pasteboard.setString("Hello there.", forType: .string)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Hello there.", translation: "こんにちは。")
+            try await eventually { model.historyRecords.first?.operation.status == .succeeded }
+            let operations = try #require(resultBoxOperations())
+            #expect(operations.canChooseLanguage("fr"))
+
+            operations.chooseLanguage("fr")
+            try await eventually { await fixture.http.imageRequests.count == 2 }
+            try await eventually { resultBoxPresentation()?.titleMenu?.languageCode == "fr" }
+            try await fixture.http.finishImage(source: "Hello there.", translation: "Bonjour.")
+            try await eventually { model.historyRecords.count == 2 }
+
+            #expect(model.selectedTargetLanguageCode == "fr")
+            #expect(model.historyRecords.count == 2)
+            #expect(model.historyRecords.allSatisfy { $0.operation.input == .pastedText("Hello there.") })
+            let japanese = try #require(model.historyRecords.first { $0.operation.targetLanguage == "ja" })
+            #expect(japanese.operation.translationMarkdown?.contains("こんにちは") == true)
+            #expect(model.historyRecords.contains { $0.operation.targetLanguage == "fr" })
+
+            // Retry after the choice reruns the box's new language (v1-core::REQ-011/AC-05).
+            try await eventually { resultBoxPresentation()?.canRetry == true }
+            try await clickPasteBoxButton(try #require(resultBox()), fromEnd: 1)
+            try await eventually { await fixture.http.imageRequests.count == 3 }
+            #expect(resultBoxPresentation()?.titleMenu?.languageCode == "fr")
+        }
+    }
+
+    // v1-core::REQ-011/AC-03: the language the box already shows has its result; choosing it asks for nothing.
+    @Test
+    func choosingTheLanguageAlreadyShownSendsNoRequest() async throws {
+        try await withResultFixture { fixture, model in
+            model.changeTargetLanguage("ja")
+            fixture.pasteboard.clearContents()
+            fixture.pasteboard.setString("Hello there.", forType: .string)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Hello there.", translation: "こんにちは。")
+            try await eventually { model.historyRecords.first?.operation.status == .succeeded }
+
+            try #require(resultBoxOperations()).chooseLanguage("ja")
+            await settleMainActor()
+
+            #expect(await fixture.http.imageRequests.count == 1)
+            #expect(model.historyRecords.count == 1)
+            #expect(resultBoxText() == "こんにちは。")
+        }
+    }
+
+    // v1-core::REQ-011/AC-04: while a request runs no language can be chosen, and the remembered one stays.
+    @Test
+    func aLanguageCannotBeChosenWhileARequestRuns() async throws {
+        try await withResultFixture { fixture, model in
+            model.changeTargetLanguage("ja")
+            fixture.pasteboard.clearContents()
+            fixture.pasteboard.setString("Hello there.", forType: .string)
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            let operations = try #require(resultBoxOperations())
+            #expect(!operations.canChooseLanguage("fr"))
+
+            operations.chooseLanguage("fr")
+            await settleMainActor()
+
+            #expect(model.selectedTargetLanguageCode == "ja")
+            #expect(operations.toolbarState.targetLanguageCode == "ja")
+            #expect(await fixture.http.imageRequests.count == 1)
+        }
+    }
+
+    // v1-core::REQ-011/AC-07: an unsaved extraction blocks a language that would start a request.
+    @Test
+    func aLanguageCannotBeChosenWhileAnotherResultIsUnsaved() async throws {
+        try await withResultFixture { fixture, model in
+            model.changeTargetLanguage("ja")
+            putWebKitCopiedImage(try pastedImage(width: 8, height: 8), on: fixture.pasteboard)
+            let database = try failSuccessfulSaves(fixture)
+            defer { sqlite3_close(database) }
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Unsaved text")
+            try await eventually { resultBoxPresentation()?.saveNotice != nil }
+            let operations = try #require(resultBoxOperations())
+            #expect(!operations.canChooseLanguage("ja"))
+            #expect(!operations.canChooseLanguage("fr"))
+
+            operations.chooseLanguage("fr")
+            await settleMainActor()
+
+            #expect(model.selectedTargetLanguageCode == "ja")
+            #expect(await fixture.http.imageRequests.count == 1)
+            #expect(resultBoxText() == "Unsaved text")
+
+            // Saving it lets the box close without asking, as the fixture's teardown does.
+            try #require(sqlite3_exec(database, "DROP TRIGGER box_save_failure", nil, nil, nil) == SQLITE_OK)
+            let box = try #require(resultBox())
+            pumpNativeEvents(box)
+            try click(box, at: NSPoint(x: try #require(box.contentView).bounds.maxX - 32, y: 20))
+            try await eventually { resultBoxPresentation()?.saveNotice == nil }
         }
     }
 
@@ -584,7 +694,7 @@ extension ProviderApplicationTests {
             model.menuView().callbacks.onTargetLanguageChange("fr")
 
             #expect(panelLanguage == "fr")
-            #expect(pasteBoxOperations()?.toolbarState.targetLanguageCode == "fr")
+            #expect(resultBoxOperations()?.toolbarState.targetLanguageCode == "fr")
             #expect(model.selectedTargetLanguageCode == "fr")
             await settleMainActor()
             #expect(panelCloses == 0)
@@ -593,7 +703,7 @@ extension ProviderApplicationTests {
             #expect(model.historyRecords.count == 1)
 
             // A choice in the paste box reaches the panel the same way.
-            try #require(pasteBoxOperations()).onTargetLanguageChange("de")
+            try #require(resultBoxOperations()).onTargetLanguageChange("de")
             #expect(panelLanguage == "de")
         }
     }
@@ -608,7 +718,7 @@ extension ProviderApplicationTests {
             try await eventually { await fixture.http.imageRequests.count == 1 }
             try await fixture.http.finishImage(source: "Hello", translation: "你好")
             try await eventually { model.historyRecords.count == 1 }
-            #expect(resultBoxPresentation()?.offersExtract == false)
+            #expect(resultBoxPresentation()?.titleMenu?.offersExtract == false)
 
             // A large image keeps the box in preparation long enough for the first Extract it shows to be the
             // preparing one; with a decode faster than the poll this test could not tell the two apart.
@@ -616,7 +726,7 @@ extension ProviderApplicationTests {
             model.pasteFromClipboard()
 
             try await eventually { resultBoxPresentation()?.title == "Extract" }
-            #expect(resultBoxPresentation()?.offersExtract == true)
+            #expect(resultBoxPresentation()?.titleMenu?.offersExtract == true)
         }
     }
 
@@ -737,11 +847,6 @@ func clickPasteBoxButton(_ box: NSWindow, fromEnd index: Int) async throws {
         pumpNativeEvents(box)
     }
     try clickResultBoxButton(box, fromEnd: index)
-}
-
-@MainActor
-func pasteBoxOperations() -> CaptureResultBoxOperations? {
-    (resultBox()?.contentView as? NSHostingView<CaptureResultBoxView>)?.rootView.operations
 }
 
 /// Lets main-actor work the paste started run before a test reads that it did nothing more.

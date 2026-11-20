@@ -1513,18 +1513,28 @@ final class JustSnapApplicationModel: ObservableObject {
     ) {
         guard let generation = activeCaptureGeneration else { return }
         captureToolbarState.targetLanguageCode = selectedTargetLanguageCode
+        let startOperation: (WorkspaceOperationKind) -> Void = { [weak self] operation in
+            self?.runCaptureAction(generation: generation) { png in
+                self?.handleOperationPress(operation, originalPNG: png)
+            }
+        }
+        let changeLanguage: (String) -> Void = { [weak self] code in
+            self?.changeTargetLanguage(code)
+        }
+        // The result box's title menu starts the same operations as the toolbar (v1-core::REQ-011/AC-08).
+        resultBoxController.state.operations = CaptureResultBoxOperations(
+            toolbarState: captureToolbarState,
+            targetLanguages: targetLanguageOptions,
+            onStart: startOperation,
+            onTargetLanguageChange: changeLanguage,
+            canChooseLanguage: { [weak self] in self?.canChooseResultLanguage($0) ?? false }
+        )
         captureToolbarController.show(
             content: CaptureOperationToolbar(
                 state: captureToolbarState,
                 targetLanguages: targetLanguageOptions,
-                onStart: { [weak self] operation in
-                    self?.runCaptureAction(generation: generation) { png in
-                        self?.handleOperationPress(operation, originalPNG: png)
-                    }
-                },
-                onTargetLanguageChange: { [weak self] code in
-                    self?.changeTargetLanguage(code)
-                },
+                onStart: startOperation,
+                onTargetLanguageChange: changeLanguage,
                 onCopy: { [weak self] in
                     self?.runCaptureAction(generation: generation) { png in
                         await self?.copyCapturedImage(png, generation: generation)
@@ -1639,6 +1649,14 @@ final class JustSnapApplicationModel: ObservableObject {
         return operation == .translate && workspaceTargetLanguageCode != selectedTargetLanguageCode
     }
 
+    /// The title menu's languages are not available while a request runs, nor while an unsaved result would
+    /// make the choice start a new request (v1-core::REQ-011/AC-04, AC-07).
+    private func canChooseResultLanguage(_ code: String) -> Bool {
+        guard workspaceSession != nil, runningResultOperation == nil, !captureActionInProgress else { return false }
+        guard hasUnsavedWorkspaceResult else { return true }
+        return resultSlot(.translate).attempt != .neverStarted && workspaceTargetLanguageCode == code
+    }
+
     private func startResultRequest(_ operation: WorkspaceOperationKind, targetLanguage: String) {
         guard let session = workspaceSession, let owner = captureLease else { return }
         shownResultOperation = operation
@@ -1723,11 +1741,11 @@ final class JustSnapApplicationModel: ObservableObject {
             captureToolbarController.reposition(below: frame, on: screen)
             return
         }
+        let languageCode = workspaceTargetLanguageCode ?? selectedTargetLanguageCode
         let presentation = CaptureResultBoxPresentation(
             operation: operation,
-            targetLanguageName: JustSnapLocalization.localizedLanguageName(
-                for: workspaceTargetLanguageCode ?? selectedTargetLanguageCode
-            ),
+            targetLanguageName: JustSnapLocalization.localizedLanguageName(for: languageCode),
+            targetLanguageCode: languageCode,
             providerSummary: workspaceProviderSummary ?? providerSummary,
             slot: resultSlot(operation),
             retryAvailable: !hasUnsavedWorkspaceResult,
@@ -1845,6 +1863,7 @@ final class JustSnapApplicationModel: ObservableObject {
         captureToolbarState.currentOperation = nil
         captureToolbarState.isRequestRunning = false
         captureToolbarState.unavailableOperations = []
+        resultBoxController.state.operations = nil
         resultBoxController.reset()
     }
 
