@@ -373,7 +373,7 @@ public struct MenuBarPanelView: View {
             .frame(height: 32)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .popover(isPresented: $isLanguageListPresented, arrowEdge: .bottom) {
+        .unanimatedPopover(isPresented: $isLanguageListPresented) {
             TargetLanguageList(
                 options: targetLanguages,
                 selectedCode: targetLanguageCode

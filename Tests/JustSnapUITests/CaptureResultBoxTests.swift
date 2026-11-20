@@ -1075,12 +1075,15 @@ func inkContrast(in view: NSView, box: CGRect) throws -> CGFloat {
 
 /// The lines of text a view renders, with where each one is in the view's coordinates.
 @MainActor
-func recognizedLines(in view: NSView) throws -> [(text: String, box: CGRect)] {
+func recognizedLines(
+    in view: NSView,
+    languages: [String] = ["en-US", "zh-Hans"]
+) throws -> [(text: String, box: CGRect)] {
     view.layoutSubtreeIfNeeded()
     let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
     view.cacheDisplay(in: view.bounds, to: bitmap)
     let request = VNRecognizeTextRequest()
-    request.recognitionLanguages = ["en-US", "zh-Hans"]
+    request.recognitionLanguages = languages
     request.recognitionLevel = .accurate
     try VNImageRequestHandler(cgImage: try #require(bitmap.cgImage), options: [:]).perform([request])
     return (request.results ?? []).compactMap { observation in

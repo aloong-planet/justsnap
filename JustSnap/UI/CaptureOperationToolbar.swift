@@ -247,7 +247,7 @@ private struct TranslateControl: View {
         .buttonStyle(CaptureToolbarButtonStyle(kind: .part, isCurrent: isCurrent))
         .help(selectedLanguageHint)
         .accessibilityLabel(selectedLanguageHint)
-        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+        .unanimatedPopover(isPresented: $isPresented) {
             TargetLanguageList(
                 options: options,
                 selectedCode: state.targetLanguageCode
@@ -285,7 +285,7 @@ struct TargetLanguageList: View {
     var body: some View {
         VStack(spacing: 8) {
             if let leadingRow {
-                Button(action: leadingRow.action) {
+                TargetLanguageListRow(isEnabled: leadingRow.isEnabled, action: leadingRow.action) {
                     HStack(spacing: 8) {
                         Text(leadingRow.title)
                             .font(.system(size: 12, weight: .semibold))
@@ -295,24 +295,20 @@ struct TargetLanguageList: View {
                                 .foregroundStyle(JustSnapTheme.accent)
                         }
                     }
-                    .padding(.horizontal, 4)
-                    .contentShape(Rectangle())
+                    .foregroundStyle(leadingRow.isEnabled ? JustSnapTheme.primaryText : JustSnapTheme.tertiaryText)
                 }
-                .buttonStyle(.plain)
-                .disabled(!leadingRow.isEnabled)
-                .foregroundStyle(leadingRow.isEnabled ? JustSnapTheme.primaryText : JustSnapTheme.tertiaryText)
                 Divider()
             }
             // A short fixed list in a plain stack: a `List` builds a table whose cost grows with its rows.
             VStack(spacing: 0) {
                 ForEach(options) { option in
-                    Button {
+                    TargetLanguageListRow(isEnabled: isEnabled(option.code)) {
                         onSelect(option.code)
                     } label: {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
                             Text(option.abbreviation)
                                 .font(.system(size: 12, weight: .semibold))
-                                .frame(width: 30, alignment: .leading)
+                                .frame(width: 22, alignment: .leading)
                             Text(option.name)
                                 .foregroundStyle(JustSnapTheme.secondaryText)
                                 .lineLimit(1)
@@ -323,16 +319,44 @@ struct TargetLanguageList: View {
                                     .foregroundStyle(JustSnapTheme.accent)
                             }
                         }
-                        .padding(.horizontal, 4)
-                        .frame(height: TargetLanguageListMetrics.rowHeight)
-                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .disabled(!isEnabled(option.code))
                 }
             }
         }
         .padding(TargetLanguageListMetrics.padding)
         .frame(width: TargetLanguageListMetrics.width)
+    }
+}
+
+/// How a row of the list looks under the pointer.
+enum TargetLanguageListRowAppearance {
+    /// The toolbar's hover colour while the pointer is over a row that can be chosen; nothing otherwise.
+    static func background(isHovered: Bool, isEnabled: Bool) -> Color {
+        isHovered && isEnabled ? JustSnapTheme.toolbarHover : .clear
+    }
+}
+
+/// One row of the list: the whole row takes a press and shows the toolbar's hover colour under the pointer,
+/// as a menu item does. A row that cannot be chosen takes neither.
+private struct TargetLanguageListRow<Label: View>: View {
+    let isEnabled: Bool
+    let action: () -> Void
+    @ViewBuilder let label: () -> Label
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            label()
+                .padding(.horizontal, 4)
+                .frame(height: TargetLanguageListMetrics.rowHeight)
+                .background(
+                    RoundedRectangle(cornerRadius: JustSnapUIConstants.compactCornerRadius, style: .continuous)
+                        .fill(TargetLanguageListRowAppearance.background(isHovered: isHovered, isEnabled: isEnabled))
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .onHover { isHovered = $0 }
     }
 }

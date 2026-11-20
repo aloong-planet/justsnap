@@ -402,7 +402,7 @@ public struct CaptureResultBoxView: View {
             }
             .buttonStyle(CaptureToolbarButtonStyle(kind: .field))
             .accessibilityLabel(presentation.title)
-            .popover(isPresented: $isTitleMenuPresented, arrowEdge: .bottom) {
+            .unanimatedPopover(isPresented: $isTitleMenuPresented) {
                 TargetLanguageList(
                     options: operations.targetLanguages,
                     selectedCode: menu.languageCode ?? "",

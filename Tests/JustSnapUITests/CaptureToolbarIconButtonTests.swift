@@ -100,7 +100,7 @@ struct CaptureToolbarIconButtonTests {
         let rows = try recognizedListText(
             options: [
                 TargetLanguageOption(code: "en", name: "English"),
-                TargetLanguageOption(code: "zh-Hans", name: "简体中文"),
+                TargetLanguageOption(code: "zh-Hans", name: "Chinese"),
             ],
             selectedCode: "en"
         )
@@ -144,17 +144,17 @@ struct CaptureToolbarIconButtonTests {
     func languageRowOrderAndCheckMark() throws {
         let options = [
             TargetLanguageOption(code: "en", name: "English"),
-            TargetLanguageOption(code: "zh-Hans", name: "简体中文"),
+            TargetLanguageOption(code: "zh-Hans", name: "Chinese"),
         ]
         try withRenderedLanguageList(options: options, selectedCode: "en") { view in
             let lines = try recognizedLines(in: view)
-            func box(_ text: String) throws -> CGRect {
-                try #require(lines.first { $0.text == text }, "\(text) among \(lines.map(\.text))").box
+            func row(_ name: String) throws -> (text: String, box: CGRect) {
+                try #require(lines.first { $0.text.contains(name) }, "\(name) among \(lines.map(\.text))")
             }
             // Text recognition may read a row as one line or as two; either way the abbreviation comes first.
-            let nameLine = try #require(lines.first { $0.text.contains("English") }, "among \(lines.map(\.text))")
+            let nameLine = try row("English")
             if nameLine.text == "English" {
-                let abbreviation = try box("EN")
+                let abbreviation = try #require(lines.first { $0.text == "EN" }, "among \(lines.map(\.text))").box
                 #expect(abbreviation.maxX <= nameLine.box.minX, "EN \(abbreviation) English \(nameLine.box)")
                 #expect(abs(abbreviation.midY - nameLine.box.midY) < 4)
             } else {
@@ -175,11 +175,45 @@ struct CaptureToolbarIconButtonTests {
                 }
                 return false
             }
-            let current = try box("EN").midY
-            let other = try box("ZH").midY
-            #expect(hasInk(rowMidY: current), "the current language has a check mark")
-            #expect(!hasInk(rowMidY: other), "another language has none")
+            #expect(hasInk(rowMidY: nameLine.box.midY), "the current language has a check mark")
+            #expect(!hasInk(rowMidY: try row("Chinese").box.midY), "another language has none")
         }
+    }
+
+    @Test("the language list is narrow, and every language's name shows in full beside the check mark")
+    func languageListIsNarrowAndNamesAreNotTruncated() throws {
+        #expect(TargetLanguageListMetrics.width <= 200)
+        for language in [EffectiveApplicationLanguage.english, .simplifiedChinese] {
+            try LocalizationTestCoordinator.withExclusiveAccess {
+                JustSnapLocalization.configure(effectiveLanguage: language)
+                let options = TargetLanguageCatalog.standard.codes.map {
+                    TargetLanguageOption(code: $0, name: JustSnapLocalization.localizedLanguageName(for: $0))
+                }
+                // The longest name carries the check mark, the row that has the least room.
+                let longest = try #require(options.max { $0.name.count < $1.name.count })
+                try withRenderedLanguageList(options: options, selectedCode: longest.code) { view in
+                    #expect(view.bounds.width == TargetLanguageListMetrics.width)
+                    // The recognizer reads Chinese only when it is listed first.
+                    let languages = language == .english ? ["en-US", "zh-Hans"] : ["zh-Hans", "en-US"]
+                    let lines = try recognizedLines(in: view, languages: languages).map(\.text)
+                    for option in options {
+                        #expect(lines.contains { $0.contains(option.name) }, "\(option.name) among \(lines) (\(language))")
+                    }
+                }
+            }
+        }
+    }
+
+    // Gap: SwiftUI's hover cannot be driven from a test (a mouse-moved or mouse-entered event sent to the list's
+    // hosting view never reaches `onHover`), so the rule is tested as a function and that a row takes it from
+    // the pointer is checked on the installed build.
+    @Test("a row under the pointer is highlighted, and a row that cannot be chosen never is")
+    func rowUnderThePointerIsHighlighted() {
+        let resting = TargetLanguageListRowAppearance.background(isHovered: false, isEnabled: true)
+        let hovered = TargetLanguageListRowAppearance.background(isHovered: true, isEnabled: true)
+        #expect(resting == Color.clear)
+        #expect(hovered != resting)
+        #expect(TargetLanguageListRowAppearance.background(isHovered: true, isEnabled: false) == resting)
     }
 
     // The hint itself appears only under a real pointer: that is checked on the installed build.

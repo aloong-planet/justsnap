@@ -14,8 +14,8 @@ public enum JustSnapUIConstants {
 
 /// The target language list's layout, which the native tests count rows from.
 public enum TargetLanguageListMetrics {
-    public static let width: CGFloat = 260
-    public static let padding: CGFloat = 10
+    public static let width: CGFloat = 200
+    public static let padding: CGFloat = 8
     public static let rowHeight: CGFloat = 28
 }
 
