@@ -1,6 +1,6 @@
 # 官网下载页
 
-> 关联：[ADR-0004](../adr/0004-separate-sparkle-feeds-per-distribution-architecture.md)（三个发行架构各用独立 appcast）· [ADR-0007](../adr/0007-direct-distribution-only-for-v1.md)（v1 只做直接分发）
+> 关联：[ADR-0004](../adr/0004-distribute-one-apple-silicon-package.md)（只发布一个 Apple 芯片安装包）· [ADR-0007](../adr/0007-direct-distribution-only-for-v1.md)（v1 只做直接分发）
 
 ## Problem Statement
 
@@ -8,7 +8,7 @@
 
 ## Solution
 
-仓库里的 `site/` 项目，用 Astro 构建，由 Cloudflare Pages 部署在 `justsnap.aloongplanet.com`，中文在 `/`，英文在 `/en`。它是一页长页：顶栏、带下载按钮的首屏、随滚动切换步骤的功能展示区、三步安装、下载区和页脚。访客的浏览器决定提供哪个下载：先读 R2 上的最新版指针；读不到就读 GitHub 公开的 Releases 接口；两处都读不到就提供 GitHub 的发布列表。因此发布新版本不需要改站点。截图是 App 的真实截图。
+仓库里的 `site/` 项目，用 Astro 构建，由 Cloudflare Pages 部署在 `justsnap.aloongplanet.com`，中文在 `/`，英文在 `/en`。它是一页长页：顶栏、占满第一屏并带下载按钮的首屏、随滚动切换步骤的功能展示区、含下载区与三步安装的“下载与安装”区和页脚。访客的浏览器决定提供哪个下载：先读 R2 上的最新版指针；读不到就读 GitHub 公开的 Releases 接口；两处都读不到就提供 GitHub 的发布列表。因此发布新版本不需要改站点。截图是 App 的真实截图。
 
 ## User Stories
 
@@ -38,7 +38,7 @@
 
 作为访客，我想知道安装步骤和首次启动会出现什么，这样系统的提示不会吓到我。
 
-- landing-page::US-004/AC-01：三步：下载 DMG；打开它，把随译拖进“应用程序”；打开应用。
+- landing-page::US-004/AC-01：三步：用其上的下载按钮得到 DMG；打开它，把随译拖进“应用程序”；打开应用。
 - landing-page::US-004/AC-02：第三步说明 macOS 会提示 Apple 已检查过它没有恶意软件，点“打开”即可；应用会引导授予屏幕录制权限并添加模型服务商的 API Key；有新版本时菜单栏面板出现更新提示。
 
 ## Functional Requirements
@@ -58,9 +58,11 @@
 - landing-page::REQ-002/AC-03：**列表**：首屏按钮写“从 GitHub 下载随译”，通向发布列表；按钮和平台行里都没有版本号；下载区写“暂时无法读取版本信息，请前往 GitHub 下载”，一个按钮“前往 GitHub 下载”。
 - landing-page::REQ-002/AC-04：指向 GitHub 的链接在新标签页打开；R2 的下载在原页开始。
 
-### landing-page::REQ-003 页面结构（直接验收）
+### landing-page::REQ-003 页面结构
 
-顶栏有品牌（文字标识）、导航（功能、安装、下载、GitHub，窄于 760px 时隐藏）和语言切换器，滚动时停在顶部。其下依次是首屏、功能展示区、安装区、下载区，以及含 GitHub、发布列表链接和版权行的页脚。
+- landing-page::REQ-003/AC-01：顶栏有品牌（文字标识）、导航（功能、下载与安装、GitHub，窄于 760px 时隐藏）和语言切换器，滚动时停在顶部。
+- landing-page::REQ-003/AC-02：顶栏之下依次是首屏、功能展示区、“下载与安装”区、页脚。“下载与安装”区先是下载区，再是三步安装（landing-page::US-004）；页脚有 GitHub、发布列表链接和版权行。
+- landing-page::REQ-003/AC-03：内容宽度上限 1280px。宽于 900px 时，首屏恰占满顶栏之下的一屏：左侧是名称、说明和下载块，右侧的截图放大到整张都在这一屏内，功能展示区的顶端恰在首屏之下。不宽于 900px 时，首屏按内容高度排列，截图在文字下方，宽度占满内容宽度。
 
 ### landing-page::REQ-004 固定的功能展示区
 
@@ -80,9 +82,9 @@
 
 文案只有中文和英文。中文页称产品“随译”，括注 JustSnap 于品牌与首屏；英文页称 JustSnap。提到模型服务商时只举例而不当作全集（“OpenAI、Gemini、DeepSeek 等”）。页面使用跟随访客系统外观的浅色与深色两套配色。
 
-### landing-page::REQ-007 首屏标题（直接验收）
+### landing-page::REQ-007 首屏标题与说明（直接验收）
 
-首屏标题中文为“截一块屏幕，直接提取文字或翻译”，英文为“Snap any part of your screen. Get the text or the translation.”。
+首屏标题中文为“截一块屏幕，直接提取文字或翻译”，英文为“Snap any part of your screen. Get the text or the translation.”。首屏说明中文为“随译（JustSnap）是 macOS 菜单栏里的截图工具：框选任意区域，几秒内拿到提取的文字或译文。用你自己的模型服务商。”，英文为“JustSnap lives in your Mac's menu bar. Select any region, and seconds later a vision model hands back the text or the translation. Bring your own provider.”。
 
 ### landing-page::REQ-008 应用标识（直接验收）
 
@@ -97,6 +99,13 @@
 适用范围：整页，两种语言、两种外观、三种下载状态。
 
 - landing-page::QR-001/AC-01：在 400、900、1280、1440px 宽度下，页面不横向滚动，每个按钮都在其卡片内，首屏保留两侧边距。
+
+### landing-page::QR-002 文字可读
+
+适用范围：整页的文字，两种外观。
+
+- landing-page::QR-002/AC-01：首屏说明、功能说明和卡片里的文字用正文色；次要色只用于平台行、序号这类附注。
+- landing-page::QR-002/AC-02：每种文字色对其所在底色的对比度不低于 4.5:1。
 
 ## Constraints
 
@@ -162,7 +171,7 @@
 
 ## Out of Scope
 
-- Universal 和 Intel 安装包的下载入口：页面只服务 Apple 芯片（landing-page::CON-004）。
+- Universal 和 Intel 安装包的下载入口：发行只有一个 Apple 芯片安装包（ADR-0004），页面不提供也不提及（landing-page::CON-004）。
 - 预发布版本的下载状态：目前没有预发布通道。
 - 下载统计。
 - 两种语言之外的语言。
