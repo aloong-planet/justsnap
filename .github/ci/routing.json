@@ -1,0 +1,27 @@
+{
+  "scopes": {
+    "app": ["test-and-package"]
+  },
+  "rules": [
+    {
+      "reason": "Documentation",
+      "select": [],
+      "paths": [
+        "AGENTS.md",
+        "CODEX.md",
+        "docs/CONTEXT.md",
+        "docs/adr/**",
+        "docs/agents/**",
+        "docs/ops/**",
+        "docs/postmortems/**",
+        "docs/prototypes/**",
+        "docs/specs/**"
+      ]
+    },
+    {
+      "reason": "Application",
+      "select": ["app"],
+      "paths": ["Sources/**", "JustSnap/**", "Tests/**", "Scripts/**", "Distribution/**", "Package.swift", "Package.resolved"]
+    }
+  ]
+}
