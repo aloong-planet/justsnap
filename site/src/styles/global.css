@@ -379,7 +379,6 @@ a {
 }
 .dlbox .ver {
   margin: 0 0 18px;
-  color: var(--muted);
 }
 .dlbox .row {
   display: flex;
