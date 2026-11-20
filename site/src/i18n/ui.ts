@@ -89,3 +89,7 @@ const en: Shape<typeof zh> = {
 }
 
 export const ui: Record<Locale, typeof zh> = { zh, en }
+
+/** Each language's page, and how its toggle is written (the same in both pages, so a visitor finds it by its own name) */
+export const PAGE_PATH: Record<Locale, string> = { zh: '/', en: '/en/' }
+export const LANGUAGE_NAME: Record<Locale, string> = { zh: '中文', en: 'EN' }

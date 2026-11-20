@@ -1,0 +1,72 @@
+---
+// The page's frame: the head, the sticky header (brand, navigation, language toggle) and the footer
+// (landing-page::REQ-003). Each language's page fills the main region with the same sections.
+import '../styles/global.css'
+import { REPOSITORY, RELEASE_LIST } from '../download'
+import { LANGUAGE_NAME, LOCALES, PAGE_PATH, ui, type Locale } from '../i18n/ui'
+
+interface Props {
+  locale: Locale
+}
+
+const { locale } = Astro.props
+const t = ui[locale]
+---
+
+<!doctype html>
+<html lang={t.htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t.title}</title>
+    <meta name="description" content={t.description} />
+  </head>
+  <body>
+    <header class="hdr">
+      <div class="wrap">
+        <a class="brand" href="#top">{t.brand}</a>
+        <nav class="nav" aria-label={t.nav.label}>
+          <a href="#features">{t.nav.features}</a>
+          <a href="#download">{t.nav.download}</a>
+          <a href={REPOSITORY} target="_blank" rel="noopener">{t.nav.github}</a>
+        </nav>
+        <span class="lang" role="group" aria-label={t.langLabel}>
+          {
+            LOCALES.map((l) =>
+              l === locale ? (
+                <span class="cur" aria-current="page" lang={ui[l].htmlLang}>
+                  {LANGUAGE_NAME[l]}
+                </span>
+              ) : (
+                <a href={PAGE_PATH[l]} hreflang={ui[l].htmlLang} lang={ui[l].htmlLang} data-switch-language>
+                  {LANGUAGE_NAME[l]}
+                </a>
+              )
+            )
+          }
+        </span>
+      </div>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="foot">
+      <div class="wrap">
+        <a href={REPOSITORY} target="_blank" rel="noopener">{t.footer.github}</a>
+        <a href={RELEASE_LIST} target="_blank" rel="noopener">{t.footer.releases}</a>
+        <span class="copy">{t.footer.copyright}</span>
+      </div>
+    </footer>
+    <script>
+      import { initDownload } from '../scripts/download'
+      import { initFeatures } from '../scripts/features'
+      import { initLanguageSwitch } from '../scripts/language-switch'
+      // Initialize features before the language switch, which may restore the visitor's current step.
+      initFeatures()
+      initLanguageSwitch()
+      // Should anything fail before a state is shown, the page stays in the list state it was served in, which is a
+      // valid way to download
+      initDownload(document, (url, init) => fetch(url, init)).catch(() => undefined)
+    </script>
+  </body>
+</html>
