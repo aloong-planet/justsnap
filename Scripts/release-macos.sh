@@ -181,85 +181,80 @@ verify_final_dmg() {
         --verbose=4 "$dmg"
 }
 
-for architecture in arm64 x64 universal; do
-    feed_url="$appcast_base_url/appcast-$architecture.xml"
-    app="$staging_root/apps/$architecture/JustSnap.app"
-    signing_metadata="$staging_root/apps/signing-$architecture.plist"
-    "$project_root/Scripts/build-macos-app.sh" \
-        "$architecture" \
-        "$version" \
-        "$build_version" \
-        "$feed_url" \
-        "$sparkle_public_key" \
-        "$app"
-    sign_application "$app" "$signing_metadata"
-    if [[ "$architecture" == "universal" ]]; then
-        "$app/Contents/MacOS/JustSnapApp" \
-            --verify-data-protection-keychain
-    fi
-    app_zip="$staging_root/apps/JustSnap-$version-mac-$architecture.zip"
-    /usr/bin/ditto -c -k --keepParent "$app" "$app_zip"
-    notarize_and_staple \
-        "$app_zip" \
-        "$app" \
-        "$staging_root/apps/notary-$architecture.json"
+architecture=arm64
+feed_url="$appcast_base_url/appcast-$architecture.xml"
+app="$staging_root/apps/$architecture/JustSnap.app"
+signing_metadata="$staging_root/apps/signing-$architecture.plist"
+"$project_root/Scripts/build-macos-app.sh" \
+    "$architecture" \
+    "$version" \
+    "$build_version" \
+    "$feed_url" \
+    "$sparkle_public_key" \
+    "$app"
+sign_application "$app" "$signing_metadata"
+"$app/Contents/MacOS/JustSnapApp" \
+    --verify-data-protection-keychain
+app_zip="$staging_root/apps/JustSnap-$version-mac-$architecture.zip"
+/usr/bin/ditto -c -k --keepParent "$app" "$app_zip"
+notarize_and_staple \
+    "$app_zip" \
+    "$app" \
+    "$staging_root/apps/notary-$architecture.json"
 
-    dmg="$staging_root/dmgs/JustSnap-$version-mac-$architecture.dmg"
-    create_dmg "$app" "$dmg"
-    /usr/bin/codesign --force --timestamp --sign "$signing_identity" "$dmg"
-    notarize_and_staple \
-        "$dmg" \
-        "$dmg" \
-        "$staging_root/dmgs/notary-$architecture.json"
-    verify_final_dmg "$dmg" "$architecture" "$feed_url" "$signing_metadata"
+dmg="$staging_root/dmgs/JustSnap-$version-mac-$architecture.dmg"
+create_dmg "$app" "$dmg"
+/usr/bin/codesign --force --timestamp --sign "$signing_identity" "$dmg"
+notarize_and_staple \
+    "$dmg" \
+    "$dmg" \
+    "$staging_root/dmgs/notary-$architecture.json"
+verify_final_dmg "$dmg" "$architecture" "$feed_url" "$signing_metadata"
 
-    appcast_directory="$staging_root/appcasts/$architecture"
-    mkdir -p "$appcast_directory"
-    /usr/bin/ditto "$dmg" "$appcast_directory/$(basename "$dmg")"
-    /bin/bash "$project_root/Scripts/generate-release-appcast.sh" \
-        "$sparkle_tools/generate_appcast" \
-        "$sparkle_private_key_file" \
-        "$download_base_url" \
-        "$architecture" \
-        "$appcast_directory"
-    appcast="$appcast_directory/appcast-$architecture.xml"
-    enclosure_url="$(/usr/bin/xmllint --xpath \
-        'string(//*[local-name()="enclosure"]/@url)' "$appcast")"
-    enclosure_signature="$(/usr/bin/xmllint --xpath \
-        'string(//*[local-name()="enclosure"]/@*[local-name()="edSignature"])' \
-        "$appcast")"
-    minimum_system_version="$(/usr/bin/xmllint --xpath \
-        'string(//*[local-name()="minimumSystemVersion"])' "$appcast")"
-    expected_url="$download_base_url/$(basename "$dmg")"
-    if [[ "$enclosure_url" != "$expected_url" \
-        || -z "$enclosure_signature" \
-        || "$minimum_system_version" != "14.4" ]]; then
-        echo "Invalid appcast metadata for $architecture." >&2
-        exit 1
-    fi
-    "$sparkle_tools/sign_update" \
-        --verify \
-        --ed-key-file "$sparkle_private_key_file" \
-        "$dmg" \
-        "$enclosure_signature"
-    "$sparkle_tools/sign_update" \
-        --verify \
-        --ed-key-file "$sparkle_private_key_file" \
-        "$appcast"
-done
+appcast_directory="$staging_root/appcasts/$architecture"
+mkdir -p "$appcast_directory"
+/usr/bin/ditto "$dmg" "$appcast_directory/$(basename "$dmg")"
+/bin/bash "$project_root/Scripts/generate-release-appcast.sh" \
+    "$sparkle_tools/generate_appcast" \
+    "$sparkle_private_key_file" \
+    "$download_base_url" \
+    "$architecture" \
+    "$appcast_directory"
+appcast="$appcast_directory/appcast-$architecture.xml"
+enclosure_url="$(/usr/bin/xmllint --xpath \
+    'string(//*[local-name()="enclosure"]/@url)' "$appcast")"
+enclosure_signature="$(/usr/bin/xmllint --xpath \
+    'string(//*[local-name()="enclosure"]/@*[local-name()="edSignature"])' \
+    "$appcast")"
+minimum_system_version="$(/usr/bin/xmllint --xpath \
+    'string(//*[local-name()="minimumSystemVersion"])' "$appcast")"
+expected_url="$download_base_url/$(basename "$dmg")"
+if [[ "$enclosure_url" != "$expected_url" \
+    || -z "$enclosure_signature" \
+    || "$minimum_system_version" != "14.4" ]]; then
+    echo "Invalid appcast metadata for $architecture." >&2
+    exit 1
+fi
+"$sparkle_tools/sign_update" \
+    --verify \
+    --ed-key-file "$sparkle_private_key_file" \
+    "$dmg" \
+    "$enclosure_signature"
+"$sparkle_tools/sign_update" \
+    --verify \
+    --ed-key-file "$sparkle_private_key_file" \
+    "$appcast"
 
 output_parent="$(dirname "$output_root")"
 mkdir -p "$output_parent"
 output_parent="$(cd "$output_parent" && pwd)"
 publish_staging="$(mktemp -d "$output_parent/.justsnap-publish.XXXXXX")"
-for architecture in universal arm64 x64; do
-    /usr/bin/ditto \
-        "$staging_root/dmgs/JustSnap-$version-mac-$architecture.dmg" \
-        "$publish_staging/JustSnap-$version-mac-$architecture.dmg"
-    /usr/bin/ditto \
-        "$staging_root/appcasts/$architecture/appcast-$architecture.xml" \
-        "$publish_staging/appcast-$architecture.xml"
-done
+/usr/bin/ditto \
+    "$staging_root/dmgs/JustSnap-$version-mac-$architecture.dmg" \
+    "$publish_staging/JustSnap-$version-mac-$architecture.dmg"
+/usr/bin/ditto \
+    "$staging_root/appcasts/$architecture/appcast-$architecture.xml" \
+    "$publish_staging/appcast-$architecture.xml"
 /bin/mv "$publish_staging" "$output_root"
 publish_staging=""
 

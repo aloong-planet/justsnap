@@ -1,9 +1,7 @@
 import Foundation
 
 public enum DistributionArchitecture: String, CaseIterable, Codable, Sendable {
-    case universal
     case arm64
-    case x64
 }
 
 public struct DistributionArtifact: Codable, Equatable, Sendable {

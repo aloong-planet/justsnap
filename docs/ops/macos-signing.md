@@ -4,20 +4,20 @@ This page explains the inputs and guarantees of the installer builds. The comman
 
 ## Local builds
 
-The `local` profile builds arm64, x64 and universal DMGs under `release/<version>-development/`. Its DMGs are ad-hoc signed and not notarized, so they are only for development.
+The `local` profile builds the arm64 DMG under `release/<version>-development/`. Its DMG is ad-hoc signed and not notarized, so it is only for development.
 
 `VERSION`, `BUILD_VERSION`, `APPCAST_BASE_URL`, `SPARKLE_PUBLIC_ED_KEY` and `OUTPUT_ROOT` are optional and have development defaults.
 
 ## Release builds
 
-The `release` profile builds the same three architectures. For each one it:
+The `release` profile builds the same single arm64 package. It:
 
 1. Signs the app with Developer ID and embeds the provisioning profile.
 2. Notarizes and staples the app, then does the same for its DMG.
 3. Checks the final DMG with `verify-macos-app.sh`, `spctl` and `stapler`.
 4. Generates the Sparkle appcast and verifies its signatures.
 
-The universal app also runs a Data Protection Keychain check after signing. Any failure stops the whole release, and files reach the output directory only after all three architectures pass. That directory must not already exist.
+The app also runs a Data Protection Keychain check after signing. Any failure stops the whole release, and files reach the output directory only after every step passes. That directory must not already exist.
 
 ### Command inputs
 
@@ -27,7 +27,7 @@ Set these before running the `release` command:
 |---|---|
 | `VERSION` | Marketing version |
 | `BUILD_VERSION` | Build version, which must increase with each release |
-| `APPCAST_BASE_URL` | Public HTTPS directory for the appcasts |
+| `APPCAST_BASE_URL` | Public HTTPS directory for the appcast |
 | `DOWNLOAD_BASE_URL` | Public HTTPS directory for the DMGs |
 | `SPARKLE_PUBLIC_KEY` | Sparkle public key, which must match the private key below |
 | `OUTPUT_ROOT` | Output directory |
@@ -45,7 +45,7 @@ The provisioning profile and private key stay outside the repository. The Sparkl
 
 ## CI
 
-- `ci.yml` runs the repository checks on every pull request and push to `main`. The full test suite and the three development packages run on pushes to `main` and on a pull request that changes more than documents, as `.github/ci/routing.json` decides. `CI gate` is the job that reports the result.
+- `ci.yml` runs the repository checks on every pull request and push to `main`. The full test suite and the development package runs on pushes to `main` and on a pull request that changes more than documents, as `.github/ci/routing.json` decides. `CI gate` is the job that reports the result.
 - `formal-release-verification.yml` is the release gate and runs only when started manually. It checks the live Provider contracts, installs the credentials into a temporary keychain, runs the release build and uploads the result as the `JustSnap-<version>-verified` artifact.
 
 The formal workflow does not publish anything. Publishing the verified files is a separate manual step.
