@@ -17,6 +17,12 @@ func allSubviews(_ view: NSView) -> [NSView] {
     [view] + view.subviews.flatMap(allSubviews)
 }
 
+/// The presenters of the language lists under `view`, one per `.unanimatedPopover` in it.
+@MainActor
+func unanimatedPopoverControllers(in view: NSView) -> [UnanimatedPopoverController] {
+    allSubviews(view).compactMap { ($0 as? UnanimatedPopoverAnchorView)?.controller }
+}
+
 @MainActor
 func popoverCount() -> Int {
     NSApp.windows.filter { $0.className.contains("Popover") && $0.isVisible }.count

@@ -60,6 +60,10 @@ struct MenuBarTranslationLanguageTests {
             let popover = try #require(NSApp.windows.first { $0.className.contains("Popover") && $0.isVisible })
             // Attached to the panel, so the panel's outside-click rule counts a press in the list as inside it.
             #expect(window.childWindows?.contains(popover) == true)
+            // Opens and closes without animation (v1-core::REQ-013/AC-04): it goes through the unanimated presenter.
+            let presenters = unanimatedPopoverControllers(in: hosting)
+            #expect(presenters.count == 1)
+            #expect(presenters.allSatisfy { $0.isShown && !$0.popover.animates })
             // The same list as the toolbar's: abbreviation first, then the name (v1-core::REQ-013/AC-04).
             let rows = try recognizedListText(
                 options: [

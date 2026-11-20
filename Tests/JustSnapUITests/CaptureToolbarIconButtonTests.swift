@@ -48,6 +48,10 @@ struct CaptureToolbarIconButtonTests {
         try press(window, at: NSPoint(x: right - 8, y: midY))
         #expect(presses.names.isEmpty)
         try waitUntil { popoverCount() > before }
+        // The list opens and closes without animation (v1-core::REQ-013/AC-04): it goes through the unanimated presenter.
+        let presenters = unanimatedPopoverControllers(in: try #require(window.contentView))
+        #expect(presenters.count == 1)
+        #expect(presenters.allSatisfy { $0.isShown && !$0.popover.animates })
         closePopovers()
 
         try press(window, at: NSPoint(x: right - 70, y: midY))

@@ -48,6 +48,12 @@ final class UnanimatedPopoverController: NSObject, NSPopoverDelegate {
     }
 }
 
+/// The view a popover is shown from. It keeps its controller reachable from the view tree, so a test can
+/// read which presenter a surface uses.
+final class UnanimatedPopoverAnchorView: NSView {
+    weak var controller: UnanimatedPopoverController?
+}
+
 private struct UnanimatedPopoverAnchor<Content: View>: NSViewRepresentable {
     @Binding var isPresented: Bool
     let preferredEdge: NSRectEdge
@@ -55,10 +61,11 @@ private struct UnanimatedPopoverAnchor<Content: View>: NSViewRepresentable {
 
     func makeCoordinator() -> UnanimatedPopoverController { UnanimatedPopoverController() }
 
-    func makeNSView(context: Context) -> NSView { NSView() }
+    func makeNSView(context: Context) -> UnanimatedPopoverAnchorView { UnanimatedPopoverAnchorView() }
 
-    func updateNSView(_ anchor: NSView, context: Context) {
+    func updateNSView(_ anchor: UnanimatedPopoverAnchorView, context: Context) {
         let controller = context.coordinator
+        anchor.controller = controller
         let isPresented = $isPresented
         controller.onClose = { if isPresented.wrappedValue { isPresented.wrappedValue = false } }
         if self.isPresented {
@@ -68,7 +75,7 @@ private struct UnanimatedPopoverAnchor<Content: View>: NSViewRepresentable {
         }
     }
 
-    static func dismantleNSView(_ anchor: NSView, coordinator: UnanimatedPopoverController) {
+    static func dismantleNSView(_ anchor: UnanimatedPopoverAnchorView, coordinator: UnanimatedPopoverController) {
         coordinator.onClose = nil
         coordinator.dismiss()
     }
