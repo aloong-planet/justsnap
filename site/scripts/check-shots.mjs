@@ -19,7 +19,8 @@ export function duplicateShots(dir) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const dir = fileURLToPath(new URL('../public/shots', import.meta.url))
+  // The directory to check can be given; the build gives none, and so checks the site's own screenshots
+  const dir = process.argv[2] ?? fileURLToPath(new URL('../public/shots', import.meta.url))
   const groups = duplicateShots(dir)
   if (groups.length > 0) {
     console.error('The screenshots are not real: these files are identical, so they are placeholders.')

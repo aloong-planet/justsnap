@@ -298,3 +298,22 @@ describe('the stylesheet’s fixed numbers (landing-page::REQ-003, REQ-004)', ()
     expect(declared('.fs-list', 'display', narrow)).toEqual(['flex'])
   })
 })
+
+// The section headings the spec gives literally (landing-page::REQ-006): written out here, not read from the
+// dictionary, so a changed dictionary string cannot agree with itself.
+describe('the features and install headings (REQ-006)', () => {
+  const literals = {
+    zh: { title: '一个快捷键，从屏幕到文字', sub: '不做标注，也不先过传统 OCR：原图直接交给视觉模型。', install: '三步装好' },
+    en: {
+      title: 'From screen to text in one shortcut',
+      sub: 'No annotation tools, no classic OCR step: the original image goes straight to a vision model.',
+      install: 'Installed in three steps'
+    }
+  }
+  test.each(LOCALES)('%s: the features title and sub-heading, and the install title', (locale) => {
+    const doc = pages[locale]
+    expect(text(doc.querySelector('#features .f-head h2'))).toBe(literals[locale].title)
+    expect(text(doc.querySelector('#features .f-head p'))).toBe(literals[locale].sub)
+    expect(text(doc.querySelector('#download h3.sub'))).toBe(literals[locale].install)
+  })
+})
