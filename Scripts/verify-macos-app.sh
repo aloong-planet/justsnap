@@ -17,12 +17,12 @@ signing_metadata="${7:-}"
 signing_identity="${8:-}"
 project_root="$(cd "$(dirname "$0")/.." && pwd)"
 info="$app/Contents/Info.plist"
-executable="$app/Contents/MacOS/VLMSnapperApp"
+executable="$app/Contents/MacOS/JustSnapApp"
 
 [[ -f "$info" ]]
 [[ -x "$executable" ]]
 [[ -d "$app/Contents/Frameworks/Sparkle.framework" ]]
-[[ -d "$app/Contents/Resources/VLMSnapper_VLMSnapperUI.bundle" ]]
+[[ -d "$app/Contents/Resources/JustSnap_JustSnapUI.bundle" ]]
 
 assert_plist_value() {
     local key="$1"
@@ -42,7 +42,7 @@ assert_plist_value LSMinimumSystemVersion 14.4
 assert_plist_value LSUIElement true
 assert_plist_value \
     NSScreenCaptureUsageDescription \
-    "VLMSnapper needs access to screen content so you can capture a selected area for text extraction or translation."
+    "JustSnap needs access to screen content so you can capture a selected area for text extraction or translation."
 assert_plist_value SUFeedURL "$feed_url"
 assert_plist_value SUPublicEDKey "$sparkle_public_key"
 assert_plist_value SUEnableAutomaticChecks true
@@ -75,10 +75,10 @@ assert_localized_plist_value() {
 
 assert_localized_plist_value \
     en \
-    "VLMSnapper needs access to screen content so you can capture a selected area for text extraction or translation."
+    "JustSnap needs access to screen content so you can capture a selected area for text extraction or translation."
 assert_localized_plist_value \
     zh-Hans \
-    "VLMSnapper 需要访问屏幕内容，以便截取你选择的区域并进行文字提取或翻译。"
+    "JustSnap 需要访问屏幕内容，以便截取你选择的区域并进行文字提取或翻译。"
 
 scheduled_interval="$(/usr/libexec/PlistBuddy -c "Print :SUScheduledCheckInterval" "$info")"
 if [[ "$scheduled_interval" != "21600" && "$scheduled_interval" != "21600.000000" ]]; then
@@ -106,7 +106,7 @@ esac
 /usr/bin/otool -L "$executable" | /usr/bin/grep -Fq '@rpath/Sparkle.framework/'
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$app"
 
-entitlements="$(mktemp "${TMPDIR:-/tmp}/vlmsnapper-entitlements.XXXXXX")"
+entitlements="$(mktemp "${TMPDIR:-/tmp}/justsnap-entitlements.XXXXXX")"
 cleanup() {
     rm -f "$entitlements"
 }

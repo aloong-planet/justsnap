@@ -4,7 +4,7 @@
 
 ## Context
 
-VLMSnapper keeps original PNGs, Pasted Text, model source and translation text, operation states and a search index on this Mac. History search must stay fast and light in the background, and users open original PNGs straight from Finder. App-layer encryption would complicate direct viewing, full-text indexing, recovery and key migration, while plain files can be read by anyone who gains the user's account or disk access.
+JustSnap keeps original PNGs, Pasted Text, model source and translation text, operation states and a search index on this Mac. History search must stay fast and light in the background, and users open original PNGs straight from Finder. App-layer encryption would complicate direct viewing, full-text indexing, recovery and key migration, while plain files can be read by anyone who gains the user's account or disk access.
 
 ## Options
 
@@ -25,7 +25,7 @@ Provider API keys are not history data; ADR-0001 keeps them in the Keychain.
 - Positive: original PNGs open directly from Finder, local full-text search needs no per-record decryption, and background CPU, memory and implementation cost stay low.
 - Negative: anyone who gains the user's account, an unencrypted disk, a backup or the files themselves can read screenshots, Pasted Text and text history; the app must not describe its storage as end-to-end encrypted or zero-knowledge.
 - Negative: copies in backups or third-party sync outlive the app's deletion and automatic cleanup.
-- Neutral: whether FileVault is on is up to the user and the system, not guaranteed by VLMSnapper; automatic cleanup, manual deletion and permissions must still cover images, the database and related metadata.
+- Neutral: whether FileVault is on is up to the user and the system, not guaranteed by JustSnap; automatic cleanup, manual deletion and permissions must still cover images, the database and related metadata.
 
 ## Sources
 

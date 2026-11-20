@@ -3,31 +3,31 @@
 import PackageDescription
 
 let package = Package(
-    name: "VLMSnapper",
+    name: "JustSnap",
     defaultLocalization: "zh-Hans",
     platforms: [
         .macOS("14.4"),
     ],
     products: [
-        .library(name: "VLMSnapperCore", targets: ["VLMSnapperCore"]),
-        .library(name: "VLMSnapperSparkle", targets: ["VLMSnapperSparkle"]),
-        .library(name: "VLMSnapperUI", targets: ["VLMSnapperUI"]),
+        .library(name: "JustSnapCore", targets: ["JustSnapCore"]),
+        .library(name: "JustSnapSparkle", targets: ["JustSnapSparkle"]),
+        .library(name: "JustSnapUI", targets: ["JustSnapUI"]),
         .library(
-            name: "VLMSnapperReleaseSupport",
-            targets: ["VLMSnapperReleaseSupport"]
+            name: "JustSnapReleaseSupport",
+            targets: ["JustSnapReleaseSupport"]
         ),
-        .executable(name: "VLMSnapperApp", targets: ["VLMSnapperApp"]),
+        .executable(name: "JustSnapApp", targets: ["JustSnapApp"]),
         .executable(
-            name: "VLMSnapperLiveProviderGate",
-            targets: ["VLMSnapperLiveProviderGate"]
-        ),
-        .executable(
-            name: "VLMSnapperSigningTool",
-            targets: ["VLMSnapperSigningTool"]
+            name: "JustSnapLiveProviderGate",
+            targets: ["JustSnapLiveProviderGate"]
         ),
         .executable(
-            name: "VLMSnapperUIHarness",
-            targets: ["VLMSnapperUIHarness"]
+            name: "JustSnapSigningTool",
+            targets: ["JustSnapSigningTool"]
+        ),
+        .executable(
+            name: "JustSnapUIHarness",
+            targets: ["JustSnapUIHarness"]
         ),
     ],
     dependencies: [
@@ -38,8 +38,8 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "VLMSnapperCore",
-            dependencies: ["VLMSnapperHotKeyShim", "VLMSnapperProcessShim"],
+            name: "JustSnapCore",
+            dependencies: ["JustSnapHotKeyShim", "JustSnapProcessShim"],
             linkerSettings: [
                 .linkedFramework("CoreGraphics"),
                 .linkedFramework("ImageIO"),
@@ -49,43 +49,43 @@ let package = Package(
             ]
         ),
         .target(
-            name: "VLMSnapperHotKeyShim",
-            path: "Sources/VLMSnapperHotKeyShim",
+            name: "JustSnapHotKeyShim",
+            path: "Sources/JustSnapHotKeyShim",
             publicHeadersPath: "include",
             linkerSettings: [
                 .linkedFramework("Carbon"),
             ]
         ),
         .target(
-            name: "VLMSnapperProcessShim",
-            path: "Sources/VLMSnapperProcessShim",
+            name: "JustSnapProcessShim",
+            path: "Sources/JustSnapProcessShim",
             publicHeadersPath: "include",
             linkerSettings: [.linkedLibrary("z")]
         ),
         .target(
-            name: "VLMSnapperUI",
-            dependencies: ["VLMSnapperCore"],
-            path: "VLMSnapper",
+            name: "JustSnapUI",
+            dependencies: ["JustSnapCore"],
+            path: "JustSnap",
             sources: ["UI"],
             resources: [.process("Resources/Localization")]
         ),
         .target(
-            name: "VLMSnapperSparkle",
+            name: "JustSnapSparkle",
             dependencies: [
-                "VLMSnapperCore",
+                "JustSnapCore",
                 .product(name: "Sparkle", package: "Sparkle"),
             ]
         ),
         .target(
-            name: "VLMSnapperReleaseSupport",
+            name: "JustSnapReleaseSupport",
             linkerSettings: [.linkedFramework("Security")]
         ),
         .executableTarget(
-            name: "VLMSnapperApp",
+            name: "JustSnapApp",
             dependencies: [
-                "VLMSnapperCore",
-                "VLMSnapperSparkle",
-                "VLMSnapperUI",
+                "JustSnapCore",
+                "JustSnapSparkle",
+                "JustSnapUI",
             ],
             linkerSettings: [
                 .unsafeFlags([
@@ -95,18 +95,18 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "VLMSnapperAXFixture",
-            dependencies: ["VLMSnapperCore", "VLMSnapperUI"],
+            name: "JustSnapAXFixture",
+            dependencies: ["JustSnapCore", "JustSnapUI"],
             path: "Tests/AXFixture",
             exclude: ["Info.plist"]
         ),
         .executableTarget(
-            name: "VLMSnapperUIHarness",
-            dependencies: ["VLMSnapperCore", "VLMSnapperUI"]
+            name: "JustSnapUIHarness",
+            dependencies: ["JustSnapCore", "JustSnapUI"]
         ),
         .executableTarget(
-            name: "VLMSnapperLiveProviderGate",
-            dependencies: ["VLMSnapperCore"],
+            name: "JustSnapLiveProviderGate",
+            dependencies: ["JustSnapCore"],
             linkerSettings: [
                 .linkedFramework("CoreGraphics"),
                 .linkedFramework("CoreText"),
@@ -115,28 +115,28 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "VLMSnapperSigningTool",
-            dependencies: ["VLMSnapperReleaseSupport"]
+            name: "JustSnapSigningTool",
+            dependencies: ["JustSnapReleaseSupport"]
         ),
         .testTarget(
-            name: "VLMSnapperAppTests",
-            dependencies: ["VLMSnapperApp", "VLMSnapperCore", "VLMSnapperUI"]
+            name: "JustSnapAppTests",
+            dependencies: ["JustSnapApp", "JustSnapCore", "JustSnapUI"]
         ),
         .testTarget(
-            name: "VLMSnapperCoreTests",
-            dependencies: ["VLMSnapperCore"]
+            name: "JustSnapCoreTests",
+            dependencies: ["JustSnapCore"]
         ),
         .testTarget(
-            name: "VLMSnapperUITests",
-            dependencies: ["VLMSnapperCore", "VLMSnapperUI"]
+            name: "JustSnapUITests",
+            dependencies: ["JustSnapCore", "JustSnapUI"]
         ),
         .testTarget(
-            name: "VLMSnapperSparkleTests",
-            dependencies: ["VLMSnapperCore", "VLMSnapperSparkle"]
+            name: "JustSnapSparkleTests",
+            dependencies: ["JustSnapCore", "JustSnapSparkle"]
         ),
         .testTarget(
-            name: "VLMSnapperReleaseSupportTests",
-            dependencies: ["VLMSnapperReleaseSupport"]
+            name: "JustSnapReleaseSupportTests",
+            dependencies: ["JustSnapReleaseSupport"]
         ),
     ],
     swiftLanguageModes: [.v6]

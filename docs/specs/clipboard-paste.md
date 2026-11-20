@@ -4,7 +4,7 @@
 
 ## Problem Statement
 
-A user often already has the image or text they want read, copied from a chat, a web page or another app, but VLMSnapper only reads what is captured from the screen. To get text out of a copied image the user has to show it on screen first and then capture it, and copied text cannot be translated at all.
+A user often already has the image or text they want read, copied from a chat, a web page or another app, but JustSnap only reads what is captured from the screen. To get text out of a copied image the user has to show it on screen first and then capture it, and copied text cannot be translated at all.
 
 ## Solution
 
@@ -109,7 +109,7 @@ Applies to: the whole app. The app reads the clipboard only when the user trigge
 12. The user pastes a very long text: it is sent whole; a request over the Provider's limit fails before anything is sent (clipboard-paste::REQ-007/AC-03), and a Provider rejection such as an exceeded context length fails with the Normalized Error.
 13. The pasted text contains instructions to the model, Markdown, HTML or links: Screenshot Translation translates them as text and does not follow them (clipboard-paste::REQ-007/AC-05), and the box lays the result out as in item 10.
 14. The clipboard's plain text is only whitespace and it holds no image data: it is an empty clipboard (clipboard-paste::REQ-003/AC-04).
-15. The user opens the history with an earlier VLMSnapper after Pasted Text records exist: that version finds a newer history database and does not open it; it does not rebuild it or drop records (ADR-0008).
+15. The user opens the history with an earlier JustSnap after Pasted Text records exist: that version finds a newer history database and does not open it; it does not rebuild it or drop records (ADR-0008).
 16. The user pastes text while the Selected Model's Vision Compatibility is unknown: the operation runs and the compatibility stays unknown (clipboard-paste::REQ-007/AC-06).
 
 ## Implementation Decisions

@@ -31,17 +31,17 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          VLMSNAPPER_OPENAI_MODEL: ${{ vars.VLMSNAPPER_OPENAI_MODEL }}
-          VLMSNAPPER_GEMINI_MODEL: ${{ vars.VLMSNAPPER_GEMINI_MODEL }}
-          VLMSNAPPER_DEEPSEEK_MODEL: ${{ vars.VLMSNAPPER_DEEPSEEK_MODEL }}
+          JUSTSNAP_OPENAI_MODEL: ${{ vars.JUSTSNAP_OPENAI_MODEL }}
+          JUSTSNAP_GEMINI_MODEL: ${{ vars.JUSTSNAP_GEMINI_MODEL }}
+          JUSTSNAP_DEEPSEEK_MODEL: ${{ vars.JUSTSNAP_DEEPSEEK_MODEL }}
         run: |
-          swift run VLMSnapperLiveProviderGate \
+          swift run JustSnapLiveProviderGate \
             --output "$RUNNER_TEMP/live-provider-contracts.json"
       - name: Upload live Provider contract report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: VLMSnapper-${{ inputs.version }}-live-provider-contracts
+          name: JustSnap-${{ inputs.version }}-live-provider-contracts
           path: ${{ runner.temp }}/live-provider-contracts.json
           if-no-files-found: warn
       - name: Require release secrets
@@ -74,14 +74,14 @@ jobs:
           umask 077
           printf '%s' "$CERTIFICATE" | /usr/bin/base64 -D > "$RUNNER_TEMP/developer-id.p12"
           printf '%s\n' "$SPARKLE_PRIVATE_KEY" > "$RUNNER_TEMP/sparkle-private-key"
-          printf '%s' "$PROVISIONING_PROFILE" | /usr/bin/base64 -D > "$RUNNER_TEMP/VLMSnapper.provisionprofile"
+          printf '%s' "$PROVISIONING_PROFILE" | /usr/bin/base64 -D > "$RUNNER_TEMP/JustSnap.provisionprofile"
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/build.keychain-db"
           security set-keychain-settings -lut 21600 "$RUNNER_TEMP/build.keychain-db"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/build.keychain-db"
           security import "$RUNNER_TEMP/developer-id.p12" -k "$RUNNER_TEMP/build.keychain-db" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/build.keychain-db"
           security list-keychains -d user -s "$RUNNER_TEMP/build.keychain-db"
-          /usr/bin/xcrun notarytool store-credentials vlmsnapper-notary \
+          /usr/bin/xcrun notarytool store-credentials justsnap-notary \
             --apple-id "$NOTARY_APPLE_ID" \
             --team-id "$NOTARY_TEAM_ID" \
             --password "$NOTARY_PASSWORD" \
@@ -89,10 +89,10 @@ jobs:
       - name: Build and verify formal release
         env:
           MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-          MACOS_NOTARY_PROFILE: vlmsnapper-notary
+          MACOS_NOTARY_PROFILE: justsnap-notary
           SPARKLE_PRIVATE_KEY_FILE: ${{ runner.temp }}/sparkle-private-key
           SPARKLE_PUBLIC_KEY: ${{ secrets.SPARKLE_PUBLIC_KEY }}
-          MACOS_PROVISIONING_PROFILE: ${{ runner.temp }}/VLMSnapper.provisionprofile
+          MACOS_PROVISIONING_PROFILE: ${{ runner.temp }}/JustSnap.provisionprofile
         run: |
           Scripts/release-macos.sh \
             "${{ inputs.version }}" \
@@ -103,11 +103,11 @@ jobs:
             "$RUNNER_TEMP/formal-release"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: VLMSnapper-${{ inputs.version }}-verified
+          name: JustSnap-${{ inputs.version }}-verified
           path: ${{ runner.temp }}/formal-release
           if-no-files-found: error
       - name: Remove temporary keychain
         if: always()
         run: |
           security delete-keychain "$RUNNER_TEMP/build.keychain-db" || true
-          rm -f "$RUNNER_TEMP/developer-id.p12" "$RUNNER_TEMP/sparkle-private-key" "$RUNNER_TEMP/VLMSnapper.provisionprofile"
+          rm -f "$RUNNER_TEMP/developer-id.p12" "$RUNNER_TEMP/sparkle-private-key" "$RUNNER_TEMP/JustSnap.provisionprofile"

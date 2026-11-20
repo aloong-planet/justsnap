@@ -25,7 +25,7 @@ def main():
     if args.binary is None:
         try:
             build = subprocess.run(
-                ["swift", "build", "--product", "VLMSnapperUIHarness", "-Xswiftc", "-warnings-as-errors"],
+                ["swift", "build", "--product", "JustSnapUIHarness", "-Xswiftc", "-warnings-as-errors"],
                 cwd=root, capture_output=True, text=True, timeout=60,
             )
         except subprocess.TimeoutExpired:
@@ -34,7 +34,7 @@ def main():
         if build.returncode:
             print(json.dumps({"stage": "build", "status": "fail", "output": build.stdout + build.stderr}), flush=True)
             return 1
-    binary = (args.binary or root / ".build/debug/VLMSnapperUIHarness").resolve(strict=True)
+    binary = (args.binary or root / ".build/debug/JustSnapUIHarness").resolve(strict=True)
     durations = []
     for index in range(1, args.runs + 1):
         started = time.monotonic()

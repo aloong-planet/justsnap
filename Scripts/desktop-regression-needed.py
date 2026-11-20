@@ -12,10 +12,10 @@ NOT_NEEDED_EXIT_CODE = 10
 # What Tests/AXFixture renders, and the cases themselves. A path ending in a partial name covers
 # every file that starts with it.
 COVERED_PATHS = (
-    "VLMSnapper/UI/ManagementCenterView.swift",
-    "VLMSnapper/UI/BilingualResultView.swift",
-    "VLMSnapper/UI/History",
-    "VLMSnapper/UI/Provider",
+    "JustSnap/UI/ManagementCenterView.swift",
+    "JustSnap/UI/BilingualResultView.swift",
+    "JustSnap/UI/History",
+    "JustSnap/UI/Provider",
     "Tests/AXFixture/",
     "Scripts/test-provider-accessibility.py",
 )

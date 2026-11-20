@@ -21,7 +21,7 @@ class FeatureChecklistTests(unittest.TestCase):
         return prefix + heading + section.replace(original, original + "\n" + row, 1)
 
     def run_gate(self, document):
-        with tempfile.TemporaryDirectory(prefix="vlmsnapper-checklist-") as directory:
+        with tempfile.TemporaryDirectory(prefix="justsnap-checklist-") as directory:
             source = Path(directory) / "checklist.md"
             source.write_text(document, encoding="utf-8")
             return subprocess.run(

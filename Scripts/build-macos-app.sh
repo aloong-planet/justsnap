@@ -14,7 +14,7 @@ feed_url="$4"
 sparkle_public_key="$5"
 output_app="$6"
 project_root="$(cd "$(dirname "$0")/.." && pwd)"
-scratch_path="${VLMSNAPPER_SCRATCH_PATH:-$project_root/.build}"
+scratch_path="${JUSTSNAP_SCRATCH_PATH:-$project_root/.build}"
 
 case "$architecture" in
     universal|arm64|x64) ;;
@@ -33,7 +33,7 @@ build_architecture() {
                 --scratch-path "$scratch_path" \
                 --disable-build-manifest-caching \
                 --configuration release \
-                --product VLMSnapperApp \
+                --product JustSnapApp \
                 -Xswiftc -warnings-as-errors \
                 -Xcc -Wall -Xcc -Wextra -Xcc -Werror
         return
@@ -44,7 +44,7 @@ build_architecture() {
             --disable-build-manifest-caching \
             --configuration release \
             --triple "$triple" \
-            --product VLMSnapperApp \
+            --product JustSnapApp \
             -Xswiftc -warnings-as-errors \
             -Xcc -Wall -Xcc -Wextra -Xcc -Werror
 }
@@ -81,33 +81,33 @@ if [[ "$architecture" == "x64" || "$architecture" == "universal" ]]; then
     x64_bin="$(release_bin_path x86_64-apple-macosx14.4)"
 fi
 
-staging_root="$(mktemp -d "${TMPDIR:-/tmp}/vlmsnapper-app.XXXXXX")"
+staging_root="$(mktemp -d "${TMPDIR:-/tmp}/justsnap-app.XXXXXX")"
 cleanup() {
     rm -rf "$staging_root"
 }
 trap cleanup EXIT
 
-app="$staging_root/VLMSnapper.app"
+app="$staging_root/JustSnap.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/Resources"
 
 if [[ "$architecture" == "universal" ]]; then
     /usr/bin/lipo -create \
-        "$arm64_bin/VLMSnapperApp" \
-        "$x64_bin/VLMSnapperApp" \
-        -output "$app/Contents/MacOS/VLMSnapperApp"
+        "$arm64_bin/JustSnapApp" \
+        "$x64_bin/JustSnapApp" \
+        -output "$app/Contents/MacOS/JustSnapApp"
 elif [[ "$architecture" == "arm64" ]]; then
-    cp "$arm64_bin/VLMSnapperApp" "$app/Contents/MacOS/VLMSnapperApp"
+    cp "$arm64_bin/JustSnapApp" "$app/Contents/MacOS/JustSnapApp"
 else
-    cp "$x64_bin/VLMSnapperApp" "$app/Contents/MacOS/VLMSnapperApp"
+    cp "$x64_bin/JustSnapApp" "$app/Contents/MacOS/JustSnapApp"
 fi
 
 resource_bin="$arm64_bin"
 if [[ -z "$resource_bin" ]]; then
     resource_bin="$x64_bin"
 fi
-resource_bundle="$resource_bin/VLMSnapper_VLMSnapperUI.bundle"
+resource_bundle="$resource_bin/JustSnap_JustSnapUI.bundle"
 if [[ ! -d "$resource_bundle" ]]; then
-    echo "Missing VLMSnapper UI resource bundle: $resource_bundle" >&2
+    echo "Missing JustSnap UI resource bundle: $resource_bundle" >&2
     exit 1
 fi
 /usr/bin/ditto "$resource_bundle" "$app/Contents/Resources/$(basename "$resource_bundle")"
@@ -150,7 +150,7 @@ done
     --force \
     --deep \
     --sign - \
-    --entitlements "$project_root/Distribution/VLMSnapper.entitlements" \
+    --entitlements "$project_root/Distribution/JustSnap.entitlements" \
     "$app"
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$app"
 

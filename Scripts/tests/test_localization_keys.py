@@ -10,7 +10,7 @@ CLEAN = '"action.copy" = "%@ copy";\n"action.save" = "Save";\n'
 
 class LocalizationKeysTests(unittest.TestCase):
     def setUp(self):
-        directory = tempfile.TemporaryDirectory(prefix="vlmsnapper-localization-keys-")
+        directory = tempfile.TemporaryDirectory(prefix="justsnap-localization-keys-")
         self.addCleanup(directory.cleanup)
         self.root = Path(directory.name)
         self.sources = self.root / "Sources"
@@ -120,7 +120,7 @@ class LocalizationKeysTests(unittest.TestCase):
     def test_keys_named_in_code_must_exist(self):
         sources = {
             "localized": 'localized("missing.first")',
-            "localizedString": 'VLMSnapperLocalization.localizedString(\n    forKey: "missing.second"\n)',
+            "localizedString": 'JustSnapLocalization.localizedString(\n    forKey: "missing.second"\n)',
         }
         for name, source in sources.items():
             with self.subTest(form=name):
@@ -128,7 +128,7 @@ class LocalizationKeysTests(unittest.TestCase):
                 self.assert_fails_naming("missing.")
 
     def test_keys_mapped_in_the_strings_file_must_exist(self):
-        self.write_source('case "transport": "failure.missing"\n', name="VLMSnapperStrings.swift")
+        self.write_source('case "transport": "failure.missing"\n', name="JustSnapStrings.swift")
         self.assert_fails_naming("failure.missing")
 
     def test_keys_that_exist_in_code_pass(self):

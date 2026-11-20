@@ -4,7 +4,7 @@
 
 ## Context
 
-The application tests in `Tests/VLMSnapperAppTests` run through the whole application, and someone changing one module should read and run a small set of them; the Core tests are already filed in a folder per module, the clusters in the contents of `docs/CONTEXT.md`. The `/tdd` placement rule files tests that run through the whole application by the spec whose rule they assert, named with its slug and split only by that spec's sections. In this repository one spec, `docs/specs/v1-core.md`, covers every application test, so the two layouts give different files.
+The application tests in `Tests/JustSnapAppTests` run through the whole application, and someone changing one module should read and run a small set of them; the Core tests are already filed in a folder per module, the clusters in the contents of `docs/CONTEXT.md`. The `/tdd` placement rule files tests that run through the whole application by the spec whose rule they assert, named with its slug and split only by that spec's sections. In this repository one spec, `docs/specs/v1-core.md`, covers every application test, so the two layouts give different files.
 
 ## Options
 
@@ -13,7 +13,7 @@ The application tests in `Tests/VLMSnapperAppTests` run through the whole applic
 
 ## Decision
 
-We adopt **option 1**. A test in `Tests/VLMSnapperAppTests` goes in the folder of the module it tests and is named for what it tests. Helpers shared by these files stay in `Tests/VLMSnapperAppTests/Support`. A placement check for these tests reads the module folder, not the spec.
+We adopt **option 1**. A test in `Tests/JustSnapAppTests` goes in the folder of the module it tests and is named for what it tests. Helpers shared by these files stay in `Tests/JustSnapAppTests/Support`. A placement check for these tests reads the module folder, not the spec.
 
 ## Consequences
 

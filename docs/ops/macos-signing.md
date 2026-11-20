@@ -46,7 +46,7 @@ The provisioning profile and private key stay outside the repository. The Sparkl
 ## CI
 
 - `ci.yml` builds the three development packages on every pull request and on pushes to `main`.
-- `formal-release-verification.yml` is the release gate and runs only when started manually. It checks the live Provider contracts, installs the credentials into a temporary keychain, runs the release build and uploads the result as the `VLMSnapper-<version>-verified` artifact.
+- `formal-release-verification.yml` is the release gate and runs only when started manually. It checks the live Provider contracts, installs the credentials into a temporary keychain, runs the release build and uploads the result as the `JustSnap-<version>-verified` artifact.
 
 The formal workflow does not publish anything. Publishing the verified files is a separate manual step.
 
@@ -55,4 +55,4 @@ The formal workflow does not publish anything. Publishing the verified files is 
 - Signing: `MACOS_DEVELOPER_ID_P12_BASE64`, `MACOS_DEVELOPER_ID_P12_PASSWORD`, `MACOS_SIGNING_IDENTITY`, `MACOS_BUILD_KEYCHAIN_PASSWORD`, `MACOS_DEVELOPER_ID_PROVISIONING_PROFILE_BASE64`
 - Notarization: `MACOS_NOTARY_APPLE_ID`, `MACOS_NOTARY_TEAM_ID`, `MACOS_NOTARY_PASSWORD`
 - Sparkle: `SPARKLE_PRIVATE_KEY`, `SPARKLE_PUBLIC_KEY`
-- Live Provider gate: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, plus the `VLMSNAPPER_OPENAI_MODEL`, `VLMSNAPPER_GEMINI_MODEL` and `VLMSNAPPER_DEEPSEEK_MODEL` repository variables
+- Live Provider gate: `OPENAI_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, plus the `JUSTSNAP_OPENAI_MODEL`, `JUSTSNAP_GEMINI_MODEL` and `JUSTSNAP_DEEPSEEK_MODEL` repository variables

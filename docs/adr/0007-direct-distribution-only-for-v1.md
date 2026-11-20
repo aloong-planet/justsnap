@@ -4,7 +4,7 @@
 
 ## Context
 
-VLMSnapper runs in the App Sandbox, which applies to directly distributed apps as well and does not require the Mac App Store. The release already ships Universal, Apple Silicon and Intel Developer ID DMGs, three Sparkle appcasts and an all-or-nothing release gate. A Mac App Store build would bring different signing, provisioning, update and testing boundaries.
+JustSnap runs in the App Sandbox, which applies to directly distributed apps as well and does not require the Mac App Store. The release already ships Universal, Apple Silicon and Intel Developer ID DMGs, three Sparkle appcasts and an all-or-nothing release gate. A Mac App Store build would bring different signing, provisioning, update and testing boundaries.
 
 ## Options
 

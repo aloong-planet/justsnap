@@ -22,7 +22,7 @@ expected_team_identifier="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier' "
 expected_application_identifier="$(/usr/libexec/PlistBuddy -c 'Print :ApplicationIdentifier' "$metadata")"
 expected_keychain_group="$(/usr/libexec/PlistBuddy -c 'Print :KeychainAccessGroup' "$metadata")"
 
-temporary_root="$(mktemp -d "${TMPDIR:-/tmp}/vlmsnapper-signature-verify.XXXXXX")"
+temporary_root="$(mktemp -d "${TMPDIR:-/tmp}/justsnap-signature-verify.XXXXXX")"
 cleanup() {
     rm -rf "$temporary_root"
 }
