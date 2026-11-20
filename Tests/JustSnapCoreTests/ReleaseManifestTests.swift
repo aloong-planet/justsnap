@@ -4,36 +4,22 @@ import Testing
 
 @Suite("Release manifest")
 struct ReleaseManifestTests {
-    @Test("A complete three-architecture release manifest is accepted")
-    func completeManifestIsAccepted() throws {
-        let manifest = ReleaseManifest(
-            version: "1.0.0",
-            buildVersion: "100",
-            bundleIdentifier: "com.loong.vlmsnapper",
-            sparklePublicKey: Data(repeating: 7, count: 32).base64EncodedString(),
-            artifacts: DistributionArchitecture.allCases.map { architecture in
-                DistributionArtifact(
-                    architecture: architecture,
-                    feedURL: URL(
-                        string: "https://downloads.aloongplanet.com/justsnap/appcast-\(architecture.rawValue).xml"
-                    )!,
-                    dmgFileName: "JustSnap-1.0.0-mac-\(architecture.rawValue).dmg"
-                )
-            }
-        )
-
-        try manifest.validateForFormalRelease()
+    @Test("A release manifest with the single Apple silicon artifact is accepted")
+    func singleArm64ManifestIsAccepted() throws {
+        try validManifest().validateForFormalRelease()
     }
 
-    @Test("A formal release rejects an insecure architecture feed")
+    @Test("A formal release rejects an insecure feed")
     func insecureFeedIsRejected() throws {
-        let manifest = validManifest(replacing: .arm64) { artifact in
-            DistributionArtifact(
-                architecture: artifact.architecture,
-                feedURL: URL(string: "http://downloads.aloongplanet.com/appcast-arm64.xml")!,
-                dmgFileName: artifact.dmgFileName
-            )
-        }
+        let manifest = validManifest(
+            artifacts: [
+                DistributionArtifact(
+                    architecture: .arm64,
+                    feedURL: URL(string: "http://downloads.aloongplanet.com/appcast-arm64.xml")!,
+                    dmgFileName: "JustSnap-1.0.0-mac-arm64.dmg"
+                ),
+            ]
+        )
 
         #expect(throws: ReleaseManifestError.insecureFeed(.arm64)) {
             try manifest.validateForFormalRelease()
@@ -41,17 +27,33 @@ struct ReleaseManifestTests {
     }
 
     @Test("A formal release rejects an artifact name from another architecture")
-    func crossArchitectureArtifactNameIsRejected() throws {
-        let manifest = validManifest(replacing: .x64) { artifact in
-            DistributionArtifact(
-                architecture: artifact.architecture,
-                feedURL: artifact.feedURL,
-                dmgFileName: "JustSnap-1.0.0-mac-arm64.dmg"
-            )
-        }
+    func otherArchitectureArtifactNameIsRejected() throws {
+        let manifest = validManifest(
+            artifacts: [
+                DistributionArtifact(
+                    architecture: .arm64,
+                    feedURL: URL(string: "https://downloads.aloongplanet.com/justsnap/appcast-arm64.xml")!,
+                    dmgFileName: "JustSnap-1.0.0-mac-x64.dmg"
+                ),
+            ]
+        )
 
-        #expect(throws: ReleaseManifestError.invalidArtifactName(.x64)) {
+        #expect(throws: ReleaseManifestError.invalidArtifactName(.arm64)) {
             try manifest.validateForFormalRelease()
+        }
+    }
+
+    @Test("A formal release rejects anything but exactly one artifact")
+    func artifactCountOtherThanOneIsRejected() throws {
+        let artifact = validManifest().artifacts[0]
+        let none = validManifest(artifacts: [])
+        let twice = validManifest(artifacts: [artifact, artifact])
+
+        #expect(throws: ReleaseManifestError.incompleteArchitectureSet) {
+            try none.validateForFormalRelease()
+        }
+        #expect(throws: ReleaseManifestError.incompleteArchitectureSet) {
+            try twice.validateForFormalRelease()
         }
     }
 
@@ -71,25 +73,19 @@ struct ReleaseManifestTests {
         }
     }
 
-    private func validManifest(
-        replacing architecture: DistributionArchitecture? = nil,
-        with replacement: (DistributionArtifact) -> DistributionArtifact = { $0 }
-    ) -> ReleaseManifest {
+    private func validManifest(artifacts: [DistributionArtifact]? = nil) -> ReleaseManifest {
         ReleaseManifest(
             version: "1.0.0",
             buildVersion: "100",
             bundleIdentifier: "com.loong.vlmsnapper",
             sparklePublicKey: Data(repeating: 7, count: 32).base64EncodedString(),
-            artifacts: DistributionArchitecture.allCases.map { candidate in
-                let artifact = DistributionArtifact(
-                    architecture: candidate,
-                    feedURL: URL(
-                        string: "https://downloads.aloongplanet.com/justsnap/appcast-\(candidate.rawValue).xml"
-                    )!,
-                    dmgFileName: "JustSnap-1.0.0-mac-\(candidate.rawValue).dmg"
-                )
-                return candidate == architecture ? replacement(artifact) : artifact
-            }
+            artifacts: artifacts ?? [
+                DistributionArtifact(
+                    architecture: .arm64,
+                    feedURL: URL(string: "https://downloads.aloongplanet.com/justsnap/appcast-arm64.xml")!,
+                    dmgFileName: "JustSnap-1.0.0-mac-arm64.dmg"
+                ),
+            ]
         )
     }
 }

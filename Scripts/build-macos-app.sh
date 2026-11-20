@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [[ $# -ne 6 ]]; then
-    echo "Usage: $0 <universal|arm64|x64> <version> <build-version> <feed-url> <sparkle-public-key> <output-app>" >&2
+    echo "Usage: $0 arm64 <version> <build-version> <feed-url> <sparkle-public-key> <output-app>" >&2
     exit 64
 fi
 
@@ -17,7 +17,7 @@ project_root="$(cd "$(dirname "$0")/.." && pwd)"
 scratch_path="${JUSTSNAP_SCRATCH_PATH:-$project_root/.build}"
 
 case "$architecture" in
-    universal|arm64|x64) ;;
+    arm64) ;;
     *)
         echo "Unsupported architecture: $architecture" >&2
         exit 64
@@ -70,16 +70,8 @@ release_bin_path() {
             --show-bin-path
 }
 
-arm64_bin=""
-x64_bin=""
-if [[ "$architecture" == "arm64" || "$architecture" == "universal" ]]; then
-    build_architecture arm64-apple-macosx14.4
-    arm64_bin="$(release_bin_path arm64-apple-macosx14.4)"
-fi
-if [[ "$architecture" == "x64" || "$architecture" == "universal" ]]; then
-    build_architecture x86_64-apple-macosx14.4
-    x64_bin="$(release_bin_path x86_64-apple-macosx14.4)"
-fi
+build_architecture arm64-apple-macosx14.4
+arm64_bin="$(release_bin_path arm64-apple-macosx14.4)"
 
 staging_root="$(mktemp -d "${TMPDIR:-/tmp}/justsnap-app.XXXXXX")"
 cleanup() {
@@ -90,22 +82,9 @@ trap cleanup EXIT
 app="$staging_root/JustSnap.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/Resources"
 
-if [[ "$architecture" == "universal" ]]; then
-    /usr/bin/lipo -create \
-        "$arm64_bin/JustSnapApp" \
-        "$x64_bin/JustSnapApp" \
-        -output "$app/Contents/MacOS/JustSnapApp"
-elif [[ "$architecture" == "arm64" ]]; then
-    cp "$arm64_bin/JustSnapApp" "$app/Contents/MacOS/JustSnapApp"
-else
-    cp "$x64_bin/JustSnapApp" "$app/Contents/MacOS/JustSnapApp"
-fi
+cp "$arm64_bin/JustSnapApp" "$app/Contents/MacOS/JustSnapApp"
 
-resource_bin="$arm64_bin"
-if [[ -z "$resource_bin" ]]; then
-    resource_bin="$x64_bin"
-fi
-resource_bundle="$resource_bin/JustSnap_JustSnapUI.bundle"
+resource_bundle="$arm64_bin/JustSnap_JustSnapUI.bundle"
 if [[ ! -d "$resource_bundle" ]]; then
     echo "Missing JustSnap UI resource bundle: $resource_bundle" >&2
     exit 1

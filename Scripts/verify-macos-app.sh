@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [[ $# -ne 6 && $# -ne 8 ]]; then
-    echo "Usage: $0 <app> <universal|arm64|x64> <version> <build-version> <feed-url> <sparkle-public-key> [<signing-metadata> <signing-identity>]" >&2
+    echo "Usage: $0 <app> arm64 <version> <build-version> <feed-url> <sparkle-public-key> [<signing-metadata> <signing-identity>]" >&2
     exit 64
 fi
 
@@ -88,14 +88,8 @@ fi
 
 actual_architectures="$(/usr/bin/lipo -archs "$executable")"
 case "$architecture" in
-    universal)
-        [[ "$actual_architectures" == *arm64* && "$actual_architectures" == *x86_64* ]]
-        ;;
     arm64)
         [[ "$actual_architectures" == "arm64" ]]
-        ;;
-    x64)
-        [[ "$actual_architectures" == "x86_64" ]]
         ;;
     *)
         echo "Unsupported architecture: $architecture" >&2

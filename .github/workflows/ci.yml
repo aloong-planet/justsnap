@@ -99,7 +99,7 @@ jobs:
           set -o pipefail
           /usr/bin/xcrun swift test --filter ProviderApplicationTestsNativeMenu.testThrownNativeOperationReleasesViewsWithoutChangingExistingWindows | tee "$RUNNER_TEMP/provider-thrown.log"
           grep -F 'Executed 1 test, with 0 failures' "$RUNNER_TEMP/provider-thrown.log"
-      - name: Three-architecture development packages
+      - name: Development package
         env:
           VERSION: 0.0.0-ci
           BUILD_VERSION: ${{ github.run_number }}
