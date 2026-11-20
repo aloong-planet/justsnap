@@ -11,7 +11,7 @@ import JustSnapCore
 // the pointer (REQ-013/AC-05) and tooltips appearing are checked on the installed build. The language
 // list's check mark is an image with no text to read, also checked there. The title menu's popover (its rows,
 // the Extract row and the disabled languages) is likewise not opened here: what a row does is tested through
-// CaptureResultBoxOperations, and how the popover looks is checked on the installed build. "Copied" going away after a
+// CaptureResultBoxOperations; that the title opens the popover, and how it looks, is checked on the installed build. "Copied" going away after a
 // moment needs the main actor free, which a test holding the localization lock cannot give: installed
 // build too. SwiftUI exposes no accessibility tree to these windows, so tests read what is rendered with
 // text recognition.
@@ -770,8 +770,8 @@ extension FrozenCaptureOverlayControllerTests {
             #expect(text.visibleRect.maxY >= text.bounds.height - 4)
         }
 
-        @Test("a translation box's title is the language menu's button and no operation row sits under the header")
-        func titleIsTheMenuButtonAndNoOperationRow() throws {
+        @Test("no operation row sits under a translation box's header")
+        func noOperationRowSitsUnderTheHeader() throws {
             try LocalizationTestCoordinator.withExclusiveAccess {
                 JustSnapLocalization.configure(effectiveLanguage: .english)
                 let (controller, panel) = try makeController()

@@ -1650,7 +1650,7 @@ final class JustSnapApplicationModel: ObservableObject {
     }
 
     /// The title menu's languages are not available while a request runs, nor while an unsaved result would
-    /// make the choice start a new request (v1-core::REQ-011/AC-04, AC-07).
+    /// make the choice start a new request (v1-core::REQ-011/AC-04, v1-core::REQ-011/AC-07).
     private func canChooseResultLanguage(_ code: String) -> Bool {
         guard workspaceSession != nil, runningResultOperation == nil, !captureActionInProgress else { return false }
         guard hasUnsavedWorkspaceResult else { return true }
@@ -1765,9 +1765,7 @@ final class JustSnapApplicationModel: ObservableObject {
         selectedTargetLanguageCode = code
         defaults.set(code, forKey: "targetLanguageCode")
         refreshResultSurfaces()
-        // An open paste box shows the new language too (v1-core::REQ-017/AC-03).
-        pasteController.targetLanguageDidChange()
-        // So does the menu bar panel, whose content is rebuilt on publication.
+        // The menu bar panel shows the new language too, its content being rebuilt on publication.
         publish()
         // SwiftUI applies the new abbreviation on its next update; its width changes the toolbar's.
         DispatchQueue.main.async { [weak self] in

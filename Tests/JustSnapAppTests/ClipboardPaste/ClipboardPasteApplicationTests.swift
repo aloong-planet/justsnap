@@ -424,9 +424,10 @@ extension ProviderApplicationTests {
         }
     }
 
-    // v1-core::REQ-011/AC-03: the language the box already shows has its result; choosing it asks for nothing.
+    // v1-core::REQ-011/AC-03, AC-08: the language the box already shows has its result; choosing it asks for
+    // nothing, and it still becomes the remembered language.
     @Test
-    func choosingTheLanguageAlreadyShownSendsNoRequest() async throws {
+    func choosingTheLanguageAlreadyShownSendsNoRequestButRemembersIt() async throws {
         try await withResultFixture { fixture, model in
             model.changeTargetLanguage("ja")
             fixture.pasteboard.clearContents()
@@ -436,9 +437,15 @@ extension ProviderApplicationTests {
             try await fixture.http.finishImage(source: "Hello there.", translation: "こんにちは。")
             try await eventually { model.historyRecords.first?.operation.status == .succeeded }
 
+            // The panel moved the remembered language elsewhere; the box still shows Japanese.
+            model.changeTargetLanguage("fr")
+            #expect(model.selectedTargetLanguageCode == "fr")
+            #expect(resultBoxPresentation()?.titleMenu?.languageCode == "ja")
+
             try #require(resultBoxOperations()).chooseLanguage("ja")
             await settleMainActor()
 
+            #expect(model.selectedTargetLanguageCode == "ja")
             #expect(await fixture.http.imageRequests.count == 1)
             #expect(model.historyRecords.count == 1)
             #expect(resultBoxText() == "こんにちは。")
@@ -488,6 +495,44 @@ extension ProviderApplicationTests {
             #expect(model.selectedTargetLanguageCode == "ja")
             #expect(await fixture.http.imageRequests.count == 1)
             #expect(resultBoxText() == "Unsaved text")
+
+            // Saving it lets the box close without asking, as the fixture's teardown does.
+            try #require(sqlite3_exec(database, "DROP TRIGGER box_save_failure", nil, nil, nil) == SQLITE_OK)
+            let box = try #require(resultBox())
+            pumpNativeEvents(box)
+            try click(box, at: NSPoint(x: try #require(box.contentView).bounds.maxX - 32, y: 20))
+            try await eventually { resultBoxPresentation()?.saveNotice == nil }
+        }
+    }
+
+    // v1-core::REQ-011/AC-07: with an unsaved translation, only the language it is in can be chosen.
+    @Test
+    func withAnUnsavedTranslationOnlyItsLanguageCanBeChosen() async throws {
+        try await withResultFixture { fixture, model in
+            model.changeTargetLanguage("ja")
+            fixture.pasteboard.clearContents()
+            fixture.pasteboard.setString("Hello there.", forType: .string)
+            let database = try failSuccessfulSaves(fixture)
+            defer { sqlite3_close(database) }
+            model.pasteFromClipboard()
+            try await eventually { await fixture.http.imageRequests.count == 1 }
+            try await fixture.http.finishImage(source: "Hello there.", translation: "Unsaved translation")
+            try await eventually { resultBoxPresentation()?.saveNotice != nil }
+            let operations = try #require(resultBoxOperations())
+            // The notice shows a moment before the request counts as finished, so the language frees up then.
+            try await eventually { operations.canChooseLanguage("ja") }
+            #expect(!operations.canChooseLanguage("fr"))
+
+            operations.chooseLanguage("fr")
+            await settleMainActor()
+            #expect(model.selectedTargetLanguageCode == "ja")
+            #expect(await fixture.http.imageRequests.count == 1)
+
+            operations.chooseLanguage("ja")
+            await settleMainActor()
+            #expect(model.selectedTargetLanguageCode == "ja")
+            #expect(await fixture.http.imageRequests.count == 1)
+            #expect(resultBoxText() == "Unsaved translation")
 
             // Saving it lets the box close without asking, as the fixture's teardown does.
             try #require(sqlite3_exec(database, "DROP TRIGGER box_save_failure", nil, nil, nil) == SQLITE_OK)
@@ -671,9 +716,9 @@ extension ProviderApplicationTests {
         }
     }
 
-    // v1-core::REQ-017/AC-02, AC-03.
+    // v1-core::REQ-017/AC-02, AC-03: a language chosen in the panel leaves the open paste box's result alone.
     @Test
-    func aLanguageChosenInThePanelShowsThereAndInTheOpenPasteBoxWithoutARequest() async throws {
+    func aLanguageChosenInThePanelShowsThereAndLeavesTheOpenPasteBoxAsItIs() async throws {
         try await withResultFixture { fixture, model in
             model.changeTargetLanguage("ja")
             fixture.pasteboard.clearContents()
@@ -694,7 +739,7 @@ extension ProviderApplicationTests {
             model.menuView().callbacks.onTargetLanguageChange("fr")
 
             #expect(panelLanguage == "fr")
-            #expect(resultBoxOperations()?.toolbarState.targetLanguageCode == "fr")
+            #expect(resultBoxPresentation()?.titleMenu?.languageCode == "ja")
             #expect(model.selectedTargetLanguageCode == "fr")
             await settleMainActor()
             #expect(panelCloses == 0)
@@ -702,9 +747,12 @@ extension ProviderApplicationTests {
             #expect(await fixture.http.imageRequests.count == 1)
             #expect(model.historyRecords.count == 1)
 
-            // A choice in the paste box reaches the panel the same way.
-            try #require(resultBoxOperations()).onTargetLanguageChange("de")
+            // A choice in the paste box's title menu reaches the panel the same way, and translates.
+            try #require(resultBoxOperations()).chooseLanguage("de")
+            try await eventually { await fixture.http.imageRequests.count == 2 }
             #expect(panelLanguage == "de")
+            try await fixture.http.finishImage(source: "Hello", translation: "Hallo")
+            try await eventually { model.historyRecords.count == 2 }
         }
     }
 

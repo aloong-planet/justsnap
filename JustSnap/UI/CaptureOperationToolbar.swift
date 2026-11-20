@@ -276,7 +276,7 @@ private struct TranslateControl: View {
 }
 
 /// The searchable target language list that the toolbar's language part, the menu panel's language row and
-/// the result box's title menu open (v1-core::REQ-013/AC-04, REQ-017/AC-02, REQ-011/AC-08).
+/// the result box's title menu open (v1-core::REQ-013/AC-04, v1-core::REQ-017/AC-02, v1-core::REQ-011/AC-08).
 struct TargetLanguageList: View {
     /// A row above the languages, for the title menu's Extract (clipboard-paste::REQ-006/AC-03).
     struct LeadingRow {

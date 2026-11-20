@@ -225,7 +225,7 @@ public struct CaptureResultBoxOperations {
     public let onStart: (WorkspaceOperationKind) -> Void
     public let onTargetLanguageChange: (String) -> Void
     /// Whether choosing a language is allowed now; it is not while a request runs or an unsaved result
-    /// would make the choice start a new request (v1-core::REQ-011/AC-04, AC-07).
+    /// would make the choice start a new request (v1-core::REQ-011/AC-04, v1-core::REQ-011/AC-07).
     public let canChooseLanguage: (String) -> Bool
 
     public init(
@@ -412,14 +412,14 @@ public struct CaptureResultBoxView: View {
                         ? .init(title: JustSnapStrings.captureExtract, isChecked: menu.checksExtract,
                                 isEnabled: !operations.toolbarState.isBlocked(.extract)) {
                             isTitleMenuPresented = false
-                            if !menu.checksExtract { operations.chooseExtract() }
+                            operations.chooseExtract()
                         }
                         : nil,
                     isEnabled: operations.canChooseLanguage,
                     searchText: $titleSearchText
                 ) { code in
                     isTitleMenuPresented = false
-                    if code != menu.languageCode { operations.chooseLanguage(code) }
+                    operations.chooseLanguage(code)
                 }
             }
         } else {
