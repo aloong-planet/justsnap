@@ -2,7 +2,7 @@
 
 ## Question
 
-Does the JustSnap download page read right: its structure (header, hero with the download, the pinned features section, three install steps, the download section, footer), its Chinese and English copy, its palette in light and dark, and what the download block shows in each of the three download states? The screenshots in the hero and the features section are drawn stand-ins for the real app screenshots; what is judged is their place, size and caption, not their content.
+Does the JustSnap download page read right: its structure (header, a hero that fills the first screen with the download, the pinned features section, one section holding the download block and the three install steps, footer), its Chinese and English copy, its palette in light and dark, and what the download block shows in each of the three download states? The screenshots in the hero and the features section are drawn stand-ins for the real app screenshots; what is judged is their place, size and caption, not their content.
 
 ## Structure basis
 

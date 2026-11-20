@@ -45,7 +45,7 @@ html[data-demo-mode="dark"] {
 body { margin: 0; }
 .site { background: var(--lp-window); color: var(--lp-text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif; min-height: 100vh; }
 .site a { color: inherit; text-decoration: none; }
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
 
 /* header */
 .hdr { position: sticky; top: 0; z-index: 20; height: var(--lp-hdr); background: var(--lp-header); backdrop-filter: blur(10px); border-bottom: 1px solid var(--lp-line); }
@@ -66,10 +66,11 @@ body { margin: 0; }
 .btn svg { width: 18px; height: 18px; flex: none; }
 
 /* hero */
-.hero { padding: 72px 0 56px; }
-.hero .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 48px; align-items: center; }
+.hero { min-height: calc(100svh - var(--lp-hdr)); display: flex; align-items: center; padding: 32px 0; }
+.hero .wrap { width: 100%; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.3fr); gap: 48px; align-items: center; }
+.hero .shot { width: min(100%, calc((100svh - var(--lp-hdr) - 64px) * 16 / 9)); justify-self: end; }
 .hero h1 { font-size: clamp(30px, 4.2vw, 46px); line-height: 1.15; margin: 0 0 18px; letter-spacing: -0.02em; }
-.hero p.lead { color: var(--lp-muted); font-size: 17px; margin: 0 0 28px; max-width: 34em; }
+.hero p.lead { color: var(--lp-text); font-size: 17px; margin: 0 0 28px; max-width: 34em; }
 .dl { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .dl .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 13px; color: var(--lp-muted); }
 .more { color: var(--lp-accent) !important; font-size: 13px; }
@@ -110,16 +111,16 @@ body { margin: 0; }
 .features { position: relative; }
 .f-head { text-align: center; padding: 72px 24px 24px; }
 .f-head h2, .section h2 { font-size: clamp(26px, 3.2vw, 36px); line-height: 1.2; margin: 0 0 12px; letter-spacing: -0.01em; }
-.f-head p { color: var(--lp-muted); margin: 0; }
+.f-head p { color: var(--lp-text); margin: 0; }
 .pin { position: relative; }
 .step { padding: 36px 24px; }
 .step .txt { max-width: 420px; margin: 0 auto 20px; }
 .step .no { color: var(--lp-accent); font-weight: 700; font-size: 14px; letter-spacing: .06em; }
 .step h3 { margin: 6px 0 8px; font-size: 24px; line-height: 1.25; }
-.step p { margin: 0; color: var(--lp-muted); }
+.step p { margin: 0; color: var(--lp-text); }
 .step .shot { max-width: 760px; margin: 0 auto; }
 .features[data-mode="pinned"] .pin { position: sticky; top: var(--lp-hdr); height: calc(100vh - var(--lp-hdr)); }
-.features[data-mode="pinned"] .step { position: absolute; inset: 0; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 56px; align-items: center; max-width: 1120px; margin: 0 auto; padding: 0 24px; opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility .35s; }
+.features[data-mode="pinned"] .step { position: absolute; inset: 0; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 56px; align-items: center; max-width: 1280px; margin: 0 auto; padding: 0 24px; opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility .35s; }
 .features[data-mode="pinned"] .step.on { opacity: 1; visibility: visible; }
 .features[data-mode="pinned"] .step .txt { margin: 0; align-self: start; padding-top: 18vh; }
 .features[data-mode="pinned"] .step .shot { margin: 0; width: min(100%, calc((100vh - var(--lp-hdr) - 72px) * 16 / 9)); justify-self: center; }
@@ -128,12 +129,13 @@ body { margin: 0; }
 /* install + download + footer */
 .section { padding: 72px 0 24px; }
 .section h2 { text-align: center; margin-bottom: 36px; }
+.section h3.sub { text-align: center; font-size: 22px; margin: 0 0 20px; }
 .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .card { background: var(--lp-surface); border: 1px solid var(--lp-line); border-radius: 14px; padding: 24px; }
 .card .no { width: 30px; height: 30px; border-radius: 50%; background: var(--lp-soft); color: var(--lp-accent); font-weight: 700; display: grid; place-items: center; margin-bottom: 12px; }
 .card h3 { margin: 0 0 8px; font-size: 18px; }
-.card p { margin: 0; color: var(--lp-muted); font-size: 15px; }
-.dlbox { max-width: 640px; margin: 0 auto; background: var(--lp-surface); border: 1px solid var(--lp-line); border-radius: 14px; padding: 28px; text-align: center; }
+.card p { margin: 0; color: var(--lp-text); font-size: 16px; }
+.dlbox { max-width: 640px; margin: 0 auto 56px; background: var(--lp-surface); border: 1px solid var(--lp-line); border-radius: 14px; padding: 28px; text-align: center; }
 .dlbox .ver { margin: 0 0 18px; color: var(--lp-muted); }
 .dlbox .row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 .foot { margin-top: 72px; border-top: 1px solid var(--lp-line); padding: 28px 0 40px; color: var(--lp-muted); font-size: 14px; }
@@ -142,7 +144,8 @@ body { margin: 0; }
 .foot a:hover { color: var(--lp-text); }
 
 @media (max-width: 900px) {
-  .hero { padding-top: 40px; }
+  .hero { min-height: 0; display: block; padding: 40px 0 32px; }
+  .hero .shot { width: 100%; }
   .hero .wrap { grid-template-columns: minmax(0, 1fr); gap: 32px; }
   .cards { grid-template-columns: minmax(0, 1fr); }
 }
@@ -153,7 +156,7 @@ body { margin: 0; }
 <div class="site">
   <header class="hdr"><div class="wrap">
     <a class="brand" href="#top" data-t="brand"></a>
-    <nav class="nav"><a href="#features" data-t="nav.features"></a><a href="#install" data-t="nav.install"></a><a href="#download" data-t="nav.download"></a><a href="#" data-t="nav.github"></a></nav>
+    <nav class="nav"><a href="#features" data-t="nav.features"></a><a href="#download" data-t="nav.download"></a><a href="#" data-t="nav.github"></a></nav>
     <div class="lang" aria-label="Language"><span data-lang="zh">中文</span><span data-lang="en">EN</span></div>
   </div></header>
 
@@ -172,14 +175,11 @@ body { margin: 0; }
     <div id="runway"></div>
   </section>
 
-  <section class="section" id="install"><div class="wrap">
-    <h2 data-t="i.title"></h2>
-    <div class="cards" id="steps"></div>
-  </div></section>
-
   <section class="section" id="download"><div class="wrap">
     <h2 data-t="d.title"></h2>
     <div class="dlbox" id="dlBox"></div>
+    <h3 class="sub" data-t="i.title"></h3>
+    <div class="cards" id="steps"></div>
   </div></section>
 
   <footer class="foot"><div class="wrap">
@@ -206,8 +206,8 @@ const ICON_DL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 const COPY = {
   zh: {
     brand: '随译 JustSnap',
-    nav: { features: '功能', install: '安装', download: '下载', github: 'GitHub' },
-    hero: { title: '截一块屏幕，直接提取文字或翻译', p: '随译（JustSnap）是 macOS 菜单栏里的截图工具：框选屏幕上的任意区域，交给在线视觉模型，几秒内拿到提取的文字或译文。用你自己的模型服务商，截图只发给你选的那一家。' },
+    nav: { features: '功能', download: '下载与安装', github: 'GitHub' },
+    hero: { title: '截一块屏幕，直接提取文字或翻译', p: '随译（JustSnap）是 macOS 菜单栏里的截图工具：框选任意区域，几秒内拿到提取的文字或译文。用你自己的模型服务商。' },
     platform: 'macOS 14.4 或更高 · Apple 芯片',
     dl: { r2: '下载随译 {v}', list: '从 GitHub 下载随译', all: '在 GitHub 查看所有版本' },
     f: { title: '一个快捷键，从屏幕到文字', sub: '不做标注，也不先过传统 OCR：原图直接交给视觉模型。' },
@@ -220,10 +220,10 @@ const COPY = {
       { t: '用自己的模型服务商', p: 'OpenAI、Gemini、DeepSeek 等，用你自己的 API Key。密钥保存在 macOS 钥匙串，截图只发给你选的那一家。' }
     ],
     i: { title: '三步装好', steps: [
-      { t: '下载 DMG', p: '下载适用于 Apple 芯片的安装包。' },
+      { t: '下载 DMG', p: '点上方的下载按钮，得到 DMG 安装包。' },
       { t: '拖进“应用程序”', p: '打开 DMG，把随译拖进“应用程序”文件夹。' },
       { t: '打开并授权', p: 'macOS 会提示 Apple 已检查过它没有恶意软件，点“打开”即可。首次启动会引导你授予屏幕录制权限，并添加模型服务商的 API Key；有新版本时，菜单栏面板会出现更新提示。' } ] },
-    d: { title: '下载', cur: '当前版本 {v}', dl: '下载', gh: 'GitHub', fail: '暂时无法读取版本信息，请前往 GitHub 下载', failBtn: '前往 GitHub 下载' },
+    d: { title: '下载与安装', cur: '当前版本 {v}', dl: '下载', gh: 'GitHub', fail: '暂时无法读取版本信息，请前往 GitHub 下载', failBtn: '前往 GitHub 下载' },
     foot: { releases: '发布列表' },
     mock: { extract: '文字提取', done: '完成', copy: '复制', translate: '截图翻译', trans: '译文', orig: '原文', paste: '粘贴', snap: '截图', to: '翻译为', lang: '简体中文', ok: '成功', fail: '失败', model: '模型', key: 'API Key', sel1: '提取文字', sel2: '翻译', sel3: '简体中文 ▾',
       h: '2024 年第三季度报告', md1: '- 收入同比增长 12%，主要来自订阅业务。', md2: '- 毛利率稳定在 71%。', md3: '- 下一季度重点：国际化与企业版。',
@@ -232,8 +232,8 @@ const COPY = {
   },
   en: {
     brand: 'JustSnap',
-    nav: { features: 'Features', install: 'Install', download: 'Download', github: 'GitHub' },
-    hero: { title: 'Snap any part of your screen. Get the text or the translation.', p: 'JustSnap lives in your Mac\'s menu bar. Select any region of the screen and hand it to an online vision model; seconds later you have the text or the translation. It uses the provider you choose, and your screenshot goes only to them.' },
+    nav: { features: 'Features', download: 'Download', github: 'GitHub' },
+    hero: { title: 'Snap any part of your screen. Get the text or the translation.', p: 'JustSnap lives in your Mac\'s menu bar. Select any region, and seconds later a vision model hands back the text or the translation. Bring your own provider.' },
     platform: 'macOS 14.4 or later · Apple silicon',
     dl: { r2: 'Download JustSnap {v}', list: 'Download JustSnap from GitHub', all: 'See every version on GitHub' },
     f: { title: 'From screen to text in one shortcut', sub: 'No annotation tools, no classic OCR step: the original image goes straight to a vision model.' },
@@ -246,10 +246,10 @@ const COPY = {
       { t: 'Bring your own provider', p: 'OpenAI, Gemini, DeepSeek and more, with your own API key. Keys stay in the macOS Keychain, and the screenshot goes only to the provider you pick.' }
     ],
     i: { title: 'Installed in three steps', steps: [
-      { t: 'Download the DMG', p: 'Get the installer for Apple silicon.' },
+      { t: 'Download the DMG', p: 'Use the download button above to get the installer.' },
       { t: 'Drag it to Applications', p: 'Open the DMG and drag JustSnap into the Applications folder.' },
       { t: 'Open it and allow access', p: 'macOS will say Apple checked it for malicious software and found none; click Open. The first launch walks you through Screen Recording permission and adding a provider\'s API key. When a new version is out, the menu bar panel shows an update notice.' } ] },
-    d: { title: 'Download', cur: 'Current version {v}', dl: 'Download', gh: 'GitHub', fail: 'Version details can\'t be loaded right now — download from GitHub', failBtn: 'Download from GitHub' },
+    d: { title: 'Download and install', cur: 'Current version {v}', dl: 'Download', gh: 'GitHub', fail: 'Version details can\'t be loaded right now — download from GitHub', failBtn: 'Download from GitHub' },
     foot: { releases: 'Releases' },
     mock: { extract: 'Text extraction', done: 'Done', copy: 'Copy', translate: 'Screenshot translation', trans: 'Translation', orig: 'Original', paste: 'Paste', snap: 'Capture', to: 'Translate to', lang: 'English', ok: 'Done', fail: 'Failed', model: 'Model', key: 'API key', sel1: 'Extract text', sel2: 'Translate', sel3: 'English ▾',
       h: 'Q3 2024 report', md1: '- Revenue up 12% year over year, led by subscriptions.', md2: '- Gross margin steady at 71%.', md3: '- Next quarter: internationalisation and the team plan.',
