@@ -7,7 +7,7 @@
   "packageManager": "pnpm@9.12.3",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/check-shots.mjs && astro build",
     "preview": "astro preview",
     "check": "astro check",
     "test": "vitest run"

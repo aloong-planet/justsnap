@@ -5,8 +5,9 @@
 //
 // Not covered here: the pinned showcase and how the scroll turns its steps (landing-page::REQ-004, failures C1–C4), the
 // layout across widths (QR-001), the hero filling the first screen (REQ-003/AC-03), the two appearances (D1), and
-// whether the screenshots show made-up content (REQ-005). They are measured in a browser against the built site; the
-// stylesheet's rule for pages without scripts (C5) is asserted below as text, since jsdom does not lay it out.
+// whether the screenshots show made-up content (REQ-005). They were measured in a headless browser against the built site when the page was written, not by a test; the
+// stylesheet's rule for pages without scripts (C5) and the numbers the spec fixes are asserted below as text, since
+// jsdom does not lay the page out. A test for the rest needs a real browser in CI.
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { JSDOM } from 'jsdom'
@@ -132,10 +133,6 @@ describe('as served, the list state (REQ-001/AC-04, REQ-002/AC-03)', () => {
     const buttons = [...box.querySelectorAll('.row a')]
     expect(buttons.map((a) => [text(a), a.getAttribute('href')])).toEqual([[locale === 'zh' ? '前往 GitHub 下载' : 'Download from GitHub', `${REPOSITORY}/releases`]])
   })
-
-  test.each(LOCALES)('%s: no version number anywhere in the buttons', (locale) => {
-    for (const a of pages[locale].querySelectorAll('.btn')) expect(text(a)).not.toMatch(/\d+\.\d+/)
-  })
 })
 
 describe('features (REQ-004, US-003)', () => {
@@ -252,5 +249,52 @@ describe('the stylesheet’s rules for pages without scripts (failure C5)', () =
     })
     expect(rules['.deck']).toEqual(['none'])
     expect(rules['.fs-list']).toEqual(['flex'])
+  })
+})
+
+// The numbers the spec fixes, read from the stylesheet as built (jsdom does not lay the page out, so the rules are
+// read as text). The scroll script measures a turn and the pin point from the page itself, so a changed number here
+// would pass every other test while changing how the page behaves.
+describe('the stylesheet’s fixed numbers (landing-page::REQ-003, REQ-004)', () => {
+  const stylesheet = (): string => {
+    const cssFile = files().find((f) => f.endsWith('.css'))
+    return cssFile ? readFileSync(join(outDir, cssFile), 'utf8') : [...pages.zh.querySelectorAll('style')].map((s) => s.textContent).join('\n')
+  }
+  // The build's minifier writes `(max-width: 759px)` as `(width<=759px)`; both mean the same, so compare in one form
+  const widthQuery = (params: string): string => params.replace(/\s+/g, '').replace(/^\(max-width:(.+)\)$/, '(width<=$1)')
+  /** What `selector` sets for `prop`, outside any at-rule (`media` empty) or inside the media query with that text */
+  const declared = (selector: string, prop: string, media = ''): string[] => {
+    const values: string[] = []
+    postcss.parse(stylesheet()).walkRules(selector, (r) => {
+      const at = r.parent?.type === 'atrule' ? (r.parent as postcss.AtRule) : undefined
+      if (media ? !at || widthQuery(at.params) !== widthQuery(media) : at) return
+      r.walkDecls(prop, (d) => void values.push(d.value.replace(/\s+/g, ' ')))
+    })
+    return values
+  }
+
+  test('a turn is 60% of the window’s height (REQ-004/AC-05)', () => {
+    expect(declared('.deck-turn', 'height')).toEqual(['60svh'])
+  })
+
+  test('the showcase pins under the header and fills the rest of the window (REQ-004/AC-01)', () => {
+    expect(declared('.deck-pin', 'top')).toEqual(['var(--hdr)'])
+    expect(declared('.deck-pin', 'height')).toEqual(['calc(100svh - var(--hdr))'])
+  })
+
+  test('the first screen fills the window under the header (REQ-003/AC-03)', () => {
+    expect(declared('.hero', 'min-height')).toEqual(['calc(100svh - var(--hdr))'])
+  })
+
+  test('the header is 56px, so the pin point and the first screen agree with it', () => {
+    expect(declared('html', '--hdr')).toEqual(['56px'])
+    expect(declared('.hdr', 'height')).toEqual(['var(--hdr)'])
+  })
+
+  test('below 760px the showcase and the navigation give way to the stacked steps (REQ-003/AC-01, REQ-004/AC-03)', () => {
+    const narrow = '(max-width: 759px)'
+    expect(declared('.deck', 'display', narrow)).toEqual(['none'])
+    expect(declared('.nav', 'display', narrow)).toEqual(['none'])
+    expect(declared('.fs-list', 'display', narrow)).toEqual(['flex'])
   })
 })

@@ -1,6 +1,7 @@
 // The step the scroll gives (landing-page::REQ-004/AC-05, failures C1, C3): how far the pinned block has scrolled,
 // counted in turns of the window's height, rounded, and kept within the steps. The pure part of features.ts; what
-// the page does with it (pinning, fading) is layout and is measured in a browser.
+// the page does with it (pinning, fading) is layout: test/features-sync.test.ts checks what is measured, and the
+// layout itself was measured in a headless browser when the page was written, not by a test.
 import { describe, expect, test } from 'vitest'
 import { stepAt } from './features'
 

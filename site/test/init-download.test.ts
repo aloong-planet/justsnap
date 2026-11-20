@@ -1,9 +1,10 @@
 // The page's download script end to end (landing-page::REQ-001, CON-003, failures A2, A3, A4, A7): the served page, a
-// fake fetch standing in for the network (the pointer as the release script writes it, GitHub's real-shaped list),
+// fake fetch standing in for the network (the pointer as agentshed's mirror script writes it, GitHub's real-shaped list),
 // and the state the page ends in. Which URLs were asked for is asserted: CON-003 makes the two reads the requirement.
 //
-// Not covered here: keeping the visitor's place when a state lands while they are scrolled (failure A5; jsdom has no
-// layout); measured in a browser.
+// Keeping the visitor's place when a state lands while they are scrolled (failure A5) is checked at the end of this
+// file with stubbed rectangles, since jsdom has no layout. Not covered: that a real browser's layout moves the way
+// the stub says it does; that has not been measured in a browser.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { JSDOM } from 'jsdom'
@@ -83,4 +84,45 @@ test('only pre-releases on GitHub: nothing to offer, the page stays as served (f
   const net = network({ [POINTER_URL]: [404, '<html></html>'], [RELEASES_API]: [200, JSON.stringify(RELEASES.filter((r) => r.prerelease))] })
   expect(await initDownload(doc, net)).toEqual({ kind: 'list' })
   expect(doc.body.innerHTML).toBe(served)
+})
+
+// Keeping the visitor's place when a state lands after the page is shown (failure A5). jsdom has no layout, so the
+// rectangles are stubbed, as in language-switch.test.ts: the header ends at 56, and the next section moves by
+// `shift` once the hero shows a state (the hero button's text changing is how the stub knows).
+function scrolledPage(heroBottom: number, shift: number): { doc: Document; scrolls: ScrollToOptions[] } {
+  const doc = page('en')
+  const served = heroText(doc)
+  const rect = (top: number, bottom = top): (() => DOMRect) => () => ({ top, bottom }) as DOMRect
+  doc.querySelector('.hdr')!.getBoundingClientRect = rect(0, 56)
+  doc.querySelector('.hero .dl')!.getBoundingClientRect = rect(heroBottom - 100, heroBottom)
+  doc.getElementById('features')!.getBoundingClientRect = () => ({ top: heroText(doc) === served ? 800 : 800 + shift }) as DOMRect
+  const scrolls: ScrollToOptions[] = []
+  doc.defaultView!.scrollBy = ((options: ScrollToOptions) => void scrolls.push(options)) as typeof scrollBy
+  return { doc, scrolls }
+}
+
+const onR2 = network({ [POINTER_URL]: [200, POINTER] })
+
+test('a state that lands while the hero’s download block is above the view scrolls by what it moved the page', async () => {
+  const { doc, scrolls } = scrolledPage(40, 30)
+  await initDownload(doc, onR2)
+  expect(scrolls).toEqual([{ top: 30, behavior: 'instant' }])
+})
+
+test('the same, when the state makes the block shorter: the scroll goes the other way', async () => {
+  const { doc, scrolls } = scrolledPage(40, -25)
+  await initDownload(doc, onR2)
+  expect(scrolls).toEqual([{ top: -25, behavior: 'instant' }])
+})
+
+test('a state that lands while the block is in view changes it in place, with no scrolling', async () => {
+  const { doc, scrolls } = scrolledPage(300, 30)
+  await initDownload(doc, onR2)
+  expect(scrolls).toEqual([])
+})
+
+test('a state that moves nothing needs no scrolling even when the block is above the view', async () => {
+  const { doc, scrolls } = scrolledPage(40, 0)
+  await initDownload(doc, onR2)
+  expect(scrolls).toEqual([])
 })

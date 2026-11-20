@@ -41,17 +41,20 @@ CI runs `pnpm check` and `pnpm test` in the `site-checks` job whenever a pull re
   switch that keeps the current step and scroll position (`language-switch.ts`), and the download script that reads,
   decides and shows the state in place (`download.ts`, applying it with `apply-download.ts`).
 - `src/shots.ts` and `public/shots/`: the screenshots, one set per language: the hero's and the six features', all
-  1840×1035 (16:9), taken from the app in its light appearance over made-up content.
+  1840×1035 (16:9), to be taken from the app in its light appearance over made-up content. Until they are, the files are one placeholder picture, and `pnpm build` refuses to build (`scripts/check-shots.mjs`: no two screenshots may be the same file), so a placeholder set is never published; `pnpm check` and `pnpm test` do not run that check.
 
 ## Tests
 
 - Unit tests sit next to the modules they test (`src/**/*.test.ts`).
 - `test/built-site.test.ts` checks the pages one fresh build produces: `test/build-site.ts` builds the site into a
   new directory once per test run, so the check never reads an old `dist/`. Its file header says what it cannot see
-  (scrolling, layout across widths, the two appearances), which is measured in a browser instead.
+  (scrolling, layout across widths, the two appearances), which was measured in a headless browser when the page was
+  written and is not tested. It does assert the numbers the spec fixes (a turn, the pin point, the 760px breakpoint)
+  from the built stylesheet. `test/features-sync.test.ts` checks which measurements turn the scroll into a step;
+  `test/check-shots.test.ts` checks the screenshot check the production build runs.
 - `test/apply-download.test.ts` and `test/init-download.test.ts` apply the download states to that build's pages, the
   second through the page's script with a fake network. The reads' tests answer through an injected fetch too, so no
-  test reaches the network; `test/fixtures/` holds the answers they use: the pointer as the release script writes it,
+  test reaches the network; `test/fixtures/` holds the answers they use: the pointer as agentshed's mirror script writes it (JustSnap's own writer is not built yet),
   and a real-shaped releases answer from GitHub.
 - `test/language-switch.test.ts` moves a note between the two pages through a fake session storage.
 

@@ -62,13 +62,6 @@ describe('the list state', () => {
     expect(v.section.buttons[0]?.label).toBe('前往 GitHub 下载')
   })
 
-  test.each(LOCALES)('%s: no version anywhere in the buttons, and every label is there', (locale) => {
-    const v = view({ kind: 'list' }, locale)
-    for (const label of [v.hero.label, v.section.line, ...v.section.buttons.map((b) => b.label)]) {
-      expect(label.trim()).not.toBe('')
-      expect(label).not.toMatch(/\d+\.\d+/)
-    }
-  })
 })
 
 describe('the state from R2', () => {

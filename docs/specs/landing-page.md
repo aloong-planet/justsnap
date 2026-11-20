@@ -77,10 +77,13 @@
 - landing-page::REQ-005/AC-01：首屏截图和六张功能截图取自构建出的 App，内容是虚构的示例（示例文字、示例对话），不出现使用者本人的数据；每种语言一套，浅色外观。
 - landing-page::REQ-005/AC-02：六张功能截图宽高比 16:9、缩放一致，使文字在步骤切换时大小不变；每张在列表行之间截断。
 - landing-page::REQ-005/AC-03：每张截图的位置在加载前就已占住，页面不跳动。
+- landing-page::REQ-005/AC-04：站点的生产构建在任意两张截图是同一个文件时失败，因此一套重复的占位图不会被发布。
+
+> Pending: 截图还没有拍摄，现有的截图是同一张占位图；换成取自构建出的 App 的截图之后，landing-page::REQ-005/AC-01 才成立，页面才可发布。
 
 ### landing-page::REQ-006 文案（直接验收）
 
-文案只有中文和英文。中文页称产品“随译”，括注 JustSnap 于品牌与首屏；英文页称 JustSnap。提到模型服务商时只举例而不当作全集（“OpenAI、Gemini、DeepSeek 等”）。页面使用跟随访客系统外观的浅色与深色两套配色。
+文案只有中文和英文。中文页称产品“随译”，括注 JustSnap 于品牌与首屏；英文页称 JustSnap。提到模型服务商时只举例而不当作全集（“OpenAI、Gemini、DeepSeek 等”）。页面使用跟随访客系统外观的浅色与深色两套配色。功能展示区的标题中文为“一个快捷键，从屏幕到文字”，英文为“From screen to text in one shortcut”；其副标题中文为“不做标注，也不先过传统 OCR：原图直接交给视觉模型。”，英文为“No annotation tools, no classic OCR step: the original image goes straight to a vision model.”。安装步骤的标题中文为“三步装好”，英文为“Installed in three steps”。
 
 ### landing-page::REQ-007 首屏标题与说明（直接验收）
 

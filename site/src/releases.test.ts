@@ -1,5 +1,6 @@
 // The two reads (landing-page::REQ-001, CON-003, failures A1–A7, E1), through an injected fetch: no case reaches
-// the network. The fixtures are real shapes: the pointer as the release script writes it, the 404 the download
+// the network. The fixtures are real shapes: the pointer as agentshed's mirror script writes it (JustSnap's own writer is not built
+// yet; when it is, its output replaces this fixture), the 404 the download
 // host answers before the first release (an HTML body), and a public GitHub releases answer (drafts, pre-releases,
 // assets with their upload state) renamed to this repository.
 //
@@ -51,7 +52,7 @@ const DL = 'https://dl.justsnap.aloongplanet.com'
 const DMG = `${DL}/releases/v0.2.0/JustSnap-0.2.0-mac-arm64.dmg`
 
 describe('the pointer', () => {
-  test('a pointer as the release script writes it: the version and its Apple silicon DMG on the download host', async () => {
+  test('a pointer as agentshed’s mirror script writes it: the version and its Apple silicon DMG on the download host', async () => {
     const fetch = answering(200, POINTER)
     expect(await readPointer(fetch)).toEqual({ kind: 'formal', version: '0.2.0', url: DMG })
     expect(fetch.urls).toEqual([`${DL}/latest.json`])
