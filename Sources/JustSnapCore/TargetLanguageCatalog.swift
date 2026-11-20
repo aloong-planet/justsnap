@@ -6,9 +6,8 @@ public struct TargetLanguageCatalog: Equatable, Sendable {
         "de", "pt", "it", "ru", "ar",
     ]
 
-    public static let standard = TargetLanguageCatalog(
-        codes: standardLanguageCodes()
-    )
+    /// The only languages a user can translate into (v1-core §5).
+    public static let standard = TargetLanguageCatalog(codes: priorityCodes)
 
     public let codes: [String]
 
@@ -24,17 +23,5 @@ public struct TargetLanguageCatalog: Equatable, Sendable {
     /// `ZH` for `zh-Hans` (v1-core::REQ-013/AC-03). Codes stay the runtime and stored values.
     public static func abbreviation(for code: String) -> String {
         String(code.prefix { $0 != "-" }).uppercased()
-    }
-
-    private static func standardLanguageCodes() -> [String] {
-        var seen = Set<String>()
-        let remaining = Locale.LanguageCode.isoLanguageCodes
-            .map(\.identifier)
-            .map { $0 == "zh" ? "zh-Hans" : $0 }
-            .filter { !$0.hasPrefix("zh-Hant") }
-            .filter { seen.insert($0).inserted }
-            .filter { !priorityCodes.contains($0) }
-            .sorted()
-        return priorityCodes + remaining
     }
 }

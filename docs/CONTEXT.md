@@ -4,6 +4,7 @@ JustSnap 是通过屏幕截图、粘贴的剪贴板图片或剪贴板文字向�
 
 ## Contents（目录）
 
+- 产品名：产品名（Product Name）
 - 截图与结果展示：截图（Capture）、粘贴图片（Pasted Image）、粘贴文字（Pasted Text）、吸附区域（Snap Region）、结果框（Result Box）
 - 操作与重跑：文字提取（Text Extraction）、截图翻译（Screenshot Translation）、当前结果重跑（Current Result Rerun）、历史操作重跑（Historical Operation Rerun）
 - 模型与 Provider：视觉模型（Vision Model）、Provider、当前模型（Selected Model）、视觉兼容状态（Vision Compatibility）、Provider 事件流（Provider Event Stream）、双语对应片段（Translation Segment）、提示词版本（Prompt Version）
@@ -12,6 +13,10 @@ JustSnap 是通过屏幕截图、粘贴的剪贴板图片或剪贴板文字向�
 - 应用入口：菜单栏面板（Menu Bar Panel）、状态项右键菜单（Status Item Context Menu）、管理中心（Management Center）
 
 ## Language（术语）
+
+**产品名（Product Name）**：
+本产品在简体中文界面里叫“随译”，在英文界面和系统显示名里叫 JustSnap；两个名字指同一个产品，不是两个产品。
+_Avoid_：VLMSnapper（旧名）
 
 **截图（Capture）**：
 用户从屏幕上选取的矩形像素图像，是文字提取和截图翻译的输入。从系统剪贴板取得的图片是粘贴图片，不是截图。

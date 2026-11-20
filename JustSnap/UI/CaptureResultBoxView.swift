@@ -283,7 +283,6 @@ public struct CaptureResultBoxView: View {
     @State private var copiedCount = 0
     @State private var showsCopied = false
     @State private var isTitleMenuPresented = false
-    @State private var titleSearchText = ""
 
     public init(
         state: CaptureResultBoxState,
@@ -390,7 +389,6 @@ public struct CaptureResultBoxView: View {
             .fixedSize()
         if let menu = presentation.titleMenu, let operations = state.operations {
             Button {
-                titleSearchText = ""
                 isTitleMenuPresented.toggle()
             } label: {
                 HStack(spacing: 4) {
@@ -404,7 +402,7 @@ public struct CaptureResultBoxView: View {
             }
             .buttonStyle(CaptureToolbarButtonStyle(kind: .field))
             .accessibilityLabel(presentation.title)
-            .popover(isPresented: $isTitleMenuPresented, arrowEdge: .bottom) {
+            .unanimatedPopover(isPresented: $isTitleMenuPresented) {
                 TargetLanguageList(
                     options: operations.targetLanguages,
                     selectedCode: menu.languageCode ?? "",
@@ -415,8 +413,7 @@ public struct CaptureResultBoxView: View {
                             operations.chooseExtract()
                         }
                         : nil,
-                    isEnabled: operations.canChooseLanguage,
-                    searchText: $titleSearchText
+                    isEnabled: operations.canChooseLanguage
                 ) { code in
                     isTitleMenuPresented = false
                     operations.chooseLanguage(code)

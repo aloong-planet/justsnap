@@ -1,7 +1,6 @@
 "operation.extract" = "提取文字";
 "operation.translate" = "翻译";
 "operation.selector" = "操作类型";
-"operation.targetLanguageSearch" = "搜索语言";
 "action.cancel" = "取消";
 "action.retrySave" = "重试保存";
 "action.copy" = "复制";

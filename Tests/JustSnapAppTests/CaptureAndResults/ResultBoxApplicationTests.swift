@@ -434,8 +434,10 @@ extension ProviderApplicationTests {
         }
     }
 
+    // The toolbar's width follows the language's abbreviation, so a language chosen while the result box is
+    // beside it moves the toolbar to keep the gap (v1-core::REQ-013/AC-06).
     @Test
-    func aLongerAbbreviationKeepsTheToolbarBesideTheBox() async throws {
+    func aChosenLanguageKeepsTheToolbarBesideTheBox() async throws {
         try await withResultFixture { fixture, _ in
             let screen = try #require(NSScreen.main)
             try fixture.shortcuts.fire()
@@ -451,11 +453,11 @@ extension ProviderApplicationTests {
             pumpNativeEvents(toolbar)
             let width = toolbar.frame.width
 
-            try await chooseLanguage("aeb", in: toolbar)
+            try await chooseLanguage("it", in: toolbar)
 
             try await eventually {
                 pumpNativeEvents(toolbar)
-                return toolbar.frame.width > width
+                return toolbar.frame.width != width
                     && toolbar.frame.maxX == box.frame.minX - JustSnapUIConstants.toolbarResultBoxGap
             }
         }

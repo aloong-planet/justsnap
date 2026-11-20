@@ -48,6 +48,10 @@ struct CaptureToolbarIconButtonTests {
         try press(window, at: NSPoint(x: right - 8, y: midY))
         #expect(presses.names.isEmpty)
         try waitUntil { popoverCount() > before }
+        // The list opens and closes without animation (v1-core::REQ-013/AC-04): it goes through the unanimated presenter.
+        let presenters = unanimatedPopoverControllers(in: try #require(window.contentView))
+        #expect(presenters.count == 1)
+        #expect(presenters.allSatisfy { $0.isShown && !$0.popover.animates })
         closePopovers()
 
         try press(window, at: NSPoint(x: right - 70, y: midY))
@@ -97,25 +101,123 @@ struct CaptureToolbarIconButtonTests {
         try press(window, at: NSPoint(x: translateControlRightEdge(window) - 8, y: try #require(window.contentView).bounds.midY))
         try waitUntil { popoverCount() > before }
         let popover = try #require(NSApp.windows.first { $0.className.contains("Popover") && $0.isVisible })
-        let content = try #require(popover.contentView)
-        var table: NSTableView?
-        try waitUntil {
-            content.layoutSubtreeIfNeeded()
-            table = allSubviews(content).compactMap { $0 as? NSTableView }.first
-            return (table?.numberOfRows ?? 0) == 2
-        }
-        let rows = try recognizedText(in: content)
+        let rows = try recognizedListText(
+            options: [
+                TargetLanguageOption(code: "en", name: "English"),
+                TargetLanguageOption(code: "zh-Hans", name: "Chinese"),
+            ],
+            selectedCode: "en"
+        )
         #expect(rows.contains("EN"))
         #expect(rows.contains("English"))
         #expect(rows.contains("ZH"))
 
-        let list = try #require(table)
-        let row = list.rect(ofRow: 1)
-        try press(popover, at: list.convert(NSPoint(x: row.minX + 60, y: row.midY), to: nil))
+        try press(popover, at: try languageRowPoint(in: popover, row: 1))
 
         try waitUntil { state.targetLanguageCode == "zh-Hans" }
         #expect(presses.names == ["language zh-Hans"])
         try waitUntil { popoverCount() == before }
+    }
+
+    @Test("the language list has one row for each language and no search box")
+    func languageListIsPlainRowsWithoutSearch() throws {
+        let languages = TargetLanguageCatalog.standard.codes.map { TargetLanguageOption(code: $0, name: "Language \($0)") }
+        let presses = PressLog()
+        let state = CaptureToolbarState(targetLanguageCode: "en")
+        let window = try toolbarWindow(presses, state: state, languages: languages)
+        defer { window.orderOut(nil) }
+        defer { closePopovers() }
+        let before = popoverCount()
+        try press(window, at: NSPoint(x: translateControlRightEdge(window) - 8, y: try #require(window.contentView).bounds.midY))
+        try waitUntil { popoverCount() > before }
+        let popover = try #require(NSApp.windows.first { $0.className.contains("Popover") && $0.isVisible })
+        let list = try languageListView(in: popover)
+        list.layoutSubtreeIfNeeded()
+
+        #expect(languages.count == 11)
+        let insets = list.safeAreaInsets
+        #expect(list.bounds.height == insets.top + insets.bottom + 2 * TargetLanguageListMetrics.padding
+            + CGFloat(languages.count) * TargetLanguageListMetrics.rowHeight)
+        #expect(!allSubviews(list).contains { ($0 as? NSTextField)?.isEditable == true })
+        // The last row sits where the metrics put it: a press there picks the last language.
+        try press(popover, at: try languageRowPoint(in: popover, row: languages.count - 1))
+        try waitUntil { state.targetLanguageCode == "ar" }
+    }
+
+    @Test("a row shows the abbreviation before the name, and only the current language has a check mark")
+    func languageRowOrderAndCheckMark() throws {
+        let options = [
+            TargetLanguageOption(code: "en", name: "English"),
+            TargetLanguageOption(code: "zh-Hans", name: "Chinese"),
+        ]
+        try withRenderedLanguageList(options: options, selectedCode: "en") { view in
+            let lines = try recognizedLines(in: view)
+            func row(_ name: String) throws -> (text: String, box: CGRect) {
+                try #require(lines.first { $0.text.contains(name) }, "\(name) among \(lines.map(\.text))")
+            }
+            // Text recognition may read a row as one line or as two; either way the abbreviation comes first.
+            let nameLine = try row("English")
+            if nameLine.text == "English" {
+                let abbreviation = try #require(lines.first { $0.text == "EN" }, "among \(lines.map(\.text))").box
+                #expect(abbreviation.maxX <= nameLine.box.minX, "EN \(abbreviation) English \(nameLine.box)")
+                #expect(abs(abbreviation.midY - nameLine.box.midY) < 4)
+            } else {
+                #expect(nameLine.text.hasPrefix("EN"), "row read as \(nameLine.text)")
+            }
+
+            // The check mark is an image, so it shows as ink at the right end of the row.
+            let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            let scale = CGFloat(bitmap.pixelsWide) / view.bounds.width
+            func hasInk(rowMidY: CGFloat) -> Bool {
+                let right = view.bounds.maxX - TargetLanguageListMetrics.padding
+                for x in stride(from: right - 24, to: right - 2, by: 1) {
+                    for y in stride(from: rowMidY - 5, to: rowMidY + 5, by: 1) {
+                        guard let color = bitmap.colorAt(x: Int(x * scale), y: Int(y * scale))?.usingColorSpace(.sRGB) else { continue }
+                        if color.redComponent + color.greenComponent + color.blueComponent < 2.7 { return true }
+                    }
+                }
+                return false
+            }
+            #expect(hasInk(rowMidY: nameLine.box.midY), "the current language has a check mark")
+            #expect(!hasInk(rowMidY: try row("Chinese").box.midY), "another language has none")
+        }
+    }
+
+    @Test("the language list is narrow, and every language's name shows in full beside the check mark")
+    func languageListIsNarrowAndNamesAreNotTruncated() throws {
+        #expect(TargetLanguageListMetrics.width <= 200)
+        for language in [EffectiveApplicationLanguage.english, .simplifiedChinese] {
+            try LocalizationTestCoordinator.withExclusiveAccess {
+                JustSnapLocalization.configure(effectiveLanguage: language)
+                let options = TargetLanguageCatalog.standard.codes.map {
+                    TargetLanguageOption(code: $0, name: JustSnapLocalization.localizedLanguageName(for: $0))
+                }
+                // The longest name carries the check mark, the row that has the least room.
+                let longest = try #require(options.max { $0.name.count < $1.name.count })
+                try withRenderedLanguageList(options: options, selectedCode: longest.code) { view in
+                    #expect(view.bounds.width == TargetLanguageListMetrics.width)
+                    // The recognizer reads Chinese only when it is listed first.
+                    let languages = language == .english ? ["en-US", "zh-Hans"] : ["zh-Hans", "en-US"]
+                    let lines = try recognizedLines(in: view, languages: languages).map(\.text)
+                    for option in options {
+                        #expect(lines.contains { $0.contains(option.name) }, "\(option.name) among \(lines) (\(language))")
+                    }
+                }
+            }
+        }
+    }
+
+    // Gap: SwiftUI's hover cannot be driven from a test (a mouse-moved or mouse-entered event sent to the list's
+    // hosting view never reaches `onHover`), so the rule is tested as a function and that a row takes it from
+    // the pointer is checked on the installed build.
+    @Test("a row under the pointer is highlighted, and a row that cannot be chosen never is")
+    func rowUnderThePointerIsHighlighted() {
+        let resting = TargetLanguageListRowAppearance.background(isHovered: false, isEnabled: true)
+        let hovered = TargetLanguageListRowAppearance.background(isHovered: true, isEnabled: true)
+        #expect(resting == Color.clear)
+        #expect(hovered != resting)
+        #expect(TargetLanguageListRowAppearance.background(isHovered: true, isEnabled: false) == resting)
     }
 
     // The hint itself appears only under a real pointer: that is checked on the installed build.
@@ -226,14 +328,11 @@ struct CaptureToolbarIconButtonTests {
         try waitUntil { (try? renderedColor(view, at: languagePart)) == plainLanguage }
     }
 
-    @Test("the language part grows with the abbreviation, and the toolbar shows no Provider or model")
-    func languagePartFollowsAbbreviation() throws {
-        let short = NSHostingView(rootView: toolbar(state: CaptureToolbarState(targetLanguageCode: "zh-Hans"), presses: PressLog()))
-        let long = NSHostingView(rootView: toolbar(state: CaptureToolbarState(targetLanguageCode: "aeb"), presses: PressLog()))
-        let growth = long.fittingSize.width - short.fittingSize.width
-        #expect(growth > 0 && growth < 15, "growth \(growth)")
+    @Test("the toolbar shows no Provider or model")
+    func toolbarShowsNoProviderOrModel() throws {
+        let hosting = NSHostingView(rootView: toolbar(state: CaptureToolbarState(targetLanguageCode: "zh-Hans"), presses: PressLog()))
         // Extract, Translate and the abbreviation with its chevron, then Copy, Save and Close, without a model label.
-        #expect(short.fittingSize.width < 300, "width \(short.fittingSize.width)")
+        #expect(hosting.fittingSize.width < 300, "width \(hosting.fittingSize.width)")
     }
 
     // The Copy symbol is 13 pt wide and 16 pt tall at the toolbar's 13 pt symbol size; a square is
@@ -268,13 +367,17 @@ private final class PressLog {
 }
 
 @MainActor
-private func toolbar(state: CaptureToolbarState, presses: PressLog) -> CaptureOperationToolbar {
+private func toolbar(
+    state: CaptureToolbarState,
+    presses: PressLog,
+    languages: [TargetLanguageOption] = [
+        TargetLanguageOption(code: "en", name: "English"),
+        TargetLanguageOption(code: "zh-Hans", name: "简体中文"),
+    ]
+) -> CaptureOperationToolbar {
     CaptureOperationToolbar(
         state: state,
-        targetLanguages: [
-            TargetLanguageOption(code: "en", name: "English"),
-            TargetLanguageOption(code: "zh-Hans", name: "简体中文"),
-        ],
+        targetLanguages: languages,
         onStart: { presses.names.append($0 == .extract ? "extract" : "translate") },
         onTargetLanguageChange: { presses.names.append("language \($0)") },
         onCopy: { presses.names.append("copy") },
@@ -308,9 +411,12 @@ private func renderedColor(_ view: NSView, at point: NSPoint) throws -> [CGFloat
 @MainActor
 private func toolbarWindow(
     _ presses: PressLog,
-    state: CaptureToolbarState = CaptureToolbarState(targetLanguageCode: "en")
+    state: CaptureToolbarState = CaptureToolbarState(targetLanguageCode: "en"),
+    languages: [TargetLanguageOption]? = nil
 ) throws -> NSWindow {
-    let hosting = NSHostingView(rootView: toolbar(state: state, presses: presses))
+    let root = languages.map { toolbar(state: state, presses: presses, languages: $0) }
+        ?? toolbar(state: state, presses: presses)
+    let hosting = NSHostingView(rootView: root)
     hosting.frame = CGRect(origin: .zero, size: hosting.fittingSize)
     let window = NSWindow(contentRect: hosting.frame, styleMask: [.borderless], backing: .buffered, defer: false)
     window.contentView = hosting

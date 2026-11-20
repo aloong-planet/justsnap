@@ -60,22 +60,23 @@ struct MenuBarTranslationLanguageTests {
             let popover = try #require(NSApp.windows.first { $0.className.contains("Popover") && $0.isVisible })
             // Attached to the panel, so the panel's outside-click rule counts a press in the list as inside it.
             #expect(window.childWindows?.contains(popover) == true)
-            let content = try #require(popover.contentView)
-            var table: NSTableView?
-            try waitUntil {
-                content.layoutSubtreeIfNeeded()
-                table = allSubviews(content).compactMap { $0 as? NSTableView }.first
-                return (table?.numberOfRows ?? 0) == 2
-            }
+            // Opens and closes without animation (v1-core::REQ-013/AC-04): it goes through the unanimated presenter.
+            let presenters = unanimatedPopoverControllers(in: hosting)
+            #expect(presenters.count == 1)
+            #expect(presenters.allSatisfy { $0.isShown && !$0.popover.animates })
             // The same list as the toolbar's: abbreviation first, then the name (v1-core::REQ-013/AC-04).
-            let rows = try recognizedText(in: content)
+            let rows = try recognizedListText(
+                options: [
+                    TargetLanguageOption(code: "en", name: "English"),
+                    TargetLanguageOption(code: "ja", name: "Japanese"),
+                ],
+                selectedCode: "ja"
+            )
             #expect(rows.contains("EN"))
             #expect(rows.contains("English"))
             #expect(rows.contains("JA"))
 
-            let list = try #require(table)
-            let row = list.rect(ofRow: 0)
-            try press(popover, at: list.convert(NSPoint(x: row.minX + 60, y: row.midY), to: nil))
+            try press(popover, at: try languageRowPoint(in: popover, row: 0))
 
             try waitUntil { changes == ["en"] }
             try waitUntil { popoverCount() == before }

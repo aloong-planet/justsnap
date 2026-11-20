@@ -14,13 +14,6 @@ public struct TargetLanguageOption: Identifiable, Equatable, Sendable {
         self.code = code
         self.name = name
     }
-
-    /// The list's search matches the abbreviation or the name (v1-core::REQ-013/AC-04).
-    func matches(_ query: String) -> Bool {
-        let query = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return true }
-        return abbreviation.lowercased().contains(query) || name.lowercased().contains(query)
-    }
 }
 
 /// What the toolbar shows as operations run, updated in place so an open language list stays open.
@@ -196,7 +189,6 @@ private struct TranslateControl: View {
     let onStart: () -> Void
     let onTargetLanguageChange: (String) -> Void
     @State private var isPresented = false
-    @State private var searchText = ""
 
     private var isCurrent: Bool { state.currentOperation == .translate }
 
@@ -239,7 +231,6 @@ private struct TranslateControl: View {
 
     private var languageButton: some View {
         Button {
-            searchText = ""
             isPresented.toggle()
         } label: {
             HStack(spacing: 2) {
@@ -256,11 +247,10 @@ private struct TranslateControl: View {
         .buttonStyle(CaptureToolbarButtonStyle(kind: .part, isCurrent: isCurrent))
         .help(selectedLanguageHint)
         .accessibilityLabel(selectedLanguageHint)
-        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+        .unanimatedPopover(isPresented: $isPresented) {
             TargetLanguageList(
                 options: options,
-                selectedCode: state.targetLanguageCode,
-                searchText: $searchText
+                selectedCode: state.targetLanguageCode
             ) { code in
                 state.targetLanguageCode = code
                 onTargetLanguageChange(code)
@@ -275,7 +265,7 @@ private struct TranslateControl: View {
     }
 }
 
-/// The searchable target language list that the toolbar's language part, the menu panel's language row and
+/// The target language list that the toolbar's language part, the menu panel's language row and
 /// the result box's title menu open (v1-core::REQ-013/AC-04, v1-core::REQ-017/AC-02, v1-core::REQ-011/AC-08).
 struct TargetLanguageList: View {
     /// A row above the languages, for the title menu's Extract (clipboard-paste::REQ-006/AC-03).
@@ -290,13 +280,12 @@ struct TargetLanguageList: View {
     let selectedCode: String
     var leadingRow: LeadingRow?
     var isEnabled: (String) -> Bool = { _ in true }
-    @Binding var searchText: String
     let onSelect: (String) -> Void
 
     var body: some View {
         VStack(spacing: 8) {
             if let leadingRow {
-                Button(action: leadingRow.action) {
+                TargetLanguageListRow(isEnabled: leadingRow.isEnabled, action: leadingRow.action) {
                     HStack(spacing: 8) {
                         Text(leadingRow.title)
                             .font(.system(size: 12, weight: .semibold))
@@ -306,42 +295,68 @@ struct TargetLanguageList: View {
                                 .foregroundStyle(JustSnapTheme.accent)
                         }
                     }
-                    .padding(.horizontal, 4)
-                    .contentShape(Rectangle())
+                    .foregroundStyle(leadingRow.isEnabled ? JustSnapTheme.primaryText : JustSnapTheme.tertiaryText)
                 }
-                .buttonStyle(.plain)
-                .disabled(!leadingRow.isEnabled)
-                .foregroundStyle(leadingRow.isEnabled ? JustSnapTheme.primaryText : JustSnapTheme.tertiaryText)
                 Divider()
             }
-            TextField(JustSnapStrings.targetLanguageSearch, text: $searchText)
-                .textFieldStyle(.roundedBorder)
-            List(options.filter { $0.matches(searchText) }) { option in
-                Button {
-                    onSelect(option.code)
-                } label: {
-                    HStack(spacing: 8) {
-                        Text(option.abbreviation)
-                            .font(.system(size: 12, weight: .semibold))
-                            .frame(width: 30, alignment: .leading)
-                        Text(option.name)
-                            .foregroundStyle(JustSnapTheme.secondaryText)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Spacer(minLength: 0)
-                        if selectedCode == option.code {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(JustSnapTheme.accent)
+            // A short fixed list in a plain stack: a `List` builds a table whose cost grows with its rows.
+            VStack(spacing: 0) {
+                ForEach(options) { option in
+                    TargetLanguageListRow(isEnabled: isEnabled(option.code)) {
+                        onSelect(option.code)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(option.abbreviation)
+                                .font(.system(size: 12, weight: .semibold))
+                                .frame(width: 22, alignment: .leading)
+                            Text(option.name)
+                                .foregroundStyle(JustSnapTheme.secondaryText)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            Spacer(minLength: 0)
+                            if selectedCode == option.code {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(JustSnapTheme.accent)
+                            }
                         }
                     }
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .disabled(!isEnabled(option.code))
             }
-            .listStyle(.plain)
         }
-        .padding(10)
-        .frame(width: 260, height: 340)
+        .padding(TargetLanguageListMetrics.padding)
+        .frame(width: TargetLanguageListMetrics.width)
+    }
+}
+
+/// How a row of the list looks under the pointer.
+enum TargetLanguageListRowAppearance {
+    /// The toolbar's hover colour while the pointer is over a row that can be chosen; nothing otherwise.
+    static func background(isHovered: Bool, isEnabled: Bool) -> Color {
+        isHovered && isEnabled ? JustSnapTheme.toolbarHover : .clear
+    }
+}
+
+/// One row of the list: the whole row takes a press and shows the toolbar's hover colour under the pointer,
+/// as a menu item does. A row that cannot be chosen takes neither.
+private struct TargetLanguageListRow<Label: View>: View {
+    let isEnabled: Bool
+    let action: () -> Void
+    @ViewBuilder let label: () -> Label
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            label()
+                .padding(.horizontal, 4)
+                .frame(height: TargetLanguageListMetrics.rowHeight)
+                .background(
+                    RoundedRectangle(cornerRadius: JustSnapUIConstants.compactCornerRadius, style: .continuous)
+                        .fill(TargetLanguageListRowAppearance.background(isHovered: isHovered, isEnabled: isEnabled))
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .onHover { isHovered = $0 }
     }
 }

@@ -1,7 +1,6 @@
 "operation.extract" = "Extract Text";
 "operation.translate" = "Translate";
 "operation.selector" = "Operation Type";
-"operation.targetLanguageSearch" = "Search languages";
 "action.cancel" = "Cancel";
 "action.retrySave" = "Retry Save";
 "action.copy" = "Copy";

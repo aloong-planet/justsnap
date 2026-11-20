@@ -328,19 +328,6 @@ struct CaptureResultBoxPresentationTests {
             #expect(!value.canRetry)
         }
     }
-
-    @Test("the language list's search matches an abbreviation or a name")
-    func languageSearch() {
-        let tunisian = TargetLanguageOption(code: "aeb", name: "突尼斯阿拉伯语")
-        let chinese = TargetLanguageOption(code: "zh-Hans", name: "简体中文")
-        #expect(tunisian.abbreviation == "AEB")
-        #expect(chinese.abbreviation == "ZH")
-        #expect(tunisian.matches("aeb"))
-        #expect(tunisian.matches("阿拉伯"))
-        #expect(!tunisian.matches("中文"))
-        #expect(chinese.matches("zh"))
-        #expect(chinese.matches("  "))
-    }
 }
 
 // Nested in the overlay's serialized suite so that the two never overlap: a press on the box takes the
@@ -1088,12 +1075,15 @@ func inkContrast(in view: NSView, box: CGRect) throws -> CGFloat {
 
 /// The lines of text a view renders, with where each one is in the view's coordinates.
 @MainActor
-func recognizedLines(in view: NSView) throws -> [(text: String, box: CGRect)] {
+func recognizedLines(
+    in view: NSView,
+    languages: [String] = ["en-US", "zh-Hans"]
+) throws -> [(text: String, box: CGRect)] {
     view.layoutSubtreeIfNeeded()
     let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
     view.cacheDisplay(in: view.bounds, to: bitmap)
     let request = VNRecognizeTextRequest()
-    request.recognitionLanguages = ["en-US", "zh-Hans"]
+    request.recognitionLanguages = languages
     request.recognitionLevel = .accurate
     try VNImageRequestHandler(cgImage: try #require(bitmap.cgImage), options: [:]).perform([request])
     return (request.results ?? []).compactMap { observation in

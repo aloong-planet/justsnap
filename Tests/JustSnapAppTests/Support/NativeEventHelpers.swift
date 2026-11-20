@@ -257,17 +257,18 @@ func chooseLanguage(_ code: String, in toolbar: NSWindow) async throws {
     let window = try requireFixture(popover)
     let content = try requireFixture(window.contentView)
     let row = try requireFixture(TargetLanguageCatalog.standard.codes.firstIndex(of: code))
-    var table: NSTableView?
+    // The rows stack from the list's top at a fixed height, inside the popover's own inset.
+    var list: NSView?
     try await eventually {
         pumpNativeEvents(window)
-        table = descendants(content).compactMap { $0 as? NSTableView }.first
-        return (table?.numberOfRows ?? 0) > row
+        list = descendants(content).first { $0.className.contains("HostingView") }
+        return (list?.bounds.height ?? 0) > 0
     }
-    let list = try requireFixture(table)
-    list.scrollRowToVisible(row)
-    pumpNativeEvents(window)
-    let place = list.rect(ofRow: row)
-    try click(window, at: list.convert(NSPoint(x: place.minX + 60, y: place.midY), to: nil))
+    let view = try requireFixture(list)
+    let top = view.safeAreaInsets.top + TargetLanguageListMetrics.padding
+        + (CGFloat(row) + 0.5) * TargetLanguageListMetrics.rowHeight
+    let y = view.isFlipped ? top : view.bounds.height - top
+    try click(window, at: view.convert(NSPoint(x: view.bounds.midX, y: y), to: nil))
     try await eventually {
         pumpNativeEvents(toolbar)
         return !window.isVisible

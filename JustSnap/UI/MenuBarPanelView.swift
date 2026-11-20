@@ -221,7 +221,6 @@ public struct MenuBarPanelView: View {
     private let onOpenUpdateInformation: (URL) -> Void
     private let onTargetLanguageChange: (String) -> Void
     @State private var isLanguageListPresented = false
-    @State private var languageSearchText = ""
 
     public init(
         recentItems: [MenuRecentItem],
@@ -355,7 +354,6 @@ public struct MenuBarPanelView: View {
     /// The remembered target language, set here as in the toolbar and the paste box (v1-core::REQ-017).
     private var targetLanguageRow: some View {
         MenuBarPanelActionButton(role: .row) {
-            languageSearchText = ""
             isLanguageListPresented.toggle()
         } label: {
             HStack(spacing: 6) {
@@ -375,11 +373,10 @@ public struct MenuBarPanelView: View {
             .frame(height: 32)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .popover(isPresented: $isLanguageListPresented, arrowEdge: .bottom) {
+        .unanimatedPopover(isPresented: $isLanguageListPresented) {
             TargetLanguageList(
                 options: targetLanguages,
-                selectedCode: targetLanguageCode,
-                searchText: $languageSearchText
+                selectedCode: targetLanguageCode
             ) { code in
                 onTargetLanguageChange(code)
                 isLanguageListPresented = false
