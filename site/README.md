@@ -60,8 +60,8 @@ CI runs `pnpm check` and `pnpm test` in the `site-checks` job whenever a pull re
 
 ## Deploying (Cloudflare Pages)
 
-The page is served by Cloudflare Pages at `justsnap.aloongplanet.com`; the project is defined in the infra repository
-(`stacks/apps/landing-pages.tf`). The Pages project needs:
+The page is served by Cloudflare Pages at `justsnap.aloongplanet.com`; the project is defined by the `justsnap` entry in the infra
+repository's `stacks/apps/landing-pages.tf` (added by the infra PR; it takes effect once the Terraform apps workflow is applied). The Pages project needs:
 
 | Setting | Value |
 |---|---|
@@ -69,8 +69,8 @@ The page is served by Cloudflare Pages at `justsnap.aloongplanet.com`; the proje
 | Build command | `pnpm install --frozen-lockfile && pnpm build` |
 | Build output directory | `dist` (relative to the root directory) |
 | Build watch path | `site/*`: a push that changes nothing under `site/` is skipped. The build reads nothing outside `site/`; a change that makes it depend on a file elsewhere must widen this path |
-| `NODE_VERSION` | 22.23.3. At least 22.22.2: Astro 7 refuses a Node older than 22.22.0 |
+| `NODE_VERSION` | 22.23.3. Astro 7 refuses a Node older than 22.22.0; the test dependencies (jsdom's) ask for at least 22.22.2 |
 | `PNPM_VERSION` | 9.12.3, so the build runs the site's pnpm rather than the build image's default |
 
 The DMGs and the `latest.json` pointer the page reads are served from `dl.justsnap.aloongplanet.com` (an R2 bucket),
-written by the release mirror, not by this site.
+written by the release mirror, not by this site. Pending: JustSnap's mirror script and `latest.json` writer are not built yet, so until they are the page falls back to GitHub Releases.

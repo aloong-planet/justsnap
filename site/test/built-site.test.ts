@@ -1,4 +1,4 @@
-// The built-site check (landing-page Testing Decisions): the pages one build produces, read as files.
+// The built-site check (landing-page::REQ-004, QR-001): the pages one build produces, read as files.
 //
 // It reads the HTML as served, before any script runs, so what it sees is what a visitor without scripts gets
 // (landing-page::REQ-001/AC-04).
@@ -260,8 +260,8 @@ describe('the stylesheet’s fixed numbers (landing-page::REQ-003, REQ-004)', ()
     const cssFile = files().find((f) => f.endsWith('.css'))
     return cssFile ? readFileSync(join(outDir, cssFile), 'utf8') : [...pages.zh.querySelectorAll('style')].map((s) => s.textContent).join('\n')
   }
-  // The build's minifier writes `(max-width: 759px)` as `(width<=759px)`; both mean the same, so compare in one form
-  const widthQuery = (params: string): string => params.replace(/\s+/g, '').replace(/^\(max-width:(.+)\)$/, '(width<=$1)')
+  // The build's minifier may drop the spaces inside a query, so compare with them removed
+  const widthQuery = (params: string): string => params.replace(/\s+/g, '')
   /** What `selector` sets for `prop`, outside any at-rule (`media` empty) or inside the media query with that text */
   const declared = (selector: string, prop: string, media = ''): string[] => {
     const values: string[] = []
@@ -292,7 +292,7 @@ describe('the stylesheet’s fixed numbers (landing-page::REQ-003, REQ-004)', ()
   })
 
   test('below 760px the showcase and the navigation give way to the stacked steps (REQ-003/AC-01, REQ-004/AC-03)', () => {
-    const narrow = '(max-width: 759px)'
+    const narrow = '(width < 760px)'
     expect(declared('.deck', 'display', narrow)).toEqual(['none'])
     expect(declared('.nav', 'display', narrow)).toEqual(['none'])
     expect(declared('.fs-list', 'display', narrow)).toEqual(['flex'])

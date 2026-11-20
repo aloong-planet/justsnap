@@ -1,7 +1,7 @@
 ---
 // The features section (landing-page::REQ-004). On a wide screen a showcase is pinned under the header while the
 // page scrolls past it: the current step's count, title and text in a narrow column, its screenshot large on the
-// right, and the scroll turns the steps (src/scripts/features.ts). The showcase's block is one window tall plus
+// right, and the scroll turns the steps (src/scripts/features.ts). The showcase's block is one window less the header plus
 // one turn for each further step; the turns are empty blocks after the pinned part, so the number of steps sets
 // the block's height with no style in the markup. Below 760px, and without scripts, the stacked steps show
 // instead, each with its own screenshot. As served, the first step is the current one.

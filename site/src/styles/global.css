@@ -455,7 +455,7 @@ a {
 }
 /* Below 760px the showcase gives way to the stacked steps. Without a gap the next step's title sat right under the
    previous screenshot and read as its caption */
-@media (max-width: 759px) {
+@media (width < 760px) {
   .nav {
     display: none;
   }

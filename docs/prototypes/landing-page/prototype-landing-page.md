@@ -19,6 +19,6 @@ Not part of the design; do not implement.
 
 ## Uncovered dimensions
 
-- The state the page is served in before its script runs (the list state, stacked steps) is covered by the list state of the harness, not by running without scripts.
+- The state the page is served in before its script runs (the list state; the showcase on its first step at a wide width, the stacked steps below 760px) is covered by the list state of the harness, not by running without scripts.
 - A GitHub release without a DMG (its button leads to the release page) is not drawn.
 - Reduced motion is not drawn.
