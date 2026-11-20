@@ -3,18 +3,14 @@ import Testing
 
 @Suite("Target language catalog")
 struct TargetLanguageCatalogTests {
-    @Test("priority languages lead the complete standard catalog")
-    func priorityLanguagesLeadCatalog() {
-        let catalog = TargetLanguageCatalog.standard
-
+    @Test("the catalog is exactly the 11 common languages in their fixed order")
+    func catalogIsTheElevenCommonLanguages() {
         #expect(
-            Array(catalog.codes.prefix(11)) == [
+            TargetLanguageCatalog.standard.codes == [
                 "zh-Hans", "en", "ja", "ko", "es", "fr",
                 "de", "pt", "it", "ru", "ar",
             ]
         )
-        #expect(catalog.codes.count > 100)
-        #expect(Set(catalog.codes).count == catalog.codes.count)
     }
 
     @Test("an abbreviation is the upper-case primary language code")
@@ -33,13 +29,14 @@ struct TargetLanguageCatalogTests {
         #expect(abbreviations.allSatisfy { (2...3).contains($0.count) && $0 == $0.uppercased() })
     }
 
-    @Test("traditional Chinese and free-form values are unavailable")
+    @Test("traditional Chinese, other languages and free-form values are unavailable")
     func excludesTraditionalChineseAndUnknownValues() {
         let catalog = TargetLanguageCatalog.standard
 
         #expect(catalog.contains("zh-Hans"))
         #expect(!catalog.contains("zh"))
         #expect(!catalog.contains("zh-Hant"))
+        #expect(!catalog.contains("pl"))
         #expect(!catalog.contains("custom-language"))
     }
 }
