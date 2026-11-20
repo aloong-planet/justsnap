@@ -1,6 +1,7 @@
 {
   "scopes": {
-    "app": ["test-and-package"]
+    "app": ["test-and-package"],
+    "site": ["site-checks"]
   },
   "rules": [
     {
@@ -22,6 +23,11 @@
       "reason": "Application",
       "select": ["app"],
       "paths": ["Sources/**", "JustSnap/**", "Tests/**", "Scripts/**", "Distribution/**", "Package.swift", "Package.resolved"]
+    },
+    {
+      "reason": "Landing page",
+      "select": ["site"],
+      "paths": ["site/**"]
     }
   ]
 }

@@ -1,4 +1,4 @@
-window.PROTOTYPE_APP = { name: "VLMSnapper", icon: null };
+window.PROTOTYPE_APP = { name: "JustSnap", icon: null };
 
 window.PROTOTYPES = [
   {
@@ -91,5 +91,12 @@ window.PROTOTYPES = [
     id: "paste-result-box",
     name: "Paste result box",
     path: "clipboard-paste/prototype-paste-result-box.html"
+  },
+  {
+    module: "landing-page",
+    type: "ui",
+    id: "landing-page",
+    name: "Landing page",
+    path: "landing-page/prototype-landing-page.html"
   }
 ];

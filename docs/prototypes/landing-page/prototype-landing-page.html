@@ -1,0 +1,324 @@
+<!doctype html>
+<!-- Explanation: prototype-landing-page.md -->
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="../manifest.js"></script>
+<script src="../app-identity.js"></script>
+<title>Landing page</title>
+<script src="../dimensions.js"></script>
+<script src="../demo-dimensions.js" data-follow="language mode"></script>
+<style>
+:root {
+  color-scheme: light;
+  --lp-window: #f1f3f6;
+  --lp-surface: #ffffff;
+  --lp-text: #202329;
+  --lp-muted: #646b75;
+  --lp-line: #dfe2e7;
+  --lp-hover: #e8ecf1;
+  --lp-soft: #dce6f5;
+  --lp-accent: #1553b2;
+  --lp-accent-hover: #0f4396;
+  --lp-on-accent: #ffffff;
+  --lp-shadow: rgba(32, 35, 41, 0.16);
+  --lp-header: rgba(241, 243, 246, 0.86);
+  --lp-hdr: 56px;
+}
+html[data-demo-mode="dark"] {
+  color-scheme: dark;
+  --lp-window: #24282e;
+  --lp-surface: #2b2f36;
+  --lp-text: #f2f3f5;
+  --lp-muted: #b4bac3;
+  --lp-line: #454b54;
+  --lp-hover: #343a43;
+  --lp-soft: #314361;
+  --lp-accent: #9bc0ff;
+  --lp-accent-hover: #b7d2ff;
+  --lp-on-accent: #10223f;
+  --lp-shadow: rgba(0, 0, 0, 0.5);
+  --lp-header: rgba(36, 40, 46, 0.86);
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.site { background: var(--lp-window); color: var(--lp-text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif; min-height: 100vh; }
+.site a { color: inherit; text-decoration: none; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+
+/* header */
+.hdr { position: sticky; top: 0; z-index: 20; height: var(--lp-hdr); background: var(--lp-header); backdrop-filter: blur(10px); border-bottom: 1px solid var(--lp-line); }
+.hdr .wrap { height: 100%; display: flex; align-items: center; gap: 28px; }
+.brand { font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
+.nav { display: flex; gap: 22px; margin-left: auto; font-size: 14px; color: var(--lp-muted); }
+.nav a:hover { color: var(--lp-text); }
+.lang { display: flex; border: 1px solid var(--lp-line); border-radius: 8px; overflow: hidden; font-size: 13px; }
+.lang span { padding: 4px 10px; color: var(--lp-muted); }
+.lang span.cur { background: var(--lp-soft); color: var(--lp-text); font-weight: 600; }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 10px; font-weight: 600; font-size: 15px; border: 1px solid var(--lp-line); background: var(--lp-surface); color: var(--lp-text); cursor: pointer; }
+.btn:hover { background: var(--lp-soft); border-color: var(--lp-accent); }
+.btn:focus-visible, .nav a:focus-visible, .more:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 2px; }
+.btn.primary { background: var(--lp-accent); border-color: var(--lp-accent); color: var(--lp-on-accent); }
+.btn.primary:hover { background: var(--lp-accent-hover); border-color: var(--lp-accent-hover); }
+.btn svg { width: 18px; height: 18px; flex: none; }
+
+/* hero */
+.hero { min-height: calc(100svh - var(--lp-hdr)); display: flex; align-items: center; padding: 32px 0; }
+.hero .wrap { width: 100%; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.3fr); gap: 48px; align-items: center; }
+.hero .shot { width: min(100%, calc((100svh - var(--lp-hdr) - 64px) * 16 / 9)); justify-self: end; }
+.hero h1 { font-size: clamp(30px, 4.2vw, 46px); line-height: 1.15; margin: 0 0 18px; letter-spacing: -0.02em; }
+.hero p.lead { color: var(--lp-text); font-size: 17px; margin: 0 0 28px; max-width: 34em; }
+.dl { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.dl .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 13px; color: var(--lp-muted); }
+.more { color: var(--lp-accent) !important; font-size: 13px; }
+.more:hover { text-decoration: underline !important; }
+
+/* screenshot frames: always light, whatever the page's appearance */
+.shot { position: relative; width: 100%; aspect-ratio: 16 / 9; container-type: inline-size; background: #e9edf3; border: 1px solid var(--lp-line); border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px -20px var(--lp-shadow); color: #202329; }
+.m-in { position: absolute; inset: 0; font-size: 2.1cqw; line-height: 1.45; }
+.m-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #d8e0ec, #eef1f6); }
+.m-lines { position: absolute; left: 6%; right: 6%; top: 9%; display: grid; gap: 2.2cqw; }
+.m-lines i { display: block; height: 1.3cqw; border-radius: 1cqw; background: #bcc6d6; opacity: .75; }
+.m-sel { position: absolute; left: 14%; top: 26%; width: 56%; height: 34%; border: 0.3cqw dashed #1553b2; background: rgba(21, 83, 178, .08); border-radius: .6cqw; }
+.m-pill { position: absolute; left: 14%; top: 64%; display: flex; gap: 1.2cqw; align-items: center; background: #fff; border-radius: 2cqw; padding: .9cqw 1.4cqw; box-shadow: 0 .8cqw 2.4cqw rgba(32, 35, 41, .22); font-size: 1.9cqw; }
+.m-pill b { padding: .5cqw 1.4cqw; border-radius: 1.4cqw; background: #dce6f5; color: #1553b2; font-weight: 600; }
+.m-pill u { text-decoration: none; color: #646b75; padding: .5cqw 1cqw; }
+.m-card { position: absolute; background: #fff; border-radius: 1.6cqw; box-shadow: 0 1cqw 3.6cqw rgba(32, 35, 41, .26); padding: 2cqw 2.4cqw; }
+.m-top { display: flex; align-items: center; gap: 1.2cqw; font-weight: 700; font-size: 2cqw; margin-bottom: 1.2cqw; }
+.m-tag { margin-left: auto; font-weight: 600; font-size: 1.6cqw; color: #20835b; background: rgba(32, 131, 91, .12); padding: .2cqw 1.1cqw; border-radius: 1cqw; }
+.m-tag.bad { color: #c34242; background: rgba(195, 66, 66, .12); }
+.m-md h4 { margin: 0 0 .8cqw; font-size: 2.4cqw; }
+.m-md p { margin: 0 0 .7cqw; color: #404750; }
+.m-two { display: grid; grid-template-columns: 1fr 1fr; gap: 2.4cqw; }
+.m-two > div + div { border-left: 1px solid #dfe2e7; padding-left: 2.4cqw; }
+.m-cap { font-size: 1.6cqw; color: #8a929d; margin-bottom: .6cqw; }
+.m-row { display: grid; grid-template-columns: 7cqw 1fr auto; gap: 1.8cqw; align-items: center; padding: 1.3cqw 0; border-top: 1px solid #e6e9ee; }
+.m-row:first-of-type { border-top: 0; }
+.m-th { height: 5cqw; border-radius: .8cqw; background: linear-gradient(135deg, #c9d4e6, #e3e9f3); }
+.m-row small { display: block; color: #8a929d; font-size: 1.6cqw; }
+.m-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2cqw; margin-bottom: 1.6cqw; }
+.m-btns span { text-align: center; padding: 1.2cqw 0; border-radius: 1.2cqw; border: 1px solid #dfe2e7; font-weight: 600; box-shadow: 0 .3cqw 1cqw rgba(32, 35, 41, .08); }
+.m-lang { display: flex; justify-content: space-between; padding: 1.2cqw 0; border-top: 1px solid #e6e9ee; color: #404750; }
+.m-prov { display: grid; grid-template-columns: 3.4cqw 1fr auto; gap: 1.6cqw; align-items: center; padding: 1.3cqw 0; border-top: 1px solid #e6e9ee; }
+.m-prov:first-of-type { border-top: 0; }
+.m-dot { width: 3.4cqw; height: 3.4cqw; border-radius: 50%; background: #dce6f5; }
+.m-key { font-family: ui-monospace, Menlo, monospace; color: #646b75; background: #f1f3f6; border-radius: .8cqw; padding: .4cqw 1.2cqw; font-size: 1.8cqw; }
+
+/* features */
+.features { position: relative; }
+.f-head { text-align: center; padding: 72px 24px 24px; }
+.f-head h2, .section h2 { font-size: clamp(26px, 3.2vw, 36px); line-height: 1.2; margin: 0 0 12px; letter-spacing: -0.01em; }
+.f-head p { color: var(--lp-text); margin: 0; }
+.pin { position: relative; }
+.step { padding: 36px 24px; }
+.step .txt { max-width: 420px; margin: 0 auto 20px; }
+.step .no { color: var(--lp-accent); font-weight: 700; font-size: 14px; letter-spacing: .06em; }
+.step h3 { margin: 6px 0 8px; font-size: 24px; line-height: 1.25; }
+.step p { margin: 0; color: var(--lp-text); }
+.step .shot { max-width: 760px; margin: 0 auto; }
+.features[data-mode="pinned"] .pin { position: sticky; top: var(--lp-hdr); height: calc(100vh - var(--lp-hdr)); }
+.features[data-mode="pinned"] .step { position: absolute; inset: 0; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 56px; align-items: center; max-width: 1280px; margin: 0 auto; padding: 0 24px; opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility .35s; }
+.features[data-mode="pinned"] .step.on { opacity: 1; visibility: visible; }
+.features[data-mode="pinned"] .step .txt { margin: 0; align-self: start; padding-top: 18vh; }
+.features[data-mode="pinned"] .step .shot { margin: 0; width: min(100%, calc((100vh - var(--lp-hdr) - 72px) * 16 / 9)); justify-self: center; }
+@media (prefers-reduced-motion: reduce) { .features[data-mode="pinned"] .step { transition: none; } }
+
+/* install + download + footer */
+.section { padding: 72px 0 24px; }
+.section h2 { text-align: center; margin-bottom: 36px; }
+.section h3.sub { text-align: center; font-size: 22px; margin: 0 0 20px; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.card { background: var(--lp-surface); border: 1px solid var(--lp-line); border-radius: 14px; padding: 24px; }
+.card .no { width: 30px; height: 30px; border-radius: 50%; background: var(--lp-soft); color: var(--lp-accent); font-weight: 700; display: grid; place-items: center; margin-bottom: 12px; }
+.card h3 { margin: 0 0 8px; font-size: 18px; }
+.card p { margin: 0; color: var(--lp-text); font-size: 16px; }
+.dlbox { max-width: 640px; margin: 0 auto 56px; background: var(--lp-surface); border: 1px solid var(--lp-line); border-radius: 14px; padding: 28px; text-align: center; }
+.dlbox .ver { margin: 0 0 18px; color: var(--lp-muted); }
+.dlbox .row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.foot { margin-top: 72px; border-top: 1px solid var(--lp-line); padding: 28px 0 40px; color: var(--lp-muted); font-size: 14px; }
+.foot .wrap { display: flex; flex-wrap: wrap; gap: 10px 24px; }
+.foot .copy { margin-left: auto; }
+.foot a:hover { color: var(--lp-text); }
+
+@media (max-width: 900px) {
+  .hero { min-height: 0; display: block; padding: 40px 0 32px; }
+  .hero .shot { width: 100%; }
+  .hero .wrap { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .cards { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 759px) { .nav { display: none; } .lang { margin-left: auto; } }
+</style>
+</head>
+<body>
+<div class="site">
+  <header class="hdr"><div class="wrap">
+    <a class="brand" href="#top" data-t="brand"></a>
+    <nav class="nav"><a href="#features" data-t="nav.features"></a><a href="#download" data-t="nav.download"></a><a href="#" data-t="nav.github"></a></nav>
+    <div class="lang" aria-label="Language"><span data-lang="zh">中文</span><span data-lang="en">EN</span></div>
+  </div></header>
+
+  <section class="hero" id="top"><div class="wrap">
+    <div>
+      <h1 data-t="hero.title"></h1>
+      <p class="lead" data-t="hero.p"></p>
+      <div class="dl" id="heroDl"></div>
+    </div>
+    <div class="shot" id="heroShot"></div>
+  </div></section>
+
+  <section class="features" id="features" data-mode="stacked">
+    <div class="f-head"><h2 data-t="f.title"></h2><p data-t="f.sub"></p></div>
+    <div class="pin" id="pin"></div>
+    <div id="runway"></div>
+  </section>
+
+  <section class="section" id="download"><div class="wrap">
+    <h2 data-t="d.title"></h2>
+    <div class="dlbox" id="dlBox"></div>
+    <h3 class="sub" data-t="i.title"></h3>
+    <div class="cards" id="steps"></div>
+  </div></section>
+
+  <footer class="foot"><div class="wrap">
+    <a href="#" data-t="nav.github"></a><a href="#" data-t="foot.releases"></a><span class="copy">© aloong planet</span>
+  </div></footer>
+</div>
+
+<div data-demo-harness>
+  <span class="dh-tag">Demo ·</span>
+  <div class="dh-group">
+    <span class="dh-title">Download state</span>
+    <div class="dh-opts">
+      <button type="button" class="dh-opt" data-state="r2" aria-pressed="true">Formal · R2</button>
+      <button type="button" class="dh-opt" data-state="gh" aria-pressed="false">Formal · GitHub</button>
+      <button type="button" class="dh-opt" data-state="list" aria-pressed="false">List</button>
+    </div>
+  </div>
+  <p class="dh-note">App: decided by the visitor's browser reads (R2 pointer, then GitHub); no such control. Language and appearance follow the gallery settings.</p>
+</div>
+<script src="../demo-harness.js"></script>
+<script>
+const VERSION = '0.1.8';
+const ICON_DL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+const COPY = {
+  zh: {
+    brand: '随译 JustSnap',
+    nav: { features: '功能', download: '下载与安装', github: 'GitHub' },
+    hero: { title: '截一块屏幕，直接提取文字或翻译', p: '随译（JustSnap）是 macOS 菜单栏里的截图工具：框选任意区域，几秒内拿到提取的文字或译文。用你自己的模型服务商。' },
+    platform: 'macOS 14.4 或更高 · Apple 芯片',
+    dl: { r2: '下载随译 {v}', list: '从 GitHub 下载随译', all: '在 GitHub 查看所有版本' },
+    f: { title: '一个快捷键，从屏幕到文字', sub: '不做标注，也不先过传统 OCR：原图直接交给视觉模型。' },
+    steps: [
+      { t: '选取屏幕区域', p: '按下快捷键，屏幕在那一刻冻结。点一下就能吸附窗口、菜单栏图标或整块显示器，也可以拖出任意矩形。' },
+      { t: '提取文字', p: '一次请求返回结构化的 Markdown，边生成边显示在结果框里，一键复制。' },
+      { t: '翻译', p: '原文与译文对照显示，目标语言随时可换，不必先提取再翻译。' },
+      { t: '粘贴图片或文字', p: '剪贴板里的图片或文字，同样可以提取或翻译，结果显示在独立的浮动结果框里。' },
+      { t: '历史与重试', p: '每次操作都留有记录：原图、结果和状态。失败或不满意时，直接在原记录上重试。' },
+      { t: '用自己的模型服务商', p: 'OpenAI、Gemini、DeepSeek 等，用你自己的 API Key。密钥保存在 macOS 钥匙串，截图只发给你选的那一家。' }
+    ],
+    i: { title: '三步装好', steps: [
+      { t: '下载 DMG', p: '点上方的下载按钮，得到 DMG 安装包。' },
+      { t: '拖进“应用程序”', p: '打开 DMG，把随译拖进“应用程序”文件夹。' },
+      { t: '打开并授权', p: 'macOS 会提示 Apple 已检查过它没有恶意软件，点“打开”即可。首次启动会引导你授予屏幕录制权限，并添加模型服务商的 API Key；有新版本时，菜单栏面板会出现更新提示。' } ] },
+    d: { title: '下载与安装', cur: '当前版本 {v}', dl: '下载', gh: 'GitHub', fail: '暂时无法读取版本信息，请前往 GitHub 下载', failBtn: '前往 GitHub 下载' },
+    foot: { releases: '发布列表' },
+    mock: { extract: '文字提取', done: '完成', copy: '复制', translate: '截图翻译', trans: '译文', orig: '原文', paste: '粘贴', snap: '截图', to: '翻译为', lang: '简体中文', ok: '成功', fail: '失败', model: '模型', key: 'API Key', sel1: '提取文字', sel2: '翻译', sel3: '简体中文 ▾',
+      h: '2024 年第三季度报告', md1: '- 收入同比增长 12%，主要来自订阅业务。', md2: '- 毛利率稳定在 71%。', md3: '- 下一季度重点：国际化与企业版。',
+      o: 'The quarterly review is on Thursday. Please send your slides by Wednesday noon.', tr: '季度评审在周四举行，请在周三中午前发来你的幻灯片。',
+      r1: '会议纪要：产品评审', r1s: '提取文字 · 今天 14:02', r2: '英文合同第 4 条', r2s: '翻译 · 今天 11:35', r3: '错误提示截图', r3s: '提取文字 · 昨天', r4: '菜单价目表', r4s: '翻译 · 周二' }
+  },
+  en: {
+    brand: 'JustSnap',
+    nav: { features: 'Features', download: 'Download', github: 'GitHub' },
+    hero: { title: 'Snap any part of your screen. Get the text or the translation.', p: 'JustSnap lives in your Mac\'s menu bar. Select any region, and seconds later a vision model hands back the text or the translation. Bring your own provider.' },
+    platform: 'macOS 14.4 or later · Apple silicon',
+    dl: { r2: 'Download JustSnap {v}', list: 'Download JustSnap from GitHub', all: 'See every version on GitHub' },
+    f: { title: 'From screen to text in one shortcut', sub: 'No annotation tools, no classic OCR step: the original image goes straight to a vision model.' },
+    steps: [
+      { t: 'Select a region of the screen', p: 'Press the shortcut and the screen freezes on the spot. One click snaps to a window, a menu bar icon or a whole display, or drag out any rectangle.' },
+      { t: 'Extract the text', p: 'One request returns structured Markdown, streamed into the result box as it is written, and copied in one click.' },
+      { t: 'Translate', p: 'Original and translation side by side, with the target language one click away. No need to extract first.' },
+      { t: 'Paste an image or text', p: 'An image or text from your clipboard can be extracted or translated just the same, in a floating result box of its own.' },
+      { t: 'History and retry', p: 'Every operation leaves a record: the original image, the result and its status. If it fails or you want another go, retry on the same record.' },
+      { t: 'Bring your own provider', p: 'OpenAI, Gemini, DeepSeek and more, with your own API key. Keys stay in the macOS Keychain, and the screenshot goes only to the provider you pick.' }
+    ],
+    i: { title: 'Installed in three steps', steps: [
+      { t: 'Download the DMG', p: 'Use the download button above to get the installer.' },
+      { t: 'Drag it to Applications', p: 'Open the DMG and drag JustSnap into the Applications folder.' },
+      { t: 'Open it and allow access', p: 'macOS will say Apple checked it for malicious software and found none; click Open. The first launch walks you through Screen Recording permission and adding a provider\'s API key. When a new version is out, the menu bar panel shows an update notice.' } ] },
+    d: { title: 'Download and install', cur: 'Current version {v}', dl: 'Download', gh: 'GitHub', fail: 'Version details can\'t be loaded right now — download from GitHub', failBtn: 'Download from GitHub' },
+    foot: { releases: 'Releases' },
+    mock: { extract: 'Text extraction', done: 'Done', copy: 'Copy', translate: 'Screenshot translation', trans: 'Translation', orig: 'Original', paste: 'Paste', snap: 'Capture', to: 'Translate to', lang: 'English', ok: 'Done', fail: 'Failed', model: 'Model', key: 'API key', sel1: 'Extract text', sel2: 'Translate', sel3: 'English ▾',
+      h: 'Q3 2024 report', md1: '- Revenue up 12% year over year, led by subscriptions.', md2: '- Gross margin steady at 71%.', md3: '- Next quarter: internationalisation and the team plan.',
+      o: '季度评审在周四举行，请在周三中午前发来你的幻灯片。', tr: 'The quarterly review is on Thursday. Please send your slides by Wednesday noon.',
+      r1: 'Meeting notes: product review', r1s: 'Extract · Today 14:02', r2: 'Contract, clause 4', r2s: 'Translate · Today 11:35', r3: 'Error dialog screenshot', r3s: 'Extract · Yesterday', r4: 'Menu price list', r4s: 'Translate · Tuesday' }
+  }
+};
+const SHOTS = [
+  (m) => `<div class="m-bg"></div><div class="m-lines">${'<i></i>'.repeat(9)}</div><div class="m-sel"></div><div class="m-pill"><b>${m.sel1}</b><u>${m.sel2}</u><u>${m.sel3}</u></div>`,
+  (m) => `<div class="m-bg"></div><div class="m-card m-md" style="left:12%;top:12%;width:76%"><div class="m-top">${m.extract}<span class="m-tag">${m.done}</span></div><h4>${m.h}</h4><p>${m.md1}</p><p>${m.md2}</p><p>${m.md3}</p></div>`,
+  (m) => `<div class="m-bg"></div><div class="m-card" style="left:10%;top:16%;width:80%"><div class="m-top">${m.translate}<span class="m-tag">${m.done}</span></div><div class="m-two"><div><div class="m-cap">${m.orig}</div>${m.o}</div><div><div class="m-cap">${m.trans}</div>${m.tr}</div></div></div>`,
+  (m) => `<div class="m-bg"></div><div class="m-card" style="left:30%;top:8%;width:40%"><div class="m-btns"><span>${m.snap}</span><span>${m.paste}</span></div><div class="m-lang"><span>${m.to}</span><span>${m.lang}</span></div><div class="m-row"><div class="m-th"></div><div>${m.r1}<small>${m.r1s}</small></div><span class="m-tag">${m.ok}</span></div><div class="m-row"><div class="m-th"></div><div>${m.r2}<small>${m.r2s}</small></div><span class="m-tag">${m.ok}</span></div></div>`,
+  (m) => `<div class="m-bg"></div><div class="m-card" style="left:8%;top:10%;width:84%">${[[m.r1, m.r1s, m.ok, ''], [m.r2, m.r2s, m.ok, ''], [m.r3, m.r3s, m.fail, 'bad'], [m.r4, m.r4s, m.ok, '']].map(([a, b, c, k]) => `<div class="m-row"><div class="m-th"></div><div>${a}<small>${b}</small></div><span class="m-tag ${k}">${c}</span></div>`).join('')}</div>`,
+  (m) => `<div class="m-bg"></div><div class="m-card" style="left:14%;top:14%;width:72%">${['OpenAI', 'Gemini', 'DeepSeek'].map((n) => `<div class="m-prov"><div class="m-dot"></div><div>${n}<small style="display:block;color:#8a929d;font-size:1.6cqw">${m.model}</small></div><span class="m-key">••••••••</span></div>`).join('')}</div>`
+];
+
+let lang = 'zh', state = 'r2';
+const $ = (s) => document.querySelector(s);
+const get = (o, path) => path.split('.').reduce((a, k) => a[k], o);
+
+function renderStatic() {
+  const c = COPY[lang];
+  document.documentElement.lang = lang === 'zh' ? 'zh-Hans' : 'en';
+  document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = get(c, el.dataset.t); });
+  document.querySelectorAll('[data-lang]').forEach((el) => el.classList.toggle('cur', el.dataset.lang === lang));
+  $('#heroShot').innerHTML = `<div class="m-in">${SHOTS[0](c.mock)}</div>`;
+  $('#pin').innerHTML = c.steps.map((s, i) => `<div class="step" data-i="${i}"><div class="txt"><div class="no">0${i + 1} / 06</div><h3>${s.t}</h3><p>${s.p}</p></div><div class="shot"><div class="m-in">${SHOTS[i](c.mock)}</div></div></div>`).join('');
+  $('#steps').innerHTML = c.i.steps.map((s, i) => `<div class="card"><div class="no">${i + 1}</div><h3>${s.t}</h3><p>${s.p}</p></div>`).join('');
+  renderDownload();
+  update();
+}
+
+function renderDownload() {
+  const c = COPY[lang];
+  const v = VERSION;
+  const hero = $('#heroDl'), box = $('#dlBox');
+  if (state === 'list') {
+    hero.innerHTML = `<a class="btn primary" href="#">${ICON_DL}${c.dl.list}</a><div class="meta"><span>${c.platform}</span></div>`;
+    box.innerHTML = `<p class="ver">${c.d.fail}</p><div class="row"><a class="btn primary" href="#">${ICON_DL}${c.d.failBtn}</a></div>`;
+  } else {
+    hero.innerHTML = `<a class="btn primary" href="#">${ICON_DL}${c.dl.r2.replace('{v}', v)}</a><div class="meta"><span>${c.platform}</span><a class="more" href="#">${c.dl.all}</a></div>`;
+    box.innerHTML = `<p class="ver">${c.d.cur.replace('{v}', v)}</p><div class="row"><a class="btn primary" href="#">${ICON_DL}${c.d.dl}</a>${state === 'r2' ? `<a class="btn" href="#">${c.d.gh}</a>` : ''}</div>`;
+  }
+}
+
+// Pinned features section: the step follows the distance scrolled past the pin point, in 60%-of-window turns.
+const feat = $('#features'), N = 6;
+let wide = false;
+function update() {
+  wide = matchMedia('(min-width: 760px)').matches;
+  feat.dataset.mode = wide ? 'pinned' : 'stacked';
+  const steps = document.querySelectorAll('.step');
+  const pinWrap = $('#pin');
+  $('#runway').style.height = wide ? (0.6 * innerHeight * (N - 1)) + 'px' : '';
+  if (!wide) { steps.forEach((s) => s.classList.remove('on')); return; }
+  const scrolled = 56 + pinWrap.offsetHeight - $('#runway').getBoundingClientRect().top;
+  const i = Math.max(0, Math.min(N - 1, Math.round(scrolled / (0.6 * innerHeight))));
+  steps.forEach((s, k) => s.classList.toggle('on', k === i));
+}
+addEventListener('scroll', () => requestAnimationFrame(update), { passive: true });
+addEventListener('resize', update);
+
+document.addEventListener('click', (e) => { const a = e.target.closest('a[href="#"]'); if (a) e.preventDefault(); });
+document.querySelectorAll('[data-state]').forEach((b) => b.addEventListener('click', () => {
+  state = b.dataset.state;
+  document.querySelectorAll('[data-state]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  renderDownload();
+}));
+DemoDimensions.on('language', (v) => { lang = v; renderStatic(); });
+</script>
+</body>
+</html>
