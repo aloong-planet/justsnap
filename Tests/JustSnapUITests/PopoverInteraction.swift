@@ -67,10 +67,14 @@ func languageRowPoint(in popover: NSWindow, row: Int) throws -> NSPoint {
     return list.convert(NSPoint(x: list.bounds.midX, y: y), to: nil)
 }
 
-/// The text the language list renders. The list is drawn in a window of its own: the content of an open
-/// popover renders to nothing when read back from the process.
+/// Runs `body` on the language list drawn in a window of its own, over white. The list is not read from an
+/// open popover: the content of a popover renders to nothing when read back from the process.
 @MainActor
-func recognizedListText(options: [TargetLanguageOption], selectedCode: String) throws -> String {
+func withRenderedLanguageList<T>(
+    options: [TargetLanguageOption],
+    selectedCode: String,
+    _ body: (NSView) throws -> T
+) throws -> T {
     let hosting = NSHostingView(rootView: TargetLanguageList(options: options, selectedCode: selectedCode) { _ in }
         .background(Color.white))
     hosting.frame = CGRect(origin: .zero, size: hosting.fittingSize)
@@ -80,5 +84,11 @@ func recognizedListText(options: [TargetLanguageOption], selectedCode: String) t
     window.appearance = NSAppearance(named: .aqua)
     window.orderFrontRegardless()
     defer { window.orderOut(nil) }
-    return try recognizedText(in: hosting)
+    return try body(hosting)
+}
+
+/// The text the language list renders.
+@MainActor
+func recognizedListText(options: [TargetLanguageOption], selectedCode: String) throws -> String {
+    try withRenderedLanguageList(options: options, selectedCode: selectedCode) { try recognizedText(in: $0) }
 }

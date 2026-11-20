@@ -140,6 +140,48 @@ struct CaptureToolbarIconButtonTests {
         try waitUntil { state.targetLanguageCode == "ar" }
     }
 
+    @Test("a row shows the abbreviation before the name, and only the current language has a check mark")
+    func languageRowOrderAndCheckMark() throws {
+        let options = [
+            TargetLanguageOption(code: "en", name: "English"),
+            TargetLanguageOption(code: "zh-Hans", name: "简体中文"),
+        ]
+        try withRenderedLanguageList(options: options, selectedCode: "en") { view in
+            let lines = try recognizedLines(in: view)
+            func box(_ text: String) throws -> CGRect {
+                try #require(lines.first { $0.text == text }, "\(text) among \(lines.map(\.text))").box
+            }
+            // Text recognition may read a row as one line or as two; either way the abbreviation comes first.
+            let nameLine = try #require(lines.first { $0.text.contains("English") }, "among \(lines.map(\.text))")
+            if nameLine.text == "English" {
+                let abbreviation = try box("EN")
+                #expect(abbreviation.maxX <= nameLine.box.minX, "EN \(abbreviation) English \(nameLine.box)")
+                #expect(abs(abbreviation.midY - nameLine.box.midY) < 4)
+            } else {
+                #expect(nameLine.text.hasPrefix("EN"), "row read as \(nameLine.text)")
+            }
+
+            // The check mark is an image, so it shows as ink at the right end of the row.
+            let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            let scale = CGFloat(bitmap.pixelsWide) / view.bounds.width
+            func hasInk(rowMidY: CGFloat) -> Bool {
+                let right = view.bounds.maxX - TargetLanguageListMetrics.padding
+                for x in stride(from: right - 24, to: right - 2, by: 1) {
+                    for y in stride(from: rowMidY - 5, to: rowMidY + 5, by: 1) {
+                        guard let color = bitmap.colorAt(x: Int(x * scale), y: Int(y * scale))?.usingColorSpace(.sRGB) else { continue }
+                        if color.redComponent + color.greenComponent + color.blueComponent < 2.7 { return true }
+                    }
+                }
+                return false
+            }
+            let current = try box("EN").midY
+            let other = try box("ZH").midY
+            #expect(hasInk(rowMidY: current), "the current language has a check mark")
+            #expect(!hasInk(rowMidY: other), "another language has none")
+        }
+    }
+
     // The hint itself appears only under a real pointer: that is checked on the installed build.
     @Test("the language part's hint names the target language in full")
     func languageHintNamesLanguage() {
