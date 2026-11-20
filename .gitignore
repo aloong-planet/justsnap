@@ -2,3 +2,6 @@
 release/
 __pycache__/
 docs/.workings/
+site/node_modules/
+site/dist/
+site/.astro/
