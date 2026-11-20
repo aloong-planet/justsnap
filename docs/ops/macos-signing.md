@@ -45,7 +45,7 @@ The provisioning profile and private key stay outside the repository. The Sparkl
 
 ## CI
 
-- `ci.yml` builds the three development packages on every pull request and on pushes to `main`.
+- `ci.yml` runs the repository checks on every pull request and push to `main`. The full test suite and the three development packages run on pushes to `main` and on a pull request that changes more than documents, as `.github/ci/routing.json` decides. `CI gate` is the job that reports the result.
 - `formal-release-verification.yml` is the release gate and runs only when started manually. It checks the live Provider contracts, installs the credentials into a temporary keychain, runs the release build and uploads the result as the `JustSnap-<version>-verified` artifact.
 
 The formal workflow does not publish anything. Publishing the verified files is a separate manual step.

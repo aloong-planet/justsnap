@@ -1,5 +1,8 @@
 name: CI
 
+# A pull request that changes only documents runs the repository checks and the gate; one that changes
+# anything else also runs the full test suite and the development packages. A push to main runs everything.
+# Which is decided by .github/ci/routing.json (ci-scope.mjs); the github-ops skill's checks-gate.md describes it.
 on:
   pull_request:
   push:
@@ -8,15 +11,40 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same ref cancels the unfinished run. On main this is safe only because ci-scope.mjs
+# selects every scope for a push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test-and-package:
+  # The job id must stay `changes`: ci-gate.mjs reads the scopes from it.
+  changes:
+    name: Changed scopes
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.scope.outputs.app }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: scope
+        run: node .github/ci/ci-scope.mjs
+
+  # Always runs, so no scope lists it and the gate always requires it.
+  repo-checks:
+    name: Repository checks
     runs-on: macos-latest
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-      - name: Report toolchain
-        run: /usr/bin/xcrun swift --version
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: CI routing tests
+        run: node --test .github/ci/*.test.mjs
       - name: Localization key gate
         run: |
           python3 -m unittest discover -s Scripts/tests -p 'test_localization_keys.py' -v
@@ -27,6 +55,20 @@ jobs:
         run: python3 -m unittest discover -s Scripts/tests -p 'test_provider_accessibility.py' -v
       - name: Desktop regression scope regression
         run: python3 -m unittest discover -s Scripts/tests -p 'test_desktop_regression_needed.py' -v
+      - name: Release script syntax
+        run: bash -n Scripts/*.sh
+
+  test-and-package:
+    name: Application checks
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: macos-latest
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - name: Report toolchain
+        run: /usr/bin/xcrun swift --version
       - name: Strict build
         run: >-
           /usr/bin/xcrun swift build
@@ -57,8 +99,6 @@ jobs:
           set -o pipefail
           /usr/bin/xcrun swift test --filter ProviderApplicationTestsNativeMenu.testThrownNativeOperationReleasesViewsWithoutChangingExistingWindows | tee "$RUNNER_TEMP/provider-thrown.log"
           grep -F 'Executed 1 test, with 0 failures' "$RUNNER_TEMP/provider-thrown.log"
-      - name: Release script syntax
-        run: bash -n Scripts/*.sh
       - name: Three-architecture development packages
         env:
           VERSION: 0.0.0-ci
@@ -67,3 +107,20 @@ jobs:
           SPARKLE_PUBLIC_ED_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
           OUTPUT_ROOT: ${{ runner.temp }}/justsnap-development-dmgs
         run: Scripts/build-development-dmgs.sh
+
+  # The one required check. `needs` lists every other job of this workflow; `always()` makes it run after a
+  # failure or a skip upstream, which the default `success()` would not.
+  ci-gate:
+    name: CI gate
+    needs: [changes, repo-checks, test-and-package]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Verify the selected jobs
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: node .github/ci/ci-gate.mjs
