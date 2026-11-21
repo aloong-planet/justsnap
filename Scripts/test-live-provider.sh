@@ -37,7 +37,7 @@ if [[ $# -eq 4 ]]; then
     cp "$executable" "$app/Contents/MacOS/JustSnapLiveProviderGate"
     cp Distribution/LiveProviderGate-Info.plist "$app/Contents/Info.plist"
     cp "$profile" "$app/Contents/embedded.provisionprofile"
-    "$bin/JustSnapSigningTool" prepare "$profile" com.loong.vlmsnapper \
+    "$bin/JustSnapSigningTool" prepare "$profile" com.loong.justsnap \
         "$MACOS_SIGNING_IDENTITY" Distribution/LiveProviderGate.entitlements \
         "$staging_root/entitlements.plist" "$staging_root/signing.plist"
     codesign --force --sign "$MACOS_SIGNING_IDENTITY" --options runtime --timestamp \

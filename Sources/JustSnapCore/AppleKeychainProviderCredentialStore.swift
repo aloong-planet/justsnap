@@ -8,7 +8,7 @@ public enum AppleKeychainError: Error, Equatable {
 }
 
 public struct AppleKeychainProviderCredentialStore: ProviderCredentialStoring {
-    public static let defaultService = "com.loong.vlmsnapper.provider-api-key"
+    public static let defaultService = "com.loong.justsnap.provider-api-key"
 
     private let service: String
     private let usesDataProtectionKeychain: Bool

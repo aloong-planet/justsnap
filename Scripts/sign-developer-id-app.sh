@@ -31,7 +31,7 @@ effective_entitlements="$temporary_root/effective-entitlements.plist"
 
 "$signing_tool" prepare \
     "$profile" \
-    com.loong.vlmsnapper \
+    com.loong.justsnap \
     "$signing_identity" \
     "$project_root/Distribution/JustSnap.entitlements" \
     "$effective_entitlements" \

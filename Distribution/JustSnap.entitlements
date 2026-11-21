@@ -12,12 +12,12 @@
     <true/>
     <key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
     <array>
-        <string>com.loong.vlmsnapper-spki</string>
-        <string>com.loong.vlmsnapper-spks</string>
+        <string>com.loong.justsnap-spki</string>
+        <string>com.loong.justsnap-spks</string>
     </array>
     <key>com.apple.security.temporary-exception.shared-preference.read-write</key>
     <array>
-        <string>com.loong.vlmsnapper</string>
+        <string>com.loong.justsnap</string>
     </array>
 </dict>
 </plist>

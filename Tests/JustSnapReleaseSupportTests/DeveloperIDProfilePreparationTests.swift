@@ -22,7 +22,7 @@ struct DeveloperIDProfilePreparationTests {
         ) {
             try DeveloperIDProfilePreparation().prepare(
                 profileURL: root.appendingPathComponent("missing.provisionprofile"),
-                bundleIdentifier: "com.loong.vlmsnapper",
+                bundleIdentifier: "com.loong.justsnap",
                 signingIdentity: "missing identity",
                 baseEntitlementsURL: root.appendingPathComponent("base.plist"),
                 outputEntitlementsURL: output,

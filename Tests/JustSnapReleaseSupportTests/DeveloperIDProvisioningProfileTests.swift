@@ -14,7 +14,7 @@ struct DeveloperIDProvisioningProfileTests {
         )
 
         let metadata = try profile.validatedSigningMetadata(
-            bundleIdentifier: "com.loong.vlmsnapper",
+            bundleIdentifier: "com.loong.justsnap",
             signingCertificateDER: certificate,
             now: Date(timeIntervalSince1970: 1_800_000_000)
         )
@@ -22,8 +22,8 @@ struct DeveloperIDProvisioningProfileTests {
         #expect(metadata.profileUUID == "profile-uuid")
         #expect(metadata.appIDPrefix == "RHQ28XS7D9")
         #expect(metadata.teamIdentifier == "RHQ28XS7D9")
-        #expect(metadata.applicationIdentifier == "RHQ28XS7D9.com.loong.vlmsnapper")
-        #expect(metadata.keychainAccessGroup == "RHQ28XS7D9.com.loong.vlmsnapper")
+        #expect(metadata.applicationIdentifier == "RHQ28XS7D9.com.loong.justsnap")
+        #expect(metadata.keychainAccessGroup == "RHQ28XS7D9.com.loong.justsnap")
     }
 
     @Test("effective entitlements preserve the sandbox and add exact identity claims")
@@ -35,7 +35,7 @@ struct DeveloperIDProvisioningProfileTests {
             )
         )
         let metadata = try profile.validatedSigningMetadata(
-            bundleIdentifier: "com.loong.vlmsnapper",
+            bundleIdentifier: "com.loong.justsnap",
             signingCertificateDER: certificate,
             now: Date(timeIntervalSince1970: 1_800_000_000)
         )
@@ -57,7 +57,7 @@ struct DeveloperIDProvisioningProfileTests {
         #expect(entitlements["com.apple.security.app-sandbox"] as? Bool == true)
         #expect(
             entitlements["com.apple.application-identifier"] as? String
-                == "RHQ28XS7D9.com.loong.vlmsnapper"
+                == "RHQ28XS7D9.com.loong.justsnap"
         )
         #expect(
             entitlements["com.apple.developer.team-identifier"] as? String
@@ -65,7 +65,7 @@ struct DeveloperIDProvisioningProfileTests {
         )
         #expect(
             entitlements["keychain-access-groups"] as? [String]
-                == ["RHQ28XS7D9.com.loong.vlmsnapper"]
+                == ["RHQ28XS7D9.com.loong.justsnap"]
         )
     }
 
@@ -81,7 +81,7 @@ struct DeveloperIDProvisioningProfileTests {
 
         #expect(throws: DeveloperIDProvisioningProfileError.expired) {
             try profile.validatedSigningMetadata(
-                bundleIdentifier: "com.loong.vlmsnapper",
+                bundleIdentifier: "com.loong.justsnap",
                 signingCertificateDER: certificate,
                 now: Date(timeIntervalSince1970: 1_800_000_000)
             )
@@ -102,7 +102,7 @@ struct DeveloperIDProvisioningProfileTests {
             throws: DeveloperIDProvisioningProfileError.bundleIdentifierMismatch
         ) {
             try profile.validatedSigningMetadata(
-                bundleIdentifier: "com.loong.vlmsnapper",
+                bundleIdentifier: "com.loong.justsnap",
                 signingCertificateDER: certificate,
                 now: Date(timeIntervalSince1970: 1_800_000_000)
             )
@@ -122,7 +122,7 @@ struct DeveloperIDProvisioningProfileTests {
                 .signingCertificateNotAuthorized
         ) {
             try profile.validatedSigningMetadata(
-                bundleIdentifier: "com.loong.vlmsnapper",
+                bundleIdentifier: "com.loong.justsnap",
                 signingCertificateDER: Data([0x02]),
                 now: Date(timeIntervalSince1970: 1_800_000_000)
             )
@@ -144,7 +144,7 @@ struct DeveloperIDProvisioningProfileTests {
                 .keychainAccessGroupNotAuthorized
         ) {
             try profile.validatedSigningMetadata(
-                bundleIdentifier: "com.loong.vlmsnapper",
+                bundleIdentifier: "com.loong.justsnap",
                 signingCertificateDER: certificate,
                 now: Date(timeIntervalSince1970: 1_800_000_000)
             )
@@ -165,7 +165,7 @@ struct DeveloperIDProvisioningProfileTests {
             throws: DeveloperIDProvisioningProfileError.notDeveloperIDDistribution
         ) {
             try profile.validatedSigningMetadata(
-                bundleIdentifier: "com.loong.vlmsnapper",
+                bundleIdentifier: "com.loong.justsnap",
                 signingCertificateDER: certificate,
                 now: Date(timeIntervalSince1970: 1_800_000_000)
             )
@@ -178,8 +178,8 @@ struct DeveloperIDProvisioningProfileTests {
             profileUUID: "profile-uuid",
             appIDPrefix: "RHQ28XS7D9",
             teamIdentifier: "RHQ28XS7D9",
-            applicationIdentifier: "RHQ28XS7D9.com.loong.vlmsnapper",
-            keychainAccessGroup: "RHQ28XS7D9.com.loong.vlmsnapper"
+            applicationIdentifier: "RHQ28XS7D9.com.loong.justsnap",
+            keychainAccessGroup: "RHQ28XS7D9.com.loong.justsnap"
         )
         let base = try PropertyListSerialization.data(
             fromPropertyList: [
@@ -201,7 +201,7 @@ struct DeveloperIDProvisioningProfileTests {
 
     private func profileData(
         expirationDate: Date = Date(timeIntervalSince1970: 2_400_000_000),
-        applicationIdentifier: String = "RHQ28XS7D9.com.loong.vlmsnapper",
+        applicationIdentifier: String = "RHQ28XS7D9.com.loong.justsnap",
         provisionsAllDevices: Bool = true,
         developerCertificates: [Data],
         keychainAccessGroups: [String] = ["RHQ28XS7D9.*"]
