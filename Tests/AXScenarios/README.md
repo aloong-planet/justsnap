@@ -21,7 +21,7 @@
 
 ## 本地门禁入口
 
-执行 `bash Scripts/test-local-regression.sh`：严格构建、全部 Python 门禁、非 App XCTest/Swift Testing、App Swift Testing、两项独立原生 XCTest 每次都跑；需求归属清单 `docs/.workings/v1-core/checklist.md` 不提交，只在主检出里有，检出里没有它时清单检查及其脚本测试跳过。AX 回归只在改动触及它覆盖的界面时跑，比较基准是本分支离开 `origin/main` 的位置，含未提交与未跟踪文件，覆盖清单在 `Scripts/desktop-regression-needed.py`；判定不出时也跑。`--desktop` 总是跑，发布前必须这样跑一次。每个阶段退出码及完成标记均是硬门禁；任一失败即停止。AX 需要已登录、未锁屏、有授权的本地桌面，GitHub 托管 CI 不声称覆盖它。
+执行 `bash Scripts/test-local-regression.sh`：严格构建、全部 Python 门禁、发布镜像的 Node 测试、非 App XCTest/Swift Testing、App Swift Testing、三项独立原生 XCTest 每次都跑；需求归属清单 `docs/.workings/v1-core/checklist.md` 不提交，只在主检出里有，检出里没有它时清单检查及其脚本测试跳过。AX 回归只在改动触及它覆盖的界面时跑，比较基准是本分支离开 `origin/main` 的位置，含未提交与未跟踪文件，覆盖清单在 `Scripts/desktop-regression-needed.py`；判定不出时也跑。`--desktop` 总是跑，发布前必须这样跑一次。每个阶段退出码及完成标记均是硬门禁；任一失败即停止。AX 需要已登录、未锁屏、有授权的本地桌面，GitHub 托管 CI 不声称覆盖它。
 
 只有 AX 子集使用非激活窗口；完整原生套件可能短暂激活窗口，勿将完整回归称为“全后台”。
 

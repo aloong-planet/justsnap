@@ -1,0 +1,75 @@
+name: Mirror release to R2
+
+# After a formal release is published on GitHub, its DMG and Sparkle appcast are copied to the R2 bucket behind
+# dl.justsnap.aloongplanet.com and the latest pointer is rewritten last (docs/specs/release-mirror.md, ADR-0020).
+# Pre-releases and drafts are never mirrored. A failed run is finished by running it again for the same tag, from the
+# Actions tab: it checks the tag, so it can only mirror a formal release.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Formal release tag to mirror (v<major>.<minor>.<patch>)
+        required: true
+
+permissions:
+  contents: read
+
+# Two releases published close together are mirrored one after the other, never in parallel and never cancelled
+concurrency:
+  group: mirror-release
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    name: Mirror the release to R2
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.release.prerelease == false && github.event.release.draft == false && !contains(github.event.release.tag_name, '-'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      # The mirror script is the default branch's, whatever commit the tag names
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Check the tag
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::$TAG is not a formal release tag (v<major>.<minor>.<patch>); only formal releases are mirrored."
+            exit 1
+          fi
+      # A rerun by hand skips the release-event condition above, so the release's own state is asked for here
+      - name: Check the release is neither a draft nor a pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease --jq '"\(.isDraft) \(.isPrerelease)"')"
+          if [[ "$state" != "false false" ]]; then
+            echo "::error::The release $TAG is a draft or a pre-release (isDraft isPrerelease: $state); only published formal releases are mirrored."
+            exit 1
+          fi
+      - name: Download the release's DMG and appcast
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${TAG#v}"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir release \
+            --pattern "JustSnap-${version}-mac-arm64.dmg" --pattern appcast-arm64.xml
+      # Fails rather than skips when an R2 secret is missing: the script names the missing setting
+      - name: Copy them to R2, check them, then point the latest pointer at the release
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: node Scripts/mirror-release.mjs "$TAG" release

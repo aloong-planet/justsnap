@@ -37,3 +37,4 @@ Entries first written before the product was renamed to JustSnap keep its former
 | [0017](0017-allowlist-gemini-and-openai-models-with-built-in-thinking-settings.md) | Allowlist Gemini and OpenAI models with built-in thinking settings | Proposed |
 | [0018](0018-merge-prs-without-executable-changes-once-ci-passes.md) | Merge PRs without executable changes once CI passes | Accepted (2026-11-17) |
 | [0019](0019-show-paste-results-in-a-floating-result-box.md) | Show paste results in a floating result box | Proposed |
+| [0020](0020-serve-releases-from-the-download-host.md) | Serve formal releases and the Sparkle appcast from the download host | Accepted (2026-11-21) |

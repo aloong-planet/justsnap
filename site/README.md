@@ -79,7 +79,7 @@ views a screenshot shows, or to the fixture text in `Sources/JustSnapSiteShots/S
   two are the same file. What they show is checked by looking at them.
 - `test/apply-download.test.ts` and `test/init-download.test.ts` apply the download states to that build's pages, the
   second through the page's script with a fake network. The reads' tests answer through an injected fetch too, so no
-  test reaches the network; `test/fixtures/` holds the answers they use: the pointer as agentshed's mirror script writes it (JustSnap's own writer is not built yet),
+  test reaches the network; `test/fixtures/` holds the answers they use: the pointer as agentshed's mirror script writes it, which is the shape JustSnap's own `Scripts/mirror-release.mjs` writes,
   and a real-shaped releases answer from GitHub.
 - `test/language-switch.test.ts` moves a note between the two pages through a fake session storage.
 
@@ -98,4 +98,4 @@ repository's `stacks/apps/landing-pages.tf`, and exists once the Terraform apps 
 | `PNPM_VERSION` | 9.12.3, so the build runs the site's pnpm rather than the build image's default |
 
 The DMGs and the `latest.json` pointer the page reads are served from `dl.justsnap.aloongplanet.com` (an R2 bucket),
-written by the release mirror, not by this site. Pending: JustSnap's mirror script and `latest.json` writer are not built yet, so until they are the page falls back to GitHub Releases.
+written by the release mirror (`Scripts/mirror-release.mjs`, run by `.github/workflows/mirror-release.yml` when a formal release is published), not by this site. Until a formal release has been mirrored there is no pointer, and the page falls back to GitHub Releases.
