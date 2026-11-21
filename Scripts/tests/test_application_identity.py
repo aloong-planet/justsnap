@@ -5,8 +5,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 # The expected identifier is a literal on purpose: it is the application identity (ADR-0005), so a change to it
-# must fail here until the files this test reads have been changed too. It does not read the docs (ADR-0005,
-# docs/ops/macos-signing.md, docs/specs/v1-core.md), which also name the identifier.
+# must fail here until the files this test reads have been changed too. It does not read the docs that name the
+# identifier (ADR-0005, docs/ops/macos-signing.md).
 #
 # Gap: nothing here proves that a Developer ID provisioning profile exists for this App ID, that Sparkle's XPC
 # services connect under these names, or that the Data Protection Keychain works with the profile

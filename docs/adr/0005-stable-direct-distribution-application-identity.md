@@ -17,7 +17,7 @@ The Bundle Identifier takes part in the macOS Screen Recording permission, Keych
 
 We adopt **option 1**. The application's display name is `JustSnap` and the v1 direct-distribution Bundle Identifier is `com.loong.justsnap`. Any further architecture build would share it.
 
-The Keychain service, login item, Screen Recording permission, Sparkle configuration and the provisioning profile all use this Bundle Identifier as their stable root. It is not changed in an ordinary upgrade; a change after the first public release needs a compatible migration plan.
+The Keychain service, login item, Screen Recording permission, Sparkle configuration and the provisioning profile all use this Bundle Identifier as their stable root. It is not changed in an ordinary upgrade; a change after the first public release needs its own ADR and an explicit migration plan.
 
 ## Consequences
 
