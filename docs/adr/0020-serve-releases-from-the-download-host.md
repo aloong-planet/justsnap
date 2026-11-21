@@ -27,4 +27,4 @@ We adopt **option 1**. The download host serves the DMG at `releases/v<version>/
 ## Sources
 
 - [release-mirror spec](../specs/release-mirror.md)
-- The user's decision to host the appcast on R2 under `appcast/` of the download host, in the release-mirror alignment record (`docs/.workings/release-mirror/`, not committed).
+- The user's decision to host the appcast on R2 under `appcast/` of the download host, given on 2026-11-21: 「appcast 放 R2，按你的方案开工」.

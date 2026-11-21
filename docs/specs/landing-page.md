@@ -182,4 +182,4 @@
 
 ## Further Notes
 
-- 指针的形状按本 spec 的 Implementation Decisions 为准；下载域名根下的 `latest.json` 随每个正式版更新（release-mirror::REQ-003/AC-03）。
+- 指针的形状按本 spec 的 Implementation Decisions 为准；下载域名根下的 `latest.json` 由镜像工作流更新（release-mirror::REQ-001/AC-01、release-mirror::REQ-004/AC-01）。
