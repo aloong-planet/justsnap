@@ -1,7 +1,7 @@
 // The screenshots (landing-page::REQ-005): the hero's and the six features' cuts, one set per language, all 16:9 and
 // one size. They ship as static files under public/shots/ with their pixel sizes declared, so their space is held
-// before they load. Until real captures of the built app (light appearance, made-up content) replace them, the files
-// are one placeholder picture, and the production build refuses to run (scripts/check-shots.mjs).
+// before they load. They are renders of the app's own views over made-up content, rebuilt by `pnpm shots`; the
+// production build refuses to run if any two are the same file (scripts/check-shots.mjs).
 import type { Locale } from './i18n/ui'
 
 /** The features section's views, in the order of its steps (landing-page::US-003/AC-01) */
