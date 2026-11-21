@@ -182,6 +182,4 @@
 
 ## Further Notes
 
-- 指针的形状按本 spec 的 Implementation Decisions 为准。
-
-> Pending: 下载域名根下的 `latest.json` 随每个正式版更新。
+- 指针的形状按本 spec 的 Implementation Decisions 为准；下载域名根下的 `latest.json` 随每个正式版更新（release-mirror::REQ-003/AC-03）。
