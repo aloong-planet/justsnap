@@ -4,8 +4,14 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-# The expected identifier is a literal on purpose: it is the application identity (ADR-0021), so a change to it
-# must fail here until every place that is derived from it has been changed too.
+# The expected identifier is a literal on purpose: it is the application identity (ADR-0005), so a change to it
+# must fail here until the files this test reads have been changed too. It does not read the docs (ADR-0005,
+# docs/ops/macos-signing.md, docs/specs/v1-core.md), which also name the identifier.
+#
+# Gap: nothing here proves that a Developer ID provisioning profile exists for this App ID, that Sparkle's XPC
+# services connect under these names, or that the Data Protection Keychain works with the profile
+# (v1-core failure modes 20 and 22). Those are checked when a release is built, by Scripts/verify-macos-app.sh and
+# the --verify-data-protection-keychain smoke in Scripts/release-macos.sh, which need the real profile.
 BUNDLE_ID = "com.loong.justsnap"
 IDENTIFIER_FAMILY = re.compile(r"com\.loong\.[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*")
 
@@ -59,6 +65,25 @@ class ApplicationIdentityTests(unittest.TestCase):
                         identifier == BUNDLE_ID or identifier.startswith(f"{BUNDLE_ID}-"),
                         f"{identifier} is not derived from {BUNDLE_ID}",
                     )
+
+    def test_scripts_use_the_identifier_where_the_profile_and_the_built_app_are_checked(self):
+        q = re.escape(BUNDLE_ID)
+        expectations = {
+            # JustSnapSigningTool prepare <profile> <bundle identifier> ...: the identifier the profile must match.
+            "Scripts/sign-developer-id-app.sh": [rf'prepare\s+\\\s*\n\s*"\$profile"\s+\\\s*\n\s*{q}\s+\\'],
+            "Scripts/test-live-provider.sh": [rf'prepare\s+"\$profile"\s+{q}\s'],
+            # The built app's own identifier and the two Sparkle mach-lookup names.
+            "Scripts/verify-macos-app.sh": [
+                rf"^assert_plist_value CFBundleIdentifier {q}$",
+                rf"global-name:0\s+\\\s*\n\s*{q}-spki$",
+                rf"global-name:1\s+\\\s*\n\s*{q}-spks$",
+            ],
+        }
+        for relative, patterns in expectations.items():
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            for pattern in patterns:
+                with self.subTest(script=relative, pattern=pattern):
+                    self.assertRegex(text, re.compile(pattern, re.MULTILINE))
 
 
 if __name__ == "__main__":
