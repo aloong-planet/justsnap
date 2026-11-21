@@ -39,7 +39,7 @@ The script also reads these credentials from the environment:
 | `MACOS_SIGNING_IDENTITY` | Developer ID Application identity |
 | `MACOS_NOTARY_PROFILE` | `notarytool` keychain profile |
 | `SPARKLE_PRIVATE_KEY_FILE` | File holding the Sparkle private key |
-| `MACOS_PROVISIONING_PROFILE` | Developer ID provisioning profile for `com.loong.vlmsnapper` |
+| `MACOS_PROVISIONING_PROFILE` | Developer ID provisioning profile for `com.loong.justsnap` |
 
 The provisioning profile and private key stay outside the repository. The Sparkle tools must already exist under `.build/artifacts`, so resolve the Swift packages first.
 

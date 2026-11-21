@@ -77,7 +77,7 @@ struct ReleaseManifestTests {
         ReleaseManifest(
             version: "1.0.0",
             buildVersion: "100",
-            bundleIdentifier: "com.loong.vlmsnapper",
+            bundleIdentifier: "com.loong.justsnap",
             sparklePublicKey: Data(repeating: 7, count: 32).base64EncodedString(),
             artifacts: artifacts ?? [
                 DistributionArtifact(

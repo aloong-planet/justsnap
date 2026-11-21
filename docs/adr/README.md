@@ -22,7 +22,7 @@ Entries first written before the product was renamed to JustSnap keep its former
 | [0002](0002-local-history-without-app-layer-encryption.md) | Keep local history without app-layer encryption | Accepted (2026-11-18) |
 | [0003](0003-v1-interface-localization-boundary.md) | 固定 v1 界面本地化边界 | 已接受（2026-08-25） |
 | [0004](0004-distribute-one-apple-silicon-package.md) | Distribute one Apple silicon package with its own Sparkle appcast | Accepted (2026-11-20) |
-| [0005](0005-stable-direct-distribution-application-identity.md) | Fix the direct-distribution application identity | Accepted (2026-08-25) |
+| [0005](0005-stable-direct-distribution-application-identity.md) | Fix the direct-distribution application identity | Accepted (2026-11-21) |
 | [0006](0006-layer-user-screenshots-and-internal-history-storage.md) | Keep original images in Pictures and history data in the app container | Accepted (2026-11-18) |
 | [0007](0007-direct-distribution-only-for-v1.md) | Distribute v1 only as Developer ID builds | Accepted (2026-08-25) |
 | [0008](0008-preserve-failed-history-database-before-reset.md) | Never silently rebuild a failed history database | Accepted (2026-11-18) |

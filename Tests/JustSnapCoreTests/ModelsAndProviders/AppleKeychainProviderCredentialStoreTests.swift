@@ -8,7 +8,7 @@ import Testing
 struct AppleKeychainProviderCredentialStoreTests {
     @Test("a provider credential can be added, replaced, read, and deleted")
     func credentialLifecycle() async throws {
-        let service = "com.loong.vlmsnapper.tests.\(UUID().uuidString)"
+        let service = "com.loong.justsnap.tests.\(UUID().uuidString)"
         let store = AppleKeychainProviderCredentialStore(
             service: service,
             usesDataProtectionKeychain: false

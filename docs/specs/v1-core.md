@@ -264,7 +264,7 @@ JustSnap 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和 D
 - 截图冻结、选区或模型请求活动期间 Provider 配置只读：API Key、验证、清空、模型选择、刷新、设为当前和移除配置均禁用；活动结束后恢复。Provider 凭据作业活动时，其他卡片可编辑窗口会话草稿但不能提交或变更配置。
 - 验证提交必须原子捕获点击时的 Provider 和当前精确提交值。提交后字段、清空、显隐和验证操作保持只读直到该次验证终结，但用户仍可切换卡片或关闭管理中心。异步任务不得重新从视图、当前卡片或 Keychain 读取可能已经变化的值；迟到的验证结果只允许更新其原始 Provider，不得落到当前正在查看的另一张卡片。
 - 尚未提交的 Key 草稿只属于当前管理中心窗口会话，切换卡片或关闭管理中心即清除。已经提交的验证属于应用级操作，关闭管理中心不会取消；提交时的 Key 只保留在内存中：成功安全存储后立即清除，失败后保留到用户修改、清空、移除配置或应用终止，不写入普通配置或日志。重新打开管理中心时，同一 Provider 重新连接到正在验证、待选择模型、已配置或验证失败的真实状态。
-- API Key 按 ADR-0001 存入 Apple Keychain；稳定应用身份按 ADR-0005 使用 `com.loong.vlmsnapper`。
+- API Key 按 ADR-0001 存入 Apple Keychain；稳定应用身份按 ADR-0005 使用 `com.loong.justsnap`。
 - API Key 验证成功但 Apple Keychain 写入失败时，Provider 不得被标记为已配置；应保留当前输入并显示本地安全存储错误，不得误报为 Provider 临时不可用。
 
 #### v1-core::REQ-016 模型列表只保留能提取和翻译的模型
@@ -407,7 +407,7 @@ JustSnap 是原生 macOS 14.4+ 菜单栏应用。v1 接入 OpenAI、Gemini 和 D
 - 发现新版本后在菜单栏和通用设置中提示，由用户显式开始下载。菜单栏与设置页监听同一应用级 Sparkle 状态，只有 Sparkle 确认下载完成后才显示“已下载”。下载完成不打断截图或模型任务，在退出时安装，也允许用户选择立即重启并更新；应用连续运行 7 天仍未安装时温和提醒一次。手动检查更新只在通用设置中提供。
 - appcast 使用 HTTPS；应用和 DMG 通过 Developer ID 签名、Apple 公证与 stapling，更新包另有 Sparkle EdDSA 签名。
 - 只发布 Apple Silicon（arm64）一个安装包并订阅其 appcast，遵循 ADR-0004。签名、公证、stapling 或更新签名任一步失败，该版本不发布。
-- Developer ID 应用必须嵌入同一份与 `com.loong.vlmsnapper` 匹配的分发 provisioning profile。正式签名从 profile 动态派生 App ID Prefix、Team ID、完整 application identifier 和精确 Keychain access group，不在仓库中硬编码账号前缀。
+- Developer ID 应用必须嵌入同一份与 `com.loong.justsnap` 匹配的分发 provisioning profile。正式签名从 profile 动态派生 App ID Prefix、Team ID、完整 application identifier 和精确 Keychain access group，不在仓库中硬编码账号前缀。
 - provisioning profile 是仓库外的发布输入，不进入 Git。缺失、无法验签或解码、过期、分发渠道错误，或与 Bundle ID、Team ID、Developer ID Application 证书、Keychain allowlist 不一致时，正式流水线必须在签名前失败，不得回退到无 profile 或 legacy Keychain 构建。
 - 最终已签名 App 必须声明 profile 授权的精确 application identifier、Team ID 和 Keychain access group。该安装包做 profile/签名静态一致性验证，并必须由最终已签名的应用进程执行一次 Data Protection Keychain 的增、读、改、删验收。
 

@@ -35,7 +35,7 @@ assert_plist_value() {
     fi
 }
 
-assert_plist_value CFBundleIdentifier com.loong.vlmsnapper
+assert_plist_value CFBundleIdentifier com.loong.justsnap
 assert_plist_value CFBundleShortVersionString "$version"
 assert_plist_value CFBundleVersion "$build_version"
 assert_plist_value LSMinimumSystemVersion 14.4
@@ -125,10 +125,10 @@ assert_entitlement_value com.apple.security.files.user-selected.read-write true
 assert_entitlement_value com.apple.security.network.client true
 assert_entitlement_value \
     com.apple.security.temporary-exception.mach-lookup.global-name:0 \
-    com.loong.vlmsnapper-spki
+    com.loong.justsnap-spki
 assert_entitlement_value \
     com.apple.security.temporary-exception.mach-lookup.global-name:1 \
-    com.loong.vlmsnapper-spks
+    com.loong.justsnap-spks
 
 if [[ -n "$signing_metadata" ]]; then
     "$project_root/Scripts/verify-developer-id-app.sh" \
