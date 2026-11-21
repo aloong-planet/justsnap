@@ -31,10 +31,15 @@ test('a tag that is not a formal version fails the run before the release is dow
 })
 
 test('a rerun by hand for a draft or a pre-release fails the run before the release is downloaded', () => {
-  const check = text.indexOf('--json isDraft,isPrerelease')
-  assert.ok(check > 0)
-  assert.ok(check < text.indexOf('gh release download'))
-  assert.match(text, /\[\[ "\$state" != "false false" \]\]/)
+  const start = text.indexOf('- name: Check the release is neither a draft nor a pre-release')
+  assert.ok(start > 0)
+  const step = text.slice(start, text.indexOf('- name:', start + 1))
+  assert.ok(start < text.indexOf('gh release download'))
+  // The compared text is what the template prints for a published, formal release: isDraft then isPrerelease
+  assert.match(step, /--json isDraft,isPrerelease --jq '"\\\(\.isDraft\) \\\(\.isPrerelease\)"'/)
+  assert.match(step, /\[\[ "\$state" != "false false" \]\]/)
+  assert.match(step, /GH_TOKEN: \$\{\{ github\.token \}\}/)
+  assert.match(step, /::error::[^\n]*\n\s+exit 1\n/)
 })
 
 test('only the release\'s DMG and appcast are downloaded', () => {

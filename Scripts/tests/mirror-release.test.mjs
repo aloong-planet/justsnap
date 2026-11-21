@@ -11,8 +11,9 @@
 // Gaps: the pointer's shape is checked against the download page's reader only by hand, since the page is a package
 // of its own. Nothing here touches R2, the download host or GitHub. The workflow's first real run is the first formal
 // release; its text is checked in mirror-workflow.test.mjs. release-mirror::CON-002 (the built app's feed address is
-// the fixed appcast address) is attested by the maintainer's release command (docs/ops/macos-signing.md): the mirror
-// never opens the signed DMG, so no test here sees the address inside the app.
+// the fixed appcast address) is checked by nothing: the mirror never opens the signed DMG, and the release command
+// only compares the app with the APPCAST_BASE_URL it was given. The only basis is the instruction in
+// docs/ops/macos-signing.md to pass the fixed value.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -114,13 +115,11 @@ const pointerOf = (version, size) => ({
   files: [{ name: `JustSnap-${version}-mac-arm64.dmg`, arch: 'arm64', size, url: `${HOST}/releases/v${version}/JustSnap-${version}-mac-arm64.dmg` }]
 })
 
-// The host and the layout are written out here, not taken from the script: the appcast address is baked into every
-// installed app and the page accepts only this host (release-mirror::CON-002, REQ-002/AC-03)
-test('the download host and the object layout are the ones the apps and the page read', () => {
+// The host is written out here, not taken from the script: every other test builds its URLs from it, while the
+// appcast address is baked into every installed app and the page accepts only this host (CON-002, REQ-002/AC-03).
+// The keys are written out in the layout test below.
+test('the download host is the one the apps and the page read', () => {
   assert.equal(DOWNLOAD_HOST, 'https://dl.justsnap.aloongplanet.com')
-  assert.equal(`${DOWNLOAD_HOST}/${APPCAST_KEY}`, 'https://dl.justsnap.aloongplanet.com/appcast/appcast-arm64.xml')
-  assert.equal(`${DOWNLOAD_HOST}/${dmgKey('0.1.8')}`, 'https://dl.justsnap.aloongplanet.com/releases/v0.1.8/JustSnap-0.1.8-mac-arm64.dmg')
-  assert.equal(POINTER_KEY, 'latest.json')
 })
 
 // ---- REQ-001: which releases are mirrored
@@ -228,6 +227,20 @@ test('a DMG the host does not serve at once is read again, ten seconds apart, up
   await run(late, release)
   assert.deepEqual(late.sleeps, [10_000, 10_000])
   assert.deepEqual(late.order.at(-1), 'latest.json')
+
+  // A host that cannot be reached at all (DNS, a reset connection) is read again like one that answers 404
+  const unreachable = modelOf()
+  const reachable = unreachable.probe
+  let reads = 0
+  unreachable.probe = async (url) => {
+    reads += 1
+    if (reads <= 2) throw new Error('connect ECONNRESET')
+    return reachable(url)
+  }
+  await run(unreachable, release)
+  assert.equal(reads, 3)
+  assert.deepEqual(unreachable.sleeps, [10_000, 10_000])
+  assert.equal(unreachable.order.at(-1), 'latest.json')
 
   const never = modelOf({ notServedFor: 3 })
   await assert.rejects(run(never, release), /is not served: HTTP 404/)
