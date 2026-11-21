@@ -55,6 +55,7 @@ desktop_cases_needed() {
 }
 run_stage strict-build swift build -Xswiftc -warnings-as-errors -Xcc -Wall -Xcc -Wextra -Xcc -Werror
 run_stage script-tests python3 -m unittest discover -s Scripts/tests -p 'test_*.py' -v
+run_stage mirror-tests node --test Scripts/tests/*.test.mjs
 # Construction records are not committed, so only the main checkout has the checklist.
 checklist="docs/.workings/v1-core/checklist.md"
 if [[ -f "$checklist" ]]; then

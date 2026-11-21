@@ -47,6 +47,8 @@ jobs:
           node-version: 22
       - name: CI routing tests
         run: node --test .github/ci/*.test.mjs
+      - name: Release mirror tests
+        run: node --test Scripts/tests/*.test.mjs
       - name: Localization key gate
         run: |
           python3 -m unittest discover -s Scripts/tests -p 'test_localization_keys.py' -v

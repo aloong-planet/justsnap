@@ -43,12 +43,29 @@ The script also reads these credentials from the environment:
 
 The provisioning profile and private key stay outside the repository. The Sparkle tools must already exist under `.build/artifacts`, so resolve the Swift packages first.
 
+## Publishing a release
+
+The `release` command's output directory holds `JustSnap-<version>-mac-arm64.dmg` and `appcast-arm64.xml`. Run it with:
+
+| Variable | Value |
+|---|---|
+| `APPCAST_BASE_URL` | `https://dl.justsnap.aloongplanet.com/appcast` |
+| `DOWNLOAD_BASE_URL` | `https://dl.justsnap.aloongplanet.com/releases/v<version>` |
+
+The appcast address is built into every installed app, so `APPCAST_BASE_URL` never changes. Then publish:
+
+1. Create the GitHub Release as a draft with both files: `gh release create v<version> <dmg> <appcast> --draft --title "JustSnap <version>" --notes-file <notes>`.
+2. Publish it: `gh release edit v<version> --draft=false`.
+
+Publishing starts `mirror-release.yml`, which copies both files to R2, reads the DMG back through the download host, and only then replaces the appcast and `latest.json` (`docs/specs/release-mirror.md`). If the run fails, start it again for the same tag from the Actions tab; it is safe to repeat. The R2 secrets it reads (`R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`) are written by the Terraform apps workflow in the infrastructure repository.
+
 ## CI
 
 - `ci.yml` runs the repository checks on every pull request and push to `main`. The full test suite and the development package runs on pushes to `main` and on a pull request that changes more than documents, as `.github/ci/routing.json` decides. `CI gate` is the job that reports the result.
-- `formal-release-verification.yml` is the release gate and runs only when started manually. It checks the live Provider contracts, installs the credentials into a temporary keychain, runs the release build and uploads the result as the `JustSnap-<version>-verified` artifact.
+- The release gate is `bash Scripts/test-local-regression.sh --desktop`, run on the maintainer's Mac before a release (it includes the mirror's tests). It does not depend on GitHub.
+- `formal-release-verification.yml` runs only when started manually. It checks the live Provider contracts, installs the credentials into a temporary keychain, runs the release build and uploads the result as the `JustSnap-<version>-verified` artifact. It needs the signing, notarization and Sparkle secrets below, which the repository does not have yet, so it cannot run today.
 
-The formal workflow does not publish anything. Publishing the verified files is a separate manual step.
+Neither the local gate nor the formal workflow publishes anything. Publishing is the manual step above.
 
 ### Workflow secrets
 
