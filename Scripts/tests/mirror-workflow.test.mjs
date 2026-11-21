@@ -30,6 +30,13 @@ test('a tag that is not a formal version fails the run before the release is dow
   assert.ok(check < text.indexOf('gh release download'))
 })
 
+test('a rerun by hand for a draft or a pre-release fails the run before the release is downloaded', () => {
+  const check = text.indexOf('--json isDraft,isPrerelease')
+  assert.ok(check > 0)
+  assert.ok(check < text.indexOf('gh release download'))
+  assert.match(text, /\[\[ "\$state" != "false false" \]\]/)
+})
+
 test('only the release\'s DMG and appcast are downloaded', () => {
   assert.match(text, /--pattern "JustSnap-\$\{version\}-mac-arm64\.dmg" --pattern appcast-arm64\.xml/)
 })
@@ -53,6 +60,6 @@ test('the tag reaches the shell only through the environment, never spliced into
   // A step's `run:` part is whatever follows its `run:` key up to the next step
   const steps = text.split(/\n {6}- /).slice(1)
   const scripts = steps.map((step) => step.slice(step.search(/\brun:/))).filter((part) => part.startsWith('run:'))
-  assert.equal(scripts.length, 3)
+  assert.equal(scripts.length, 4)
   for (const script of scripts) assert.doesNotMatch(script, /\$\{\{/)
 })

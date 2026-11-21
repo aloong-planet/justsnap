@@ -62,9 +62,10 @@ Publishing starts `mirror-release.yml`, which copies both files to R2, reads the
 ## CI
 
 - `ci.yml` runs the repository checks on every pull request and push to `main`. The full test suite and the development package runs on pushes to `main` and on a pull request that changes more than documents, as `.github/ci/routing.json` decides. `CI gate` is the job that reports the result.
-- `formal-release-verification.yml` is the release gate and runs only when started manually. It checks the live Provider contracts, installs the credentials into a temporary keychain, runs the release build and uploads the result as the `JustSnap-<version>-verified` artifact.
+- The release gate is `bash Scripts/test-local-regression.sh --desktop`, run on the maintainer's Mac before a release (it includes the mirror's tests). It does not depend on GitHub.
+- `formal-release-verification.yml` runs only when started manually. It checks the live Provider contracts, installs the credentials into a temporary keychain, runs the release build and uploads the result as the `JustSnap-<version>-verified` artifact. It needs the signing, notarization and Sparkle secrets below, which the repository does not have yet, so it cannot run today.
 
-The formal workflow does not publish anything. Publishing the verified files is the manual step above.
+Neither the local gate nor the formal workflow publishes anything. Publishing is the manual step above.
 
 ### Workflow secrets
 

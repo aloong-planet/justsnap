@@ -8,9 +8,11 @@
 // on localhost. The appcast fixture has the shape of Sparkle's generate_appcast output (the 2026-11 tool, signed
 // with a throwaway key).
 //
-// Gap: the pointer's shape is checked against the download page's reader only by hand, since the page is a package
+// Gaps: the pointer's shape is checked against the download page's reader only by hand, since the page is a package
 // of its own. Nothing here touches R2, the download host or GitHub. The workflow's first real run is the first formal
-// release; its text is checked in mirror-workflow.test.mjs.
+// release; its text is checked in mirror-workflow.test.mjs. release-mirror::CON-002 (the built app's feed address is
+// the fixed appcast address) is attested by the maintainer's release command (docs/ops/macos-signing.md): the mirror
+// never opens the signed DMG, so no test here sees the address inside the app.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
@@ -110,6 +112,15 @@ const run = (model, release, tag = 'v0.1.8') =>
 const pointerOf = (version, size) => ({
   version,
   files: [{ name: `JustSnap-${version}-mac-arm64.dmg`, arch: 'arm64', size, url: `${HOST}/releases/v${version}/JustSnap-${version}-mac-arm64.dmg` }]
+})
+
+// The host and the layout are written out here, not taken from the script: the appcast address is baked into every
+// installed app and the page accepts only this host (release-mirror::CON-002, REQ-002/AC-03)
+test('the download host and the object layout are the ones the apps and the page read', () => {
+  assert.equal(DOWNLOAD_HOST, 'https://dl.justsnap.aloongplanet.com')
+  assert.equal(`${DOWNLOAD_HOST}/${APPCAST_KEY}`, 'https://dl.justsnap.aloongplanet.com/appcast/appcast-arm64.xml')
+  assert.equal(`${DOWNLOAD_HOST}/${dmgKey('0.1.8')}`, 'https://dl.justsnap.aloongplanet.com/releases/v0.1.8/JustSnap-0.1.8-mac-arm64.dmg')
+  assert.equal(POINTER_KEY, 'latest.json')
 })
 
 // ---- REQ-001: which releases are mirrored

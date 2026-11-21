@@ -46,6 +46,16 @@ jobs:
             echo "::error::$TAG is not a formal release tag (v<major>.<minor>.<patch>); only formal releases are mirrored."
             exit 1
           fi
+      # A rerun by hand skips the release-event condition above, so the release's own state is asked for here
+      - name: Check the release is neither a draft nor a pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease --jq '"\(.isDraft) \(.isPrerelease)"')"
+          if [[ "$state" != "false false" ]]; then
+            echo "::error::The release $TAG is a draft or a pre-release (isDraft isPrerelease: $state); only published formal releases are mirrored."
+            exit 1
+          fi
       - name: Download the release's DMG and appcast
         env:
           GH_TOKEN: ${{ github.token }}

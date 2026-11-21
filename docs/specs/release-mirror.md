@@ -62,7 +62,7 @@ GitHub 上发布一个正式版后，一条工作流把这个版本的 DMG 和 a
 
 - A1 DMG 上传到一半中断 → 指针与 appcast 保持不变；重跑从头上传同一个对象（release-mirror::REQ-003/AC-03、release-mirror::REQ-005/AC-02）。
 - A2 下载域名读回的 DMG 大小或 sha256 与发布的不同 → 失败，appcast 与指针不变（release-mirror::REQ-003/AC-01）。
-- A3 DMG 上传后下载域名暂时读不到 → 读回最多重试三次，每次间隔十秒，仍读不到则失败（release-mirror::REQ-003/AC-01）。
+- A3 DMG 上传后下载域名暂时读不到 → 读回最多读三次，两次之间间隔十秒，三次都读不到则失败（release-mirror::REQ-003/AC-01）。
 - A4 appcast 的版本、地址或长度与 DMG 不一致，或没有签名 → 失败，不向 R2 写任何东西（release-mirror::REQ-003/AC-02）。
 - A5 两个正式版几乎同时发布 → 两次运行依次执行，不并行；后一次按 release-mirror::REQ-004 判断是否回退。
 - A6 重跑一个已被更高版本取代的旧版本 → 失败（release-mirror::REQ-004/AC-01）；要有意回退，必须由维护者手动处理，不属于本工作流。
