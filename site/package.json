@@ -10,7 +10,8 @@
     "build": "node scripts/check-shots.mjs && astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "test": "vitest run"
+    "test": "vitest run",
+    "shots": "swift run --package-path .. JustSnapSiteShots public/shots && node scripts/check-shots.mjs"
   },
   "dependencies": {
     "astro": "7.4.0"

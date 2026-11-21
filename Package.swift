@@ -29,6 +29,10 @@ let package = Package(
             name: "JustSnapUIHarness",
             targets: ["JustSnapUIHarness"]
         ),
+        .executable(
+            name: "JustSnapSiteShots",
+            targets: ["JustSnapSiteShots"]
+        ),
     ],
     dependencies: [
         .package(
@@ -102,6 +106,10 @@ let package = Package(
         ),
         .executableTarget(
             name: "JustSnapUIHarness",
+            dependencies: ["JustSnapCore", "JustSnapUI"]
+        ),
+        .executableTarget(
+            name: "JustSnapSiteShots",
             dependencies: ["JustSnapCore", "JustSnapUI"]
         ),
         .executableTarget(
