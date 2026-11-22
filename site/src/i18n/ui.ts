@@ -10,6 +10,7 @@ const zh = {
   brand: '随译 JustSnap',
   nav: { label: '主导航', features: '功能', download: '下载与安装', github: 'GitHub' },
   langLabel: '语言',
+  breadcrumbLabel: '面包屑导航',
   hero: {
     title: '截一块屏幕，直接提取文字或翻译',
     lead: '随译（JustSnap）是 macOS 菜单栏里的截图工具：框选任意区域，几秒内拿到提取的文字或译文。用你自己的模型服务商。',
@@ -54,6 +55,7 @@ const en: Shape<typeof zh> = {
   brand: 'JustSnap',
   nav: { label: 'Main', features: 'Features', download: 'Download', github: 'GitHub' },
   langLabel: 'Language',
+  breadcrumbLabel: 'Breadcrumb',
   hero: {
     title: 'Snap any part of your screen. Get the text or the translation.',
     lead: 'JustSnap lives in your Mac\'s menu bar. Select any region, and seconds later a vision model hands back the text or the translation. Bring your own provider.',
@@ -93,3 +95,6 @@ export const ui: Record<Locale, typeof zh> = { zh, en }
 /** Each language's page, and how its toggle is written (the same in both pages, so a visitor finds it by its own name) */
 export const PAGE_PATH: Record<Locale, string> = { zh: '/', en: '/en/' }
 export const LANGUAGE_NAME: Record<Locale, string> = { zh: '中文', en: 'EN' }
+/** The author's homepage, which lists the other apps and tools; the header's breadcrumb leads back to it, under the
+ * same name on both pages (landing-page::REQ-009/AC-01) */
+export const HOMEPAGE = { name: 'aloong planet', url: 'https://aloongplanet.com/' }

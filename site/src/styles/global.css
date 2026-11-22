@@ -100,6 +100,33 @@ a {
   width: 28px;
   height: 28px;
 }
+/* The breadcrumb back to the author's homepage, ending on the brand (landing-page::REQ-009). "aloong planet /" is
+   sized and coloured as the navigation's links (.nav) */
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Flex items rather than a line of text, so the brand is centred in the header as it was before it moved into the
+   list */
+.crumbs > li {
+  display: flex;
+  align-items: center;
+}
+.crumbs-up {
+  gap: 10px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.crumbs-home {
+  white-space: nowrap;
+}
+.crumbs-home:hover {
+  color: var(--text);
+}
 .nav {
   display: flex;
   gap: 22px;
@@ -156,7 +183,8 @@ a {
 .nav a:focus-visible,
 .lang a:focus-visible,
 .more:focus-visible,
-.brand:focus-visible {
+.brand:focus-visible,
+.crumbs-home:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -478,6 +506,20 @@ a {
     display: flex;
     flex-direction: column;
     gap: 44px;
+  }
+}
+/* Narrow phones: beside the language toggle the breadcrumb no longer fits on one line, so "aloong planet /" goes small
+   above the brand, inside the same header height */
+@media (max-width: 400px) {
+  .crumbs {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+  }
+  .crumbs-up {
+    gap: 4px;
+    font-size: 11px;
+    line-height: 1.3;
   }
 }
 /* Phones: the buttons share the full width, so a long label wraps inside its button instead of outgrowing it */
