@@ -63,7 +63,7 @@ The appcast address is built into every installed app, so `APPCAST_BASE_URL` nev
 1. Create the GitHub Release as a draft with both files: `gh release create v<version> <dmg> <appcast> --draft --title "JustSnap <version>" --notes-file <notes>`.
 2. Publish it: `gh release edit v<version> --draft=false`.
 
-Publishing starts `mirror-release.yml`, which copies both files to R2, reads the DMG back through the download host, and only then replaces the appcast and `latest.json` (`docs/specs/release-mirror.md`). If the run fails, start it again for the same tag from the Actions tab; it is safe to repeat. The R2 secrets it reads (`R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`) are written by the Terraform apps workflow in the infrastructure repository.
+Publishing starts `mirror-release.yml`, which copies the DMG to R2, reads it back through the download host, and only then replaces the appcast and `latest.json` (`docs/specs/release-mirror.md`). If the run fails, start it again for the same tag from the Actions tab; it is safe to repeat. The R2 secrets it reads (`R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`) are written by the Terraform apps workflow in the infrastructure repository.
 
 ## CI
 
