@@ -27,8 +27,8 @@ CI runs `pnpm check` and `pnpm test` in the `site-checks` job whenever a pull re
 - `src/layouts/Base.astro`: the head, the sticky header (brand, navigation, language toggle), the footer, and the
   page's one script.
 - `src/components/`: one component per section (`Hero`, `Features`, `Download`, which also holds the install steps),
-  and `Icon.astro`, the page's icons as inline SVG copied from Lucide. A new icon goes there, never a character or an
-  emoji.
+  and `Icon.astro`, the page's interface icons as inline SVG copied from Lucide. A new icon goes there, never a
+  character or an emoji. The app icon in the header is the one exception: it is an image, set in `Base.astro`.
 - `src/i18n/ui.ts`: every string of the page, in both languages. This dictionary is the site's own, separate from the
   app's. New copy goes here, in both languages.
 - `src/styles/global.css`: the palette (light and dark, by the visitor's system appearance) and every rule of the page,
