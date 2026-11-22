@@ -24,8 +24,8 @@ CI runs `pnpm check` and `pnpm test` in the `site-checks` job whenever a pull re
 ## Where things are
 
 - `src/pages/index.astro`, `src/pages/en/index.astro`: the two pages, the same sections in the same order.
-- `src/layouts/Base.astro`: the head, the sticky header (brand, navigation, language toggle), the footer, and the
-  page's one script.
+- `src/layouts/Base.astro`: the head, the sticky header (the breadcrumb back to the aloong planet homepage, ending on
+  the brand; navigation; language toggle), the footer, and the page's one script.
 - `src/components/`: one component per section (`Hero`, `Features`, `Download`, which also holds the install steps),
   and `Icon.astro`, the page's interface icons as inline SVG copied from Lucide. A new icon goes there, never a
   character or an emoji. The app icon in the header is the one exception: it is an image, set in `Base.astro`.
