@@ -505,7 +505,8 @@ private struct ProvidersScene: View {
         ) {
             ManagementCenterView(
                 destination: .providerSettings,
-                records: [],
+                // The sidebar counts these; the history shot passes the same records, so the two shots agree.
+                records: historyRecords(locale.copy, now: fixtureNow),
                 showsGeneralSettings: false,
                 providerSettings: ProviderSettingsConfiguration(
                     snapshot: ProviderSetupSnapshot(
