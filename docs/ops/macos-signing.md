@@ -18,7 +18,7 @@ To change the icon, edit the SVG, render it to a 1024 px PNG with a transparent 
 
 The `release` profile builds the same single arm64 package. It:
 
-1. Signs the app with Developer ID and embeds the provisioning profile. Sparkle's helpers inside it (`Installer.xpc`, `Downloader.xpc`, `Updater.app`, `Autoupdate`) are signed one by one and keep Sparkle's own entitlements, which are none; the app is never signed with `--deep`, because that would put the app's sandbox on the installer, which is then refused the authorization an update needs. `verify-macos-app.sh` fails if a helper carries the sandbox entitlement.
+1. Signs the app with Developer ID and embeds the provisioning profile. Sparkle's helpers inside it (`Installer.xpc`, `Downloader.xpc`, `Updater.app`, `Autoupdate`) are signed one by one and keep Sparkle's own entitlements and never the app's; the app is never signed with `--deep`, because that would put the app's sandbox on the installer, which is then refused the authorization an update needs. `verify-macos-app.sh` fails, through `verify-sparkle-helpers.sh`, if a helper carries the sandbox entitlement or its signature cannot be read.
 2. Notarizes and staples the app, then does the same for its DMG.
 3. Checks the final DMG with `verify-macos-app.sh`, `spctl` and `stapler`.
 4. Generates the Sparkle appcast and verifies its signatures.

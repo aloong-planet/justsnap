@@ -132,17 +132,7 @@ assert_entitlement_value \
     com.apple.security.temporary-exception.mach-lookup.global-name:1 \
     com.loong.justsnap-spks
 
-# Sparkle's installer must run outside the app's sandbox: a sandboxed installer is refused the administrator
-# authorization it asks for, and the update fails after the new version is found and downloaded. Signing the app with
-# --deep would stamp the app's entitlements on these helpers.
-sparkle_current="$app/Contents/Frameworks/Sparkle.framework/Versions/Current"
-for helper in XPCServices/Downloader.xpc XPCServices/Installer.xpc Updater.app Autoupdate; do
-    if /usr/bin/codesign -d --entitlements - "$sparkle_current/$helper" 2>&1 \
-        | /usr/bin/grep -Fq 'com.apple.security.app-sandbox'; then
-        echo "Sparkle helper $helper carries the app's sandbox entitlement" >&2
-        exit 1
-    fi
-done
+"$project_root/Scripts/verify-sparkle-helpers.sh" "$app/Contents/Frameworks/Sparkle.framework/Versions/Current"
 
 if [[ -n "$signing_metadata" ]]; then
     "$project_root/Scripts/verify-developer-id-app.sh" \
