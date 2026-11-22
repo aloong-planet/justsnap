@@ -1,4 +1,4 @@
-// The built-site check (landing-page::REQ-003/AC-01, landing-page::REQ-003/AC-04, REQ-004/AC-03, REQ-005, REQ-006, landing-page::REQ-009/AC-01, CON-003, CON-004): the pages one build produces, read as files.
+// The built-site check (landing-page::REQ-003/AC-01, landing-page::REQ-003/AC-04, REQ-004/AC-03, REQ-005, REQ-006, landing-page::REQ-009/AC-01, landing-page::REQ-009/AC-04, CON-003, CON-004): the pages one build produces, read as files.
 //
 // It reads the HTML as served, before any script runs, so what it sees is what a visitor without scripts gets
 // (landing-page::REQ-001/AC-04).
@@ -93,7 +93,7 @@ describe('page structure (REQ-003)', () => {
   // The way back to the author's homepage, where the other apps and tools are listed. The trail follows the WAI-ARIA
   // Authoring Practices breadcrumb pattern: a labelled navigation landmark around an ordered list, the link to this
   // page marked as the current page, and the separator kept from assistive technology.
-  test.each(LOCALES)('%s: the header starts with the way back to aloong planet, then the brand (landing-page::REQ-009/AC-01)', (locale) => {
+  test.each(LOCALES)('%s: the header starts with the way back to aloong planet, then the brand (landing-page::REQ-009/AC-01, landing-page::REQ-009/AC-04)', (locale) => {
     const trail = pages[locale].querySelector('header .wrap')?.firstElementChild
     expect(trail?.tagName.toLowerCase()).toBe('nav')
     expect(trail?.getAttribute('aria-label')).toBe(locale === 'zh' ? '面包屑' : 'Breadcrumb')
