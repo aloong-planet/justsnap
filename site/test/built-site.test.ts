@@ -120,7 +120,7 @@ describe('page structure (REQ-003)', () => {
     expect([...pages.en.querySelectorAll('header .nav a')].map(text)).toEqual(['Features', 'Download', 'GitHub'])
   })
 
-  // A screen reader reads the role after the name, so the name leaves the role's word out (layouts/Base.astro)
+  // A screen reader reads the role after the name, so the name leaves the role's word out (src/i18n/ui.ts)
   test.each(LOCALES)('%s: the header navigation is named without its role word (landing-page::REQ-003/AC-04)', (locale) => {
     const nav = pages[locale].querySelector('header .nav')
     expect([nav?.tagName.toLowerCase(), nav?.getAttribute('aria-label')]).toEqual(['nav', locale === 'zh' ? '主要' : 'Main'])
