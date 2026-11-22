@@ -77,7 +77,7 @@
 - landing-page::REQ-005/AC-01：首屏截图和六张功能截图由构建出的 App 自己的界面视图离屏渲染而成，不是对运行中的 App 或使用者屏幕的捕获；内容是虚构的示例（示例文字、示例对话），不出现使用者本人的数据；每种语言一套，浅色外观。
 - landing-page::REQ-005/AC-02：六张功能截图宽高比 16:9、缩放一致，使文字在步骤切换时大小不变；每张在列表行之间截断。
 - landing-page::REQ-005/AC-03：每张截图的位置在加载前就已占住，页面不跳动。
-- landing-page::REQ-005/AC-04：站点的生产构建在任意两张截图是同一个文件时失败，因此一套重复的占位图不会被发布。
+- landing-page::REQ-005/AC-04：站点的生产构建在任意两张截图是同一个文件时失败。
 
 ### landing-page::REQ-006 文案（直接验收）
 
@@ -92,6 +92,12 @@
 顶栏以应用图标加品牌文字（landing-page::REQ-006）作标识；图标只作装饰，读屏软件只读文字。浏览器标签页使用应用图标。
 
 > Pending: 首屏尚未使用应用图标。
+
+### landing-page::REQ-009 回到 aloong planet 主页
+
+- landing-page::REQ-009/AC-01：顶栏最左依次是“aloong planet”、分隔符“/”和品牌。“aloong planet”是链接，在当前标签页打开 `https://aloongplanet.com/`；“/”不是链接，辅助技术不读出它；品牌的链接不变。中英文页都写作“aloong planet”，不翻译。
+- landing-page::REQ-009/AC-02：“aloong planet”和“/”与顶栏导航链接同字号、同灰色，三者（“aloong planet”、“/”、品牌）之间各隔 10px。悬停“aloong planet”时变为导航链接的悬停色；键盘聚焦它时显示与顶栏其他链接相同的焦点框。
+- landing-page::REQ-009/AC-03：窗口不宽于 400px 时，“aloong planet /”缩为 11px，单独排在品牌上方一行；顶栏高度不变，语言切换器仍在右侧。
 
 ## Quality Requirements
 
@@ -179,6 +185,7 @@
 - 面向中国大陆的页面副本。
 - 在页面上显示发布说明（失败模式 E1）。
 - 在步骤间点击或按键切换：展示区一次显示一步，随滚动切换（landing-page::REQ-004/AC-05）。
+- 主页顶栏的 Apps、Agents 菜单：顶栏只链接回主页（landing-page::REQ-009）。
 
 ## Further Notes
 
