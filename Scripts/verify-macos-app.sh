@@ -132,6 +132,8 @@ assert_entitlement_value \
     com.apple.security.temporary-exception.mach-lookup.global-name:1 \
     com.loong.justsnap-spks
 
+"$project_root/Scripts/verify-sparkle-helpers.sh" "$app/Contents/Frameworks/Sparkle.framework/Versions/Current"
+
 if [[ -n "$signing_metadata" ]]; then
     "$project_root/Scripts/verify-developer-id-app.sh" \
         "$app" \

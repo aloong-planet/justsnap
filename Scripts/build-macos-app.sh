@@ -126,9 +126,10 @@ for signable in \
         --sign - \
         "$signable"
 done
+# No --deep: it would stamp the app's sandbox entitlements on Sparkle's helpers signed above, and a sandboxed installer
+# cannot obtain the administrator authorization the update needs.
 /usr/bin/codesign \
     --force \
-    --deep \
     --sign - \
     --entitlements "$project_root/Distribution/JustSnap.entitlements" \
     "$app"
