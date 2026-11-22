@@ -1,11 +1,12 @@
-// The built-site check (landing-page::REQ-003/AC-01, REQ-004/AC-03, REQ-005, REQ-006, CON-003, CON-004): the pages one build produces, read as files.
+// The built-site check (landing-page::REQ-003/AC-01, REQ-004/AC-03, REQ-005, REQ-006, landing-page::REQ-009/AC-01, CON-003, CON-004): the pages one build produces, read as files.
 //
 // It reads the HTML as served, before any script runs, so what it sees is what a visitor without scripts gets
 // (landing-page::REQ-001/AC-04).
 //
 // Not covered here: the pinned showcase and how the scroll turns its steps (landing-page::REQ-004, failures C1–C4), the
-// layout across widths (QR-001), the hero filling the first screen (REQ-003/AC-03), the two appearances (D1), and
-// whether the screenshots show made-up content (REQ-005). They were measured in a headless browser against the built site when the page was written, not by a test; the
+// layout across widths (QR-001), the hero filling the first screen (REQ-003/AC-03), the two appearances (D1), the
+// breadcrumb's look and its layout on narrow windows (landing-page::REQ-009/AC-02, landing-page::REQ-009/AC-03), and whether the screenshots show made-up
+// content (REQ-005). They were measured in a headless browser against the built site when the page was written, not by a test; the
 // stylesheet's rule for pages without scripts (C5) and the numbers the spec fixes are asserted below as text, since
 // jsdom does not lay the page out. A test for the rest needs a real browser in CI.
 import { readdirSync, readFileSync } from 'node:fs'
@@ -60,7 +61,7 @@ describe('page structure (REQ-003)', () => {
     const header = doc.querySelector('header')
     expect(text(header?.querySelector('a.brand'))).toBe(locale === 'zh' ? '随译 JustSnap' : 'JustSnap')
 
-    const nav = [...(header?.querySelectorAll('nav a') ?? [])]
+    const nav = [...(header?.querySelectorAll('.nav a') ?? [])]
     expect(nav.map((a) => a.getAttribute('href'))).toEqual(['#features', '#download', REPOSITORY])
     for (const a of nav.slice(0, 2)) expect(doc.getElementById(a.getAttribute('href')!.slice(1)), a.getAttribute('href')!).not.toBeNull()
 
@@ -89,8 +90,34 @@ describe('page structure (REQ-003)', () => {
     expect(files()).toContain('icon.png')
   })
 
+  // The way back to the author's homepage, where the other apps and tools are listed. The trail follows the WAI-ARIA
+  // Authoring Practices breadcrumb pattern: a labelled navigation landmark around an ordered list, the link to this
+  // page marked as the current page, and the separator kept from assistive technology.
+  test.each(LOCALES)('%s: the header starts with the way back to aloong planet, then the brand (landing-page::REQ-009/AC-01)', (locale) => {
+    const trail = pages[locale].querySelector('header .wrap')?.firstElementChild
+    expect(trail?.tagName.toLowerCase()).toBe('nav')
+    expect(trail?.getAttribute('aria-label')).toBe(locale === 'zh' ? '面包屑' : 'Breadcrumb')
+    const items = [...(trail?.querySelectorAll(':scope > ol > li') ?? [])]
+    expect(items).toHaveLength(2)
+
+    // Opens in the current tab, and is written the same in both languages
+    const home = items[0]?.firstElementChild
+    expect([home?.tagName.toLowerCase(), text(home), home?.getAttribute('href'), home?.hasAttribute('target')]).toEqual([
+      'a',
+      'aloong planet',
+      'https://aloongplanet.com/',
+      false
+    ])
+    // The separator is seen, not read, and leads nowhere
+    const separator = items[0]?.lastElementChild
+    expect([text(separator), separator?.getAttribute('aria-hidden'), separator?.matches('a, a *')]).toEqual(['/', 'true', false])
+    // The brand keeps its link to the top of the page, the page the trail ends on
+    const brand = items[1]?.firstElementChild
+    expect([brand?.matches('a.brand'), brand?.getAttribute('href'), brand?.getAttribute('aria-current')]).toEqual([true, '#top', 'page'])
+  })
+
   test('the English navigation reads as the spec’s', () => {
-    expect([...pages.en.querySelectorAll('header nav a')].map(text)).toEqual(['Features', 'Download', 'GitHub'])
+    expect([...pages.en.querySelectorAll('header .nav a')].map(text)).toEqual(['Features', 'Download', 'GitHub'])
   })
 
   test.each(LOCALES)('%s: hero, features and download in that order, then the footer', (locale) => {
@@ -221,8 +248,9 @@ describe('what the page may say and link to', () => {
     expect(copy.documentElement.outerHTML).not.toMatch(/\p{Script=Han}/u)
   })
 
-  test.each(LOCALES)('%s: every link out of the page goes to github.com or the download host, and opens in a new tab (CON-003)', (locale) => {
-    const outbound = [...pages[locale].querySelectorAll('a[href^="http"]')]
+  test.each(LOCALES)('%s: every link out of the page but the way back to aloong planet goes to github.com or the download host, and opens in a new tab (CON-003)', (locale) => {
+    // The homepage link is the one exception (landing-page::REQ-009/AC-01)
+    const outbound = [...pages[locale].querySelectorAll('a[href^="http"]')].filter((a) => a.getAttribute('href') !== 'https://aloongplanet.com/')
     expect(outbound.length).toBeGreaterThan(3)
     for (const a of outbound) {
       expect(new URL(a.getAttribute('href')!).hostname, a.getAttribute('href')!).toBe('github.com')
