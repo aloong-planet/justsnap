@@ -23,6 +23,7 @@ executable="$app/Contents/MacOS/JustSnapApp"
 [[ -x "$executable" ]]
 [[ -d "$app/Contents/Frameworks/Sparkle.framework" ]]
 [[ -d "$app/Contents/Resources/JustSnap_JustSnapUI.bundle" ]]
+[[ -f "$app/Contents/Resources/AppIcon.icns" ]]
 
 assert_plist_value() {
     local key="$1"
@@ -36,6 +37,7 @@ assert_plist_value() {
 }
 
 assert_plist_value CFBundleIdentifier com.loong.justsnap
+assert_plist_value CFBundleIconFile AppIcon
 assert_plist_value CFBundleShortVersionString "$version"
 assert_plist_value CFBundleVersion "$build_version"
 assert_plist_value LSMinimumSystemVersion 14.4
