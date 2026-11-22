@@ -97,7 +97,7 @@
 
 - landing-page::REQ-009/AC-01：顶栏最左依次是“aloong planet”、分隔符“/”和品牌。“aloong planet”是链接，在当前标签页打开 `https://aloongplanet.com/`；“/”不是链接，辅助技术不读出它；品牌的链接不变。中英文页都写作“aloong planet”，不翻译。
 - landing-page::REQ-009/AC-02：“aloong planet”和“/”与顶栏导航链接同字号、同灰色，三者（“aloong planet”、“/”、品牌）之间各隔 10px。悬停“aloong planet”时变为导航链接的悬停色；键盘聚焦它时显示与顶栏其他链接相同的焦点框。
-- landing-page::REQ-009/AC-03：窗口不宽于 400px 时，“aloong planet /”缩为 11px，单独排在品牌上方一行；顶栏高度不变，语言切换器仍在右侧。
+- landing-page::REQ-009/AC-03：窗口不宽于 440px 时，“aloong planet /”缩为 11px，单独排在品牌上方一行；顶栏高度不变，语言切换器仍在右侧。
 
 ## Quality Requirements
 
