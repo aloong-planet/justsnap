@@ -20,11 +20,15 @@ const t = ui[locale]
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{t.title}</title>
     <meta name="description" content={t.description} />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icon.png" type="image/png" />
   </head>
   <body>
     <header class="hdr">
       <div class="wrap">
-        <a class="brand" href="#top">{t.brand}</a>
+        <a class="brand" href="#top">
+          <img class="brand-mark" src="/icon.svg" alt="" width="28" height="28" />{t.brand}
+        </a>
         <nav class="nav" aria-label={t.nav.label}>
           <a href="#features">{t.nav.features}</a>
           <a href="#download">{t.nav.download}</a>

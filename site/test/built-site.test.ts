@@ -72,6 +72,23 @@ describe('page structure (REQ-003)', () => {
     expect(toggle?.querySelector('[aria-current="page"]')?.textContent).toBe(locale === 'zh' ? '中文' : 'EN')
   })
 
+  test.each(LOCALES)('%s: the header brand carries the app icon beside the text (REQ-008)', (locale) => {
+    const mark = pages[locale].querySelector('header a.brand img')
+    expect(mark?.getAttribute('src')).toBe('/icon.svg')
+    // The text next to it names the app, so the picture is decoration for a screen reader
+    expect(mark?.getAttribute('alt')).toBe('')
+    expect(files()).toContain('icon.svg')
+  })
+
+  test.each(LOCALES)('%s: the browser tab uses the app icon, as SVG with a PNG fallback (REQ-008)', (locale) => {
+    const icons = [...pages[locale].querySelectorAll('head link[rel="icon"]')].map((l) => [l.getAttribute('href'), l.getAttribute('type')])
+    expect(icons).toEqual([
+      ['/icon.svg', 'image/svg+xml'],
+      ['/icon.png', 'image/png']
+    ])
+    expect(files()).toContain('icon.png')
+  })
+
   test('the English navigation reads as the spec’s', () => {
     expect([...pages.en.querySelectorAll('header nav a')].map(text)).toEqual(['Features', 'Download', 'GitHub'])
   })
@@ -169,7 +186,7 @@ describe('features (REQ-004, US-003)', () => {
 
 describe('screenshots (REQ-005)', () => {
   test.each(LOCALES)('%s: every image declares the size of its file, every cut is 16:9 and one size', (locale) => {
-    const images = [...pages[locale].querySelectorAll('img')]
+    const images = [...pages[locale].querySelectorAll('main img')]
     expect(images).toHaveLength(1 + 6 + 6)
     const sizes = new Set<string>()
     for (const img of images) {
