@@ -1,4 +1,4 @@
-// The built-site check (landing-page::REQ-003/AC-01, REQ-004/AC-03, REQ-005, REQ-006, landing-page::REQ-009/AC-01, CON-003, CON-004): the pages one build produces, read as files.
+// The built-site check (landing-page::REQ-003/AC-01, landing-page::REQ-003/AC-04, REQ-004/AC-03, REQ-005, REQ-006, landing-page::REQ-009/AC-01, CON-003, CON-004): the pages one build produces, read as files.
 //
 // It reads the HTML as served, before any script runs, so what it sees is what a visitor without scripts gets
 // (landing-page::REQ-001/AC-04).
@@ -118,6 +118,12 @@ describe('page structure (REQ-003)', () => {
 
   test('the English navigation reads as the spec’s', () => {
     expect([...pages.en.querySelectorAll('header .nav a')].map(text)).toEqual(['Features', 'Download', 'GitHub'])
+  })
+
+  // A screen reader reads the role after the name, so the name leaves the role's word out (layouts/Base.astro)
+  test.each(LOCALES)('%s: the header navigation is named without its role word (landing-page::REQ-003/AC-04)', (locale) => {
+    const nav = pages[locale].querySelector('header .nav')
+    expect([nav?.tagName.toLowerCase(), nav?.getAttribute('aria-label')]).toEqual(['nav', locale === 'zh' ? '主要' : 'Main'])
   })
 
   test.each(LOCALES)('%s: hero, features and download in that order, then the footer', (locale) => {
