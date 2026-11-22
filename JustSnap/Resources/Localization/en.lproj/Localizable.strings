@@ -282,8 +282,8 @@
 "update.availableDetail" = "Review the new version, then choose when to download it.";
 "update.downloadingDetail" = "This status updates automatically when the download finishes.";
 "update.readyDetail" = "It will install when you quit without interrupting a capture or model task.";
-"update.failedTitle" = "Unable to Check for Updates";
-"update.failedDetail" = "JustSnap could not reach the update service. Check the network and try again.";
+"update.failedTitle" = "Update Failed";
+"update.failedDetail" = "The update did not complete. Try again.";
 "diagnostics.section" = "Diagnostics";
 "diagnostics.title" = "Diagnostic Logs";
 "diagnostics.hint" = "Contains only sanitized runtime information and is retained for 7 days.";

@@ -61,6 +61,73 @@ struct SparkleProductUserDriverTests {
             ]
         )
     }
+
+    @Test("an updater error reaches Core with its own description and reason")
+    func updaterErrorCarriesItsText() async {
+        let events = EventProbe()
+        let driver = SparkleProductUserDriver(eventHandler: { event in
+            await events.record(event)
+        })
+        let error = NSError(
+            domain: "TestDomain",
+            code: 7,
+            userInfo: [
+                NSLocalizedDescriptionKey: "Failed to gain authorization required to update target",
+                NSLocalizedFailureReasonErrorKey: "The installer was refused.",
+            ]
+        )
+        let acknowledgements = CountProbe()
+
+        driver.showUpdaterError(error, acknowledgement: { acknowledgements.record() })
+        await driver.waitForPendingEvents()
+
+        #expect(
+            await events.values == [
+                .failed(
+                    .check,
+                    code: "updater_failed",
+                    message: "Failed to gain authorization required to update target\nThe installer was refused."
+                ),
+            ]
+        )
+        #expect(acknowledgements.count == 1)
+    }
+
+    @Test("an updater error whose reason repeats its description shows it once")
+    func updaterErrorWithRepeatedReason() {
+        let error = NSError(
+            domain: "TestDomain",
+            code: 9,
+            userInfo: [
+                NSLocalizedDescriptionKey: "The update could not be installed.",
+                NSLocalizedFailureReasonErrorKey: "The update could not be installed.",
+            ]
+        )
+
+        #expect(SparkleProductUserDriver.message(for: error) == "The update could not be installed.")
+    }
+
+    @Test("an updater error without a separate reason shows its description once")
+    func updaterErrorWithoutReason() async {
+        let events = EventProbe()
+        let driver = SparkleProductUserDriver(eventHandler: { event in
+            await events.record(event)
+        })
+        let error = NSError(
+            domain: "TestDomain",
+            code: 8,
+            userInfo: [NSLocalizedDescriptionKey: "An error occurred while downloading the update."]
+        )
+
+        driver.showUpdaterError(error, acknowledgement: {})
+        await driver.waitForPendingEvents()
+
+        #expect(
+            await events.values == [
+                .failed(.check, code: "updater_failed", message: "An error occurred while downloading the update."),
+            ]
+        )
+    }
 }
 
 @MainActor
@@ -77,5 +144,14 @@ private actor EventProbe {
 
     func record(_ event: UpdateLifecycleEvent) {
         values.append(event)
+    }
+}
+
+@MainActor
+private final class CountProbe {
+    private(set) var count = 0
+
+    func record() {
+        count += 1
     }
 }

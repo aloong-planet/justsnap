@@ -276,7 +276,11 @@ enum JustSnapStrings {
     static var updateDownloadingDetail: String { localized("update.downloadingDetail") }
     static var updateReadyDetail: String { localized("update.readyDetail") }
     static var updateFailedTitle: String { localized("update.failedTitle") }
-    static var updateFailedDetail: String { localized("update.failedDetail") }
+    /// The updater's own message when it gave one, else the generic line.
+    static func updateFailedDetail(message: String?) -> String {
+        let message = message?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return message.isEmpty ? localized("update.failedDetail") : message
+    }
     static var diagnosticsSection: String { localized("diagnostics.section") }
     static var diagnosticsTitle: String { localized("diagnostics.title") }
     static var diagnosticsHint: String { localized("diagnostics.hint") }
