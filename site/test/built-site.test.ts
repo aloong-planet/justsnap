@@ -96,7 +96,7 @@ describe('page structure (REQ-003)', () => {
   test.each(LOCALES)('%s: the header starts with the way back to aloong planet, then the brand (landing-page::REQ-009/AC-01)', (locale) => {
     const trail = pages[locale].querySelector('header .wrap')?.firstElementChild
     expect(trail?.tagName.toLowerCase()).toBe('nav')
-    expect(trail?.getAttribute('aria-label')).toBe(locale === 'zh' ? '面包屑导航' : 'Breadcrumb')
+    expect(trail?.getAttribute('aria-label')).toBe(locale === 'zh' ? '面包屑' : 'Breadcrumb')
     const items = [...(trail?.querySelectorAll(':scope > ol > li') ?? [])]
     expect(items).toHaveLength(2)
 

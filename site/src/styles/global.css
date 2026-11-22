@@ -110,8 +110,8 @@ a {
   padding: 0;
   list-style: none;
 }
-/* Flex items rather than a line of text, so the brand is centred in the header as it was before it moved into the
-   list */
+/* Each item lays its parts out as flex items, not as a line of text: on a line of text the brand sat above the
+   header's centre */
 .crumbs > li {
   display: flex;
   align-items: center;

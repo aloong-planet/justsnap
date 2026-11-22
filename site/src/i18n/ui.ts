@@ -10,7 +10,9 @@ const zh = {
   brand: '随译 JustSnap',
   nav: { label: '主导航', features: '功能', download: '下载与安装', github: 'GitHub' },
   langLabel: '语言',
-  breadcrumbLabel: '面包屑导航',
+  // A landmark's label leaves out its role, which a screen reader announces after it (WAI-ARIA Authoring Practices,
+  // landmark regions)
+  breadcrumbLabel: '面包屑',
   hero: {
     title: '截一块屏幕，直接提取文字或翻译',
     lead: '随译（JustSnap）是 macOS 菜单栏里的截图工具：框选任意区域，几秒内拿到提取的文字或译文。用你自己的模型服务商。',

@@ -5,7 +5,7 @@
 //
 // The breadcrumb follows the WAI-ARIA Authoring Practices breadcrumb pattern: a labelled navigation landmark around
 // an ordered list, with the link to this page marked as the current page. The separator is text hidden from assistive
-// technology rather than generated content, which most browsers expose to it.
+// technology, not CSS generated content, which Chrome reads into the link's accessible name.
 import '../styles/global.css'
 import { REPOSITORY, RELEASE_LIST } from '../download'
 import { HOMEPAGE, LANGUAGE_NAME, LOCALES, PAGE_PATH, ui, type Locale } from '../i18n/ui'
