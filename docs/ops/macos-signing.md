@@ -8,6 +8,12 @@ The `local` profile builds the arm64 DMG under `release/<version>-development/`.
 
 `VERSION`, `BUILD_VERSION`, `APPCAST_BASE_URL`, `SPARKLE_PUBLIC_ED_KEY` and `OUTPUT_ROOT` are optional and have development defaults.
 
+## App icon
+
+`Distribution/AppIcon.svg` is the source of the app icon, and `Distribution/AppIcon.icns` is rendered from it and committed. `build-macos-app.sh` copies the `.icns` into the app, and `verify-macos-app.sh` fails if the app's `Info.plist` does not name it or the file is missing. The website's `site/public/icon.svg` and `icon.png` are the same artwork without the margin and shadow.
+
+To change the icon, edit the SVG, render it to a 1024 px PNG with a transparent background, scale that to the ten sizes of a `.iconset` folder (16, 32, 128, 256 and 512 pt at 1x and 2x), and run `iconutil -c icns <folder> -o Distribution/AppIcon.icns`. Then regenerate the two files under `site/public/` from the SVG.
+
 ## Release builds
 
 The `release` profile builds the same single arm64 package. It:

@@ -97,6 +97,7 @@ for locale in en zh-Hans; do
         "$project_root/Distribution/$locale.lproj/InfoPlist.strings" \
         "$localized_resources/InfoPlist.strings"
 done
+cp "$project_root/Distribution/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 
 sparkle_framework="$scratch_path/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
 if [[ ! -d "$sparkle_framework" ]]; then
