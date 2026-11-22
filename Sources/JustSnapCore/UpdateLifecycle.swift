@@ -34,7 +34,7 @@ public enum UpdateLifecycleState: Equatable, Sendable {
         expectedBytes: UInt64?
     )
     case readyToInstall(AvailableUpdateVersion)
-    case failed(UpdateFailureOperation, code: String)
+    case failed(UpdateFailureOperation, code: String, message: String? = nil)
 }
 
 public extension UpdateLifecycleState {
@@ -54,7 +54,7 @@ public enum UpdateLifecycleEvent: Equatable, Sendable {
     case downloadExpectedBytes(UInt64)
     case downloadedBytes(UInt64)
     case readyToInstall(AvailableUpdateVersion)
-    case failed(UpdateFailureOperation, code: String)
+    case failed(UpdateFailureOperation, code: String, message: String? = nil)
 }
 
 public struct UpdateDriverConfiguration: Equatable, Sendable {
@@ -180,9 +180,9 @@ public actor UpdateLifecycleCoordinator {
         case let .readyToInstall(version):
             downloadRequestInFlight = false
             state = .readyToInstall(version)
-        case let .failed(operation, code):
+        case let .failed(operation, code, message):
             downloadRequestInFlight = false
-            state = .failed(operation, code: code)
+            state = .failed(operation, code: code, message: message)
         }
     }
 }

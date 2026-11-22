@@ -161,8 +161,20 @@ final class SparkleProductUserDriver: NSObject, SPUUserDriver {
         _ error: any Error,
         acknowledgement: @escaping () -> Void
     ) {
-        publish(.failed(currentOperation, code: "updater_failed"))
+        publish(.failed(currentOperation, code: "updater_failed", message: Self.message(for: error)))
         acknowledgement()
+    }
+
+    /// What the updater itself says went wrong: the error's description, then its failure reason when that adds
+    /// something. Shown to the user as is, so a failed install is not reported as a network problem.
+    static func message(for error: any Error) -> String {
+        let error = error as NSError
+        var lines: [String] = []
+        for text in [error.localizedDescription, error.localizedFailureReason ?? ""] {
+            let line = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !line.isEmpty, !lines.contains(line) { lines.append(line) }
+        }
+        return lines.joined(separator: "\n")
     }
 
     func showDownloadInitiated(cancellation: @escaping () -> Void) {

@@ -1261,7 +1261,7 @@ public struct ManagementCenterView: View {
         case .available: JustSnapStrings.updateAvailableDetail
         case .downloading: JustSnapStrings.updateDownloadingDetail
         case .readyToInstall: JustSnapStrings.updateReadyDetail
-        case .failed: JustSnapStrings.updateFailedDetail
+        case let .failed(_, _, message): JustSnapStrings.updateFailedDetail(message: message)
         }
     }
 

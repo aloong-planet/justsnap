@@ -282,8 +282,8 @@
 "update.availableDetail" = "查看新版本后，由你决定何时下载。";
 "update.downloadingDetail" = "下载完成后，这里的状态会自动更新。";
 "update.readyDetail" = "将在退出时安装，不会中断当前截图或模型任务。";
-"update.failedTitle" = "无法检查更新";
-"update.failedDetail" = "无法连接更新服务，请检查网络后重试。";
+"update.failedTitle" = "更新失败";
+"update.failedDetail" = "更新未能完成，请重试。";
 "diagnostics.section" = "诊断";
 "diagnostics.title" = "诊断日志";
 "diagnostics.hint" = "仅包含脱敏的运行信息，日志保留 7 天。";

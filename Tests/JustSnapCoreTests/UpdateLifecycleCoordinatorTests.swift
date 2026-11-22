@@ -71,6 +71,18 @@ struct UpdateLifecycleCoordinatorTests {
         #expect(await driver.downloadRequests == 2)
     }
 
+    @Test("A failure keeps the updater's message for the settings row")
+    func failureKeepsItsMessage() async {
+        let coordinator = UpdateLifecycleCoordinator(driver: UpdateDriverProbe())
+
+        await coordinator.handle(.failed(.install, code: "updater_failed", message: "Failed to gain authorization"))
+
+        #expect(
+            await coordinator.snapshot()
+                == .failed(.install, code: "updater_failed", message: "Failed to gain authorization")
+        )
+    }
+
     @Test("Information-only updates never begin a download")
     func informationOnlyUpdateDoesNotDownload() async throws {
         let driver = UpdateDriverProbe()
