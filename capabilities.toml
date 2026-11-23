@@ -3,8 +3,12 @@ working-language = "en"
 
 [i18n]
 enabled = true
-source = "JustSnap/Resources/Localization"
-enforced-by = ["python3 Scripts/verify-localization-keys.py"]
+source = ["JustSnap/Resources/Localization", "site/src/i18n"]
+enforced-by = [
+  "python3 Scripts/verify-localization-keys.py",
+  "pnpm --dir site check",
+  "pnpm --dir site exec vitest run src/i18n/ui.test.ts",
+]
 
 [enumeration-wording-gate]
 enabled = false
