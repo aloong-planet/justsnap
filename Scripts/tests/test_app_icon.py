@@ -2,14 +2,14 @@ import plistlib
 import re
 import struct
 import unittest
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 # Gap: nothing here shows that the artwork looks right or that Finder and the Dock display it; that is checked by
-# opening the built app. Nor does anything compare the PNG renderings (Distribution/AppIcon.icns and
-# site/public/icon.png) with the SVGs they come from. This pins the wiring: the declaration, the file, the two scripts
-# that carry it, and that the website's SVG draws what the app icon's SVG draws.
+# opening the built app. Nor does anything compare the PNG rendering (Distribution/AppIcon.icns) with the SVG it comes
+# from. This pins the wiring: the declaration, the file, and the two scripts that carry it. The website's icon is made
+# from the SVG by Scripts/site-assets.mjs, which also checks that it draws the same artwork
+# (Scripts/tests/site-assets.test.mjs).
 ICON_NAME = "AppIcon"
 # The ten image types `iconutil` writes for a full iconset (16, 32, 128, 256 and 512 pt, each at 1x and 2x). The
 # "info" chunk it also writes is metadata, not an image, so the test leaves it out.
@@ -30,18 +30,6 @@ def icns_types(path):
     return types
 
 
-def artwork(path):
-    """The shapes and gradients an icon SVG draws, without the root size and the shadow only the app icon has."""
-    items = []
-    for element in ET.parse(path).getroot().iter():
-        tag = element.tag.split("}")[-1]
-        if tag in {"svg", "filter", "feDropShadow"}:
-            continue
-        attributes = {k: v for k, v in element.attrib.items() if k != "filter"}
-        items.append((tag, sorted(attributes.items())))
-    return items
-
-
 class AppIconTests(unittest.TestCase):
     def test_info_plist_names_the_icon_file(self):
         with (ROOT / "Distribution/Info.plist").open("rb") as handle:
@@ -51,11 +39,6 @@ class AppIconTests(unittest.TestCase):
         path = ROOT / f"Distribution/{ICON_NAME}.icns"
         self.assertTrue(path.is_file(), f"{path} is missing")
         self.assertEqual(set(icns_types(path)) - {"info"}, ICNS_TYPES)
-
-    def test_website_icon_draws_the_same_artwork_as_the_app_icon(self):
-        app = artwork(ROOT / f"Distribution/{ICON_NAME}.svg")
-        self.assertTrue(app, "the app icon SVG draws nothing")
-        self.assertEqual(artwork(ROOT / "site/public/icon.svg"), app)
 
     def test_build_script_copies_the_icon_into_the_app(self):
         text = (ROOT / "Scripts/build-macos-app.sh").read_text(encoding="utf-8")
