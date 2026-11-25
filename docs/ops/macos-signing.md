@@ -12,7 +12,7 @@ The `local` profile builds the arm64 DMG under `release/<version>-development/`.
 
 `Distribution/AppIcon.svg` is the source of the app icon, and `Distribution/AppIcon.icns` is rendered from it and committed. `build-macos-app.sh` copies the `.icns` into the app, and `verify-macos-app.sh` fails if the app's `Info.plist` does not name it or the file is missing. The website's icon files are the same artwork without the margin and shadow; `Scripts/site-assets.mjs` derives them from the SVG and sends them to the website repository ([website assets](site-assets.md)).
 
-To change the icon, edit the SVG, render it to a 1024 px PNG with a transparent background, scale that to the ten sizes of a `.iconset` folder (16, 32, 128, 256 and 512 pt at 1x and 2x), and run `iconutil -c icns <folder> -o Distribution/AppIcon.icns`. Then run `node Scripts/site-assets.mjs` to send the website its icon files, derived from the SVG.
+To change the icon, edit the SVG, render it to a 1024 px PNG with a transparent background, scale that to the ten sizes of a `.iconset` folder (16, 32, 128, 256 and 512 pt at 1x and 2x), and run `iconutil -c icns <folder> -o Distribution/AppIcon.icns`. Then run `node Scripts/site-assets.mjs` to send the website its icon files, derived from the SVG. Until the website is deployed from the aloong-planet-home repository, `site/public/icon.svg` and `icon.png` are still the live ones and nothing compares them with the app's icon: update them too ([website assets](site-assets.md#until-the-deployment-switches)).
 
 ## Release builds
 
