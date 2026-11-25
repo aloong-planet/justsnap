@@ -497,13 +497,17 @@ function releaseStep() {
   return rows.slice(start).join('\n')
 }
 
-/** Runs the step the way the script runs it (`set -euo pipefail`), with a `node` that records its arguments and exits as told */
+/**
+ * Runs the step the way the script runs it (`set -euo pipefail`), with a `node` that records its arguments and exits as told.
+ * The environment is the test runner's own, minus `CI` (a runner sets it to `true`, which is the case `ci: 'true'` sets on purpose).
+ */
 function runReleaseStep({ ci, nodeExit }) {
   const bin = dir('bin')
   const log = join(bin, 'node.log')
   writeFileSync(join(bin, 'node'), `#!/bin/bash\necho "$@" >> '${log}'\nexit ${nodeExit}\n`, { mode: 0o755 })
+  const { CI: _runnerCi, ...inherited } = process.env
   const result = spawnSync('bash', ['-c', `set -euo pipefail\nproject_root=/the/project\noutput_root=/the/output\n${releaseStep()}\necho reached-the-end`], {
-    encoding: 'utf8', env: { PATH: `${bin}:${process.env.PATH}`, ...(ci === undefined ? {} : { CI: ci }) }
+    encoding: 'utf8', env: { ...inherited, PATH: `${bin}:${process.env.PATH}`, ...(ci === undefined ? {} : { CI: ci }) }
   })
   return { ...result, nodeCalls: existsSync(log) ? readFileSync(log, 'utf8').split('\n').filter(Boolean) : [] }
 }
@@ -512,7 +516,8 @@ test('the release script opens the website\'s asset pull request as its last ste
   const run = runReleaseStep({ nodeExit: 0 })
   assert.equal(run.status, 0)
   assert.deepEqual(run.nodeCalls, ['/the/project/Scripts/site-assets.mjs'])
-  assert.equal(run.stderr, '')
+  // Not `stderr === ''`: a runner's own tools may print to stderr; what must not appear is the step's warning.
+  assert.doesNotMatch(run.stderr, /WARNING/)
 })
 
 test('when that step fails, the release still ends well, and says the pull request is missing and how to open it alone', () => {
