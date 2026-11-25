@@ -1,15 +1,6 @@
 # Website assets
 
-JustSnap's website is moving to the aloong-planet-home repository (`apps/justsnap/`), which builds and checks it. It takes two things from the app: its screenshots and its icon. They change there only through a pull request that this repository's command opens (aloong-planet-home `app-sites::REQ-004/AC-01`); nobody edits them in that repository by hand.
-
-## Until the deployment switches
-
-The live site is still built and deployed from this repository's `site/`, until aloong-planet-home's ticket 24 switches the deployment. Until then `site/public/` is the copy visitors see, and the two copies are kept in step by hand:
-
-- `pnpm shots` in `site/` still writes `site/public/shots/`; a retaken screenshot must be sent by the command as well, and the other way round.
-- Nothing compares `site/public/icon.svg` and `icon.png` with the app's icon any more: that check moved into the command, and it checks the icon the command makes. When `Distribution/AppIcon.svg` changes before the switch, update the two files in `site/public/` from the command's output (`--dry-run` keeps a clone with them under `apps/justsnap/public/`).
-
-This section goes with `site/`.
+JustSnap's website lives in the aloong-planet-home repository (`apps/justsnap/`), which builds, checks and deploys it. It takes two things from the app: its screenshots and its icon. They change there only through a pull request that this repository's command opens (aloong-planet-home `app-sites::REQ-004/AC-01`); nobody edits them in that repository by hand.
 
 ## Sending new assets
 
@@ -37,7 +28,7 @@ The directory must hold exactly the fourteen files, each a whole PNG of 1840×10
 
 ## The icon
 
-The site's icon is `Distribution/AppIcon.svg` cropped to its tile, without the margin and the drop shadow. The command derives `icon.svg` from the app's SVG by exact text edits and refuses to go on when the SVG no longer has the shape those edits expect (the root element, one shadow filter, one shape using it), or when the result does not draw the same artwork as the app's icon. It renders `icon.png`, 192 pixels, from that SVG with `sips`. The `icon.png` that the website repository was given with the site was made with another renderer: it shows the same picture, but its bytes differ, so the first run after the move sends a new `icon.png` even though the icon did not change. To change the icon, follow [macOS signing and notarization](macos-signing.md#app-icon) and then run the command.
+The site's icon is `Distribution/AppIcon.svg` cropped to its tile, without the margin and the drop shadow. The command derives `icon.svg` from the app's SVG by exact text edits and refuses to go on when the SVG no longer has the shape those edits expect (the root element, one shadow filter, one shape using it), or when the result does not draw the same artwork as the app's icon. It renders `icon.png`, 192 pixels, from that SVG with `sips`. To change the icon, follow [macOS signing and notarization](macos-signing.md#app-icon) and then run the command.
 
 ## An evidence run
 

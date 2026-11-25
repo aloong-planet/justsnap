@@ -1,7 +1,7 @@
-// Renders the landing page's screenshots (site/public/shots/<name>-<locale>.png) from the app's real SwiftUI
-// views over invented content, offscreen. It shows no window, activates nothing, captures no screen and reads
-// no history, settings, Keychain or screenshots: a view is laid out in a hosting view that is never ordered onto
-// the display and painted into a bitmap. See site/README.md for the command.
+// Renders the website's screenshots (apps/justsnap/public/shots/<name>-<locale>.png in the website repository)
+// from the app's real SwiftUI views over invented content, offscreen. It shows no window, activates nothing,
+// captures no screen and reads no history, settings, Keychain or screenshots: a view is laid out in a hosting view
+// that is never ordered onto the display and painted into a bitmap. See docs/ops/site-assets.md for the command.
 //
 // Usage: JustSnapSiteShots <output-directory> [--scene <name>] [--locale zh|en]
 //

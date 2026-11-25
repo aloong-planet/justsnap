@@ -26,7 +26,7 @@ GitHub 上发布一个正式版后，一条工作流把这个版本的 DMG 和 a
 
 - release-mirror::REQ-002/AC-01：DMG 在 `releases/v<版本>/JustSnap-<版本>-mac-arm64.dmg`，响应带 `Cache-Control: public, max-age=31536000, immutable`。
 - release-mirror::REQ-002/AC-02：appcast 在 `appcast/appcast-arm64.xml`，最新版指针在 `latest.json`，两者的 `Cache-Control` 都是 `public, max-age=300`。
-- release-mirror::REQ-002/AC-03：指针的内容与官网读取它的要求一致（landing-page::REQ-001/AC-01 与该 spec 的“最新版指针”）。
+- release-mirror::REQ-002/AC-03：指针的内容与官网读取它的要求一致（[justsnap-site::REQ-001/AC-01][justsnap-site] 与该 spec 实现决策里的 “The pointer”）。
 
 ### release-mirror::REQ-003 先核对，后指向
 
@@ -79,10 +79,12 @@ GitHub 上发布一个正式版后，一条工作流把这个版本的 DMG 和 a
 ## Out of Scope
 
 - 本机出包、签名、公证与 Sparkle 签名：由发布命令完成（macos-distribution），本 spec 只管发布之后。
-- 预发布版本向 R2 的镜像：目前没有预发布通道（landing-page 的 Out of Scope）。
+- 预发布版本向 R2 的镜像：目前没有预发布通道（[官网 spec][justsnap-site] 的 Out of Scope）。
 - 有意回退指针：没有这个需求，出现时由维护者手动处理。
 - Intel 与 Universal 包：只有一个 Apple 芯片安装包（ADR-0004）。
 
 ## Further Notes
 
-- 官网从下载域名读取最新版指针的行为属官网 spec（landing-page::REQ-001）。
+- 官网从下载域名读取最新版指针的行为属官网 spec（[justsnap-site::REQ-001][justsnap-site]）。
+
+[justsnap-site]: https://github.com/aloong-planet/aloong-planet-home/blob/main/docs/specs/justsnap-site.md
