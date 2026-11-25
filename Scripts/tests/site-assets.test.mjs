@@ -431,7 +431,7 @@ test('screenshots the tool did not finish stop the run, with every problem liste
 })
 
 test('what the screenshots are rendered from must be committed: a change to the tool, the app\'s views or the package stops the run before the tool starts', async () => {
-  for (const [path, text] of [['Sources/JustSnapSiteShots/main.swift', '// edited\n'], ['JustSnap/UI/ResultBox.swift', '// new, not added\n'], ['Package.swift', '// edited\n']]) {
+  for (const [path, text] of [['Sources/JustSnapSiteShots/main.swift', '// edited\n'], ['JustSnap/UI/ResultBox.swift', '// new, not added\n'], ['Package.swift', '// edited\n'], ['Package.resolved', '{}\n']]) {
     const root = justsnap()
     mkdirSync(dirname(join(root, path)), { recursive: true })
     writeFileSync(join(root, path), text)
@@ -486,7 +486,6 @@ test('the real sips renders the derived SVG as a 192-pixel PNG with an alpha cha
 // ---- the release script runs it, and it runs without the release
 
 const RELEASE_SCRIPT = readFileSync(new URL('../release-macos.sh', import.meta.url), 'utf8')
-const SITE_ASSETS_SOURCE = readFileSync(new URL('../site-assets.mjs', import.meta.url), 'utf8')
 
 /** The release script's last step, the one that opens the website's asset pull request, as a piece of shell of its own */
 function releaseStep() {
@@ -534,8 +533,15 @@ test('the release script is valid shell', () => {
   assert.equal(spawnSync('bash', ['-n', fileURLToPath(new URL('../release-macos.sh', import.meta.url))]).status, 0)
 })
 
-test('the command runs alone: it starts nothing of the release', () => {
-  for (const release of ['release-macos', 'notarytool', 'appcast', 'stapler', 'gh release', 'git tag', 'sign-developer-id-app', 'build-macos-app']) {
-    assert.ok(!SITE_ASSETS_SOURCE.includes(release), `the command mentions ${release}`)
-  }
+// Every process a run starts through `run` is recorded in `calls`: `git`, `gh`, and the screenshot tool when the run renders. A run
+// that started anything else, the release script included, would add a command here. (The icon's `sips` is started by
+// `renderIcon`, which these runs replace; the real one is the `sips` case above.)
+test('the command runs alone: a run starts git, gh and the screenshot tool, and nothing of the release', async () => {
+  const rendering = await send([], { tool: writesShots('rendered') })
+  const given = await send(['--shots', shotsDir({ 'hero-zh.png': shot('hero-zh.png', 'retaken') })])
+  assert.equal(rendering.code + given.code, 0)
+  assert.equal(rendering.prs.length + given.prs.length, 2, 'both runs went all the way, to the pull request')
+  const started = (result) => [...new Set(result.calls.map(([command]) => command))].sort()
+  assert.deepEqual(started(rendering), [XCRUN, 'gh', 'git'])
+  assert.deepEqual(started(given), ['gh', 'git'])
 })
