@@ -10,9 +10,9 @@ The `local` profile builds the arm64 DMG under `release/<version>-development/`.
 
 ## App icon
 
-`Distribution/AppIcon.svg` is the source of the app icon, and `Distribution/AppIcon.icns` is rendered from it and committed. `build-macos-app.sh` copies the `.icns` into the app, and `verify-macos-app.sh` fails if the app's `Info.plist` does not name it or the file is missing. The website's `site/public/icon.svg` and `icon.png` are the same artwork without the margin and shadow.
+`Distribution/AppIcon.svg` is the source of the app icon, and `Distribution/AppIcon.icns` is rendered from it and committed. `build-macos-app.sh` copies the `.icns` into the app, and `verify-macos-app.sh` fails if the app's `Info.plist` does not name it or the file is missing. The website's icon files are the same artwork without the margin and shadow; `Scripts/site-assets.mjs` derives them from the SVG and sends them to the website repository ([website assets](site-assets.md)).
 
-To change the icon, edit the SVG, render it to a 1024 px PNG with a transparent background, scale that to the ten sizes of a `.iconset` folder (16, 32, 128, 256 and 512 pt at 1x and 2x), and run `iconutil -c icns <folder> -o Distribution/AppIcon.icns`. Then regenerate the two files under `site/public/` from the SVG.
+To change the icon, edit the SVG, render it to a 1024 px PNG with a transparent background, scale that to the ten sizes of a `.iconset` folder (16, 32, 128, 256 and 512 pt at 1x and 2x), and run `iconutil -c icns <folder> -o Distribution/AppIcon.icns`. Then run `node Scripts/site-assets.mjs` to send the website its icon files, derived from the SVG.
 
 ## Release builds
 
@@ -72,6 +72,8 @@ Publishing starts `mirror-release.yml`, which copies the DMG to R2, reads it bac
 - `formal-release-verification.yml` runs only when started manually. It checks the live Provider contracts, installs the credentials into a temporary keychain, runs the release build and uploads the result as the `JustSnap-<version>-verified` artifact. It needs the signing, notarization and Sparkle secrets below, which the repository does not have yet, so it cannot run today.
 
 Neither the local gate nor the formal workflow publishes anything. Publishing is the manual step above.
+
+The `release` command's last step, once the artifacts are in place, is the website's asset pull request (`node Scripts/site-assets.mjs`, [website assets](site-assets.md)); it does not run on a CI runner, and a failure of that step leaves the release as it is.
 
 ### Workflow secrets
 

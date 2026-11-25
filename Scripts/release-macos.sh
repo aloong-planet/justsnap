@@ -259,3 +259,13 @@ publish_staging="$(mktemp -d "$output_parent/.justsnap-publish.XXXXXX")"
 publish_staging=""
 
 echo "Formal macOS release artifacts verified in $output_root"
+
+# The website's screenshots and icon go to the website repository as a pull request (aloong-planet-home
+# app-sites::REQ-004/AC-01). The step comes after the artifacts are in place and does not fail the release; it runs on
+# its own (docs/ops/site-assets.md), and a run that did not finish is repeated that way. A CI runner, which sets CI,
+# only verifies the release and does not open it.
+if [[ "${CI:-}" == "true" ]]; then
+    echo "Not opening the website's asset pull request from a CI runner; run it on the maintainer's Mac: node Scripts/site-assets.mjs"
+elif ! node "$project_root/Scripts/site-assets.mjs"; then
+    echo "WARNING: the release artifacts are in place in $output_root, but the website's asset pull request was not opened. Run it alone: node Scripts/site-assets.mjs" >&2
+fi
