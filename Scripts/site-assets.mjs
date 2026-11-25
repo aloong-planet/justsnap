@@ -13,17 +13,21 @@
 //   2. Derives the site's icon from the app icon's SVG (the 824-point tile without the drop shadow) and refuses to go on
 //      unless the result draws the same artwork as Distribution/AppIcon.svg; the PNG is rendered from that SVG with
 //      `sips` at 192 pixels, so it runs on macOS.
-//   3. Gets the screenshots: from the app's own tool `JustSnapSiteShots`, which renders them offscreen (no window, no
+//   3. Asks `gh` who is logged in (`gh api user`) and takes the commit's author and committer from the answer: the
+//      account's login as the name and its GitHub noreply address, <id>+<login>@users.noreply.github.com, as the address.
+//      The pull request's commit is public, and the Mac's own git identity is a person's, so that identity and the git
+//      variables of the environment are not used. When `gh` cannot say, the run stops here, before it renders or clones.
+//   4. Gets the screenshots: from the app's own tool `JustSnapSiteShots`, which renders them offscreen (no window, no
 //      screen capture) into a temporary directory with `swift run`, or, with --shots, from the directory given. Either
 //      way the directory must hold exactly the fourteen files <view>-<language>.png (seven views, Chinese and English),
 //      each a whole PNG of 1840×1035 pixels. Anything missing, extra, damaged or of another size fails the run before
 //      anything is cloned, and every problem is listed.
-//   4. Clones the website repository's base branch into a new temporary directory, writes the sixteen files at their
+//   5. Clones the website repository's base branch into a new temporary directory, writes the sixteen files at their
 //      paths under apps/justsnap/public/, stages exactly those paths, and refuses to go on when anything else is changed
 //      or staged. When no byte changed, it says so and opens nothing.
-//   5. Commits on a new branch assets/justsnap-<date>-<source commit>, pushes it and opens the pull request with `gh`,
-//      whose body names the commit of this repository the assets come from. With --dry-run it stops after the local
-//      commit, prints what it would send, and keeps the clone for inspection.
+//   6. Commits as that account on a new branch assets/justsnap-<date>-<source commit>, pushes it and opens the pull
+//      request with `gh`, whose body names the commit of this repository the assets come from. With --dry-run it stops
+//      after the local commit, which has the same identity, prints what it would send, and keeps the clone for inspection.
 //
 // It runs on its own, and the release script runs it as its last step. --title and --note replace the pull request's
 // title and add a line at the top of its body, for a run whose pull request is not meant to be merged. Needs: git, gh
@@ -141,6 +145,25 @@ export function sameArtwork(appSvg, siteSvg) {
   return app.length > 0 && JSON.stringify(app) === JSON.stringify(artwork(siteSvg))
 }
 
+/**
+ * The identity the pull request's commit is made with, from what `gh api user` answers: the logged-in account's login as the
+ * name, and as the address the one GitHub keeps for it, `<id>+<login>@users.noreply.github.com`, which names no personal
+ * address. The profile's own name and address, which the answer also holds, are not used. Throws unless the answer has a login
+ * and a numeric id.
+ */
+export function identityFromUser(answer) {
+  let user
+  try {
+    user = JSON.parse(answer)
+  } catch {
+    user = null
+  }
+  if (typeof user?.login !== 'string' || !/^[A-Za-z0-9_-]+$/.test(user.login) || !Number.isInteger(user.id) || user.id <= 0) {
+    throw new Error('`gh api user` did not answer with a login and an id')
+  }
+  return { name: user.login, email: `${user.id}+${user.login}@users.noreply.github.com` }
+}
+
 /** Throws when a staged or changed path is not one of the site's assets */
 export function assertOnlyAssets(paths) {
   const stray = paths.filter((path) => !ASSET_PATHS.includes(path))
@@ -256,6 +279,15 @@ export async function main(argv, deps = {}) {
     return 1
   }
 
+  // Asked before the screenshots are rendered, which takes minutes, and before anything is cloned
+  let identity
+  try {
+    identity = identityFromUser(run('gh', ['api', 'user']))
+  } catch (error) {
+    log(`the identity of the commit cannot be taken from gh: ${error.message}`)
+    return 1
+  }
+
   const renderedDir = rendered ? mkdtempSync(join(tmpdir(), 'site-assets-shots-')) : undefined
   let work
   let keep = options.dryRun
@@ -301,7 +333,12 @@ export async function main(argv, deps = {}) {
     }
 
     const { title, body } = pullRequestText({ options, source, changed, rendered })
-    run('git', ['commit', '--quiet', '-m', title, '-m', body], { cwd: home })
+    // The variables are git's own, and they win over the Mac's git configuration and over the same variables of the environment
+    const commitEnv = {
+      ...process.env,
+      GIT_AUTHOR_NAME: identity.name, GIT_AUTHOR_EMAIL: identity.email, GIT_COMMITTER_NAME: identity.name, GIT_COMMITTER_EMAIL: identity.email
+    }
+    run('git', ['commit', '--quiet', '-m', title, '-m', body], { cwd: home, env: commitEnv })
     if (options.dryRun) {
       log(`dry run: committed ${changed.length} file(s) on ${branch} in ${home}, nothing pushed:\n${changed.map((p) => `  ${p}`).join('\n')}`)
       log(`title: ${title}\nbody:\n${body}`)

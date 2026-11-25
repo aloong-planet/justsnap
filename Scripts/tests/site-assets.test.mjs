@@ -4,9 +4,9 @@
 //
 // The website repository is a bare repository on disk, cloned through a file:// URL so that `--depth` works as it does
 // against GitHub; JustSnap's own repository is a scratch repository holding a copy of Distribution/AppIcon.svg; git runs
-// for real in both. What stands in for the system boundary: `gh` (the pull request is a recorded call), `swift` (a
-// function that writes the screenshots the tool would write), and `sips` (a function that makes bytes from the SVG),
-// except in the one case that runs the real `sips` on macOS.
+// for real in both. What stands in for the system boundary: `gh` (`gh api user` answers a fixed account, and the pull
+// request is a recorded call), `swift` (a function that writes the screenshots the tool would write), and `sips` (a
+// function that makes bytes from the SVG), except in the one case that runs the real `sips` on macOS.
 //
 // Gaps: nothing here reaches GitHub, and nothing builds or runs JustSnapSiteShots (that needs the Swift toolchain and
 // minutes of compiling). `git push` to github.com, `gh pr create` and the real tool run only in a run of the command
@@ -19,8 +19,8 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
-  ASSET_DIR, ASSET_PATHS, DEFAULT_REPO, ICON_PNG_SIZE, SHOT_NAMES, SHOT_SIZE, deriveSiteIcon, main, pngSize, readShots, renderIconWithSips, runCommand,
-  sameArtwork
+  ASSET_DIR, ASSET_PATHS, DEFAULT_REPO, ICON_PNG_SIZE, SHOT_NAMES, SHOT_SIZE, deriveSiteIcon, identityFromUser, main, pngSize, readShots,
+  renderIconWithSips, runCommand, sameArtwork
 } from '../site-assets.mjs'
 
 // No test reads the machine's git configuration: a signing key or a commit template there must not change a run
@@ -168,6 +168,29 @@ test('two icons that draw something else, or nothing, are not the same artwork',
   assert.equal(sameArtwork('<svg xmlns="http://www.w3.org/2000/svg"/>', '<svg xmlns="http://www.w3.org/2000/svg"/>'), false)
 })
 
+// ---- the identity of the commit
+
+test('the commit\'s identity is the account\'s login and its noreply address, not the profile\'s name or address', () => {
+  assert.deepEqual(identityFromUser(JSON.stringify({ login: 'octo-example', id: 4242, name: 'Octo Example', email: 'octo-public@example.org' })), {
+    name: 'octo-example', email: '4242+octo-example@users.noreply.github.com'
+  })
+  // Managed accounts have an underscore in their login
+  assert.equal(identityFromUser('{"login":"octo_example","id":7}').email, '7+octo_example@users.noreply.github.com')
+})
+
+test('an answer that has no login and numeric id to make the identity of is refused', () => {
+  const rows = [
+    ['not JSON', 'gh: Not Found (HTTP 404)'],
+    ['JSON that is no account', 'null'],
+    ['no id', '{"login":"octo-example"}'],
+    ['an id that is text', '{"login":"octo-example","id":"4242"}'],
+    ['an id that is no account number', '{"login":"octo-example","id":0}'],
+    ['no login', '{"id":4242}'],
+    ['a login that is no part of an address', '{"login":"octo example@","id":4242}']
+  ]
+  for (const [name, answer] of rows) assert.throws(() => identityFromUser(answer), /did not answer with a login and an id/, name)
+})
+
 // ---- the command: what it sends, and to where
 
 const git = (cwd, ...args) => runCommand('git', args, { cwd }).trim()
@@ -206,10 +229,24 @@ function website({ icon = APP_ICON, pictures = {}, branch = 'main' } = {}) {
   return { bare, url: `file://${bare}` }
 }
 
-/** A run of the command with the pull request recorded and `sips` faked; resolves to what it printed and sent */
-async function send(argv, { root = justsnap(), site = website(), fakeGh, renderIcon = fakeRender, deriveIcon, tool, env = {} } = {}) {
+/**
+ * What `gh api user` answers for the account `gh` is logged in as: the keys GitHub's answer has, with a public profile name and
+ * address among them, which the commit's identity must not take
+ */
+const GH_USER = JSON.stringify({
+  login: 'octo-example', id: 4242, node_id: 'MDQ6VXNlcjQyNDI=', type: 'User', name: 'Octo Example', email: 'octo-public@example.org',
+  notification_email: 'octo-private@example.org', html_url: 'https://github.com/octo-example'
+})
+const NOREPLY = '4242+octo-example@users.noreply.github.com'
+
+/**
+ * A run of the command with `gh` faked and `sips` faked; resolves to what it printed and sent. `gh api user` is recorded in
+ * `users` and answered by `fakeUser`, and every other `gh` call is a pull request in `prs` that `fakeGh` answers.
+ */
+async function send(argv, { root = justsnap(), site = website(), fakeGh, fakeUser, renderIcon = fakeRender, deriveIcon, tool, env = {} } = {}) {
   const printed = []
   const prs = []
+  const users = []
   const calls = []
   const run = (command, args, options) => {
     calls.push([command, args, options])
@@ -218,6 +255,10 @@ async function send(argv, { root = justsnap(), site = website(), fakeGh, renderI
       return tool(args, options)
     }
     if (command !== 'gh') return runCommand(command, args, options)
+    if (args[0] === 'api') {
+      users.push(args)
+      return fakeUser ? fakeUser(args) : GH_USER
+    }
     prs.push(args)
     if (fakeGh) return fakeGh(args)
     return 'https://github.com/aloong-planet/aloong-planet-home/pull/1\n'
@@ -225,7 +266,34 @@ async function send(argv, { root = justsnap(), site = website(), fakeGh, renderI
   const code = await main([...argv, '--remote', site.url], {
     root, run, renderIcon, deriveIcon, env, log: (text) => printed.push(text), now: () => new Date('2026-11-25T10:00:00Z')
   })
-  return { code, printed: printed.join('\n'), prs, calls, site, root }
+  return { code, printed: printed.join('\n'), prs, users, calls, site, root }
+}
+
+/** The author and the committer of a commit, as `<name> <address>` each */
+const whoMade = (cwd, rev) => git(cwd, 'log', '-1', '--format=%an <%ae> | %cn <%ce>', rev)
+const AS_THE_ACCOUNT = `octo-example <${NOREPLY}> | octo-example <${NOREPLY}>`
+
+/**
+ * Runs `body` as on a Mac whose own git identity is somebody's: a global git configuration and the author and committer
+ * variables of the environment all name other people, as the ones that a person's shell and `~/.gitconfig` can.
+ */
+async function onAMacWithAGitIdentity(body) {
+  const config = join(dir('gitconfig'), 'config')
+  writeFileSync(config, '[user]\n\tname = Personal Name\n\temail = personal@example.com\n')
+  const keys = ['GIT_CONFIG_GLOBAL', 'GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_COMMITTER_NAME', 'GIT_COMMITTER_EMAIL']
+  const before = Object.fromEntries(keys.map((key) => [key, process.env[key]]))
+  Object.assign(process.env, {
+    GIT_CONFIG_GLOBAL: config, GIT_AUTHOR_NAME: 'Env Author', GIT_AUTHOR_EMAIL: 'env-author@example.com',
+    GIT_COMMITTER_NAME: 'Env Committer', GIT_COMMITTER_EMAIL: 'env-committer@example.com'
+  })
+  try {
+    return await body()
+  } finally {
+    for (const key of keys) {
+      if (before[key] === undefined) delete process.env[key]
+      else process.env[key] = before[key]
+    }
+  }
 }
 
 const XCRUN = '/usr/bin/xcrun'
@@ -254,6 +322,8 @@ test('a dry run commits the changed assets locally on a branch of the day and th
   t.after(() => rmSync(dirname(kept), { recursive: true, force: true }))
   assert.equal(git(kept, 'branch', '--show-current'), `assets/justsnap-20261125-${head.slice(0, 7)}`)
   assert.deepEqual(git(kept, 'show', '--name-only', '--format=', 'HEAD').split('\n'), [pathOf('hero-zh.png')])
+  // The identity of the commit is the one a run that pushes would make it with, though nothing is pushed
+  assert.equal(whoMade(kept, 'HEAD'), AS_THE_ACCOUNT)
   assert.ok(result.printed.includes(`  ${pathOf('hero-zh.png')}`))
   assert.match(result.printed, /title: Update JustSnap's site screenshots and icon \(justsnap /)
 })
@@ -285,6 +355,34 @@ test('a retaken screenshot is sent as one branch and one pull request that chang
   assert.match(result.printed, /opened https:\/\/github\.com\/aloong-planet\/aloong-planet-home\/pull\/1/)
   // The commit's own message says the same as the pull request
   assert.match(git(result.site.bare, 'log', '-1', '--format=%B', branch), new RegExp(`from its commit ${head}`))
+})
+
+test('the commit that is pushed is the logged-in account\'s, under its noreply address, whatever the Mac\'s own git identity is', async () => {
+  const result = await onAMacWithAGitIdentity(() => send(['--shots', shotsDir({ 'hero-zh.png': shot('hero-zh.png', 'retaken') })]))
+  assert.equal(result.code, 0)
+  const branch = branches(result.site).find((name) => name !== 'main')
+  // Author and committer both: the login as the name and `<id>+<login>@users.noreply.github.com` as the address, not the
+  // profile's public name or address that gh's answer also holds
+  assert.equal(whoMade(result.site.bare, branch), AS_THE_ACCOUNT)
+  assert.deepEqual(result.users, [['api', 'user']])
+  assert.equal(result.prs.length, 1)
+})
+
+test('when gh cannot say who is logged in, the run stops before it renders, clones or sends anything, and says why', async () => {
+  const rows = [
+    ['gh fails', () => { throw new Error('gh api user failed: not logged in') }, /gh api user failed: not logged in/],
+    ['gh answers with something else', () => 'Not Found', /`gh api user` did not answer with a login and an id/]
+  ]
+  for (const [name, fakeUser, reason] of rows) {
+    const result = await send([], { tool: writesShots('rendered'), fakeUser })
+    assert.equal(result.code, 1, name)
+    assert.match(result.printed, /the identity of the commit cannot be taken from gh: /, name)
+    assert.match(result.printed, reason, name)
+    assert.deepEqual(result.calls.filter(([command]) => command === XCRUN), [], `${name}: the screenshot tool did not start`)
+    assert.deepEqual(clones(result), [], name)
+    assert.deepEqual(result.prs, [], name)
+    assert.deepEqual(branches(result.site), ['main'], name)
+  }
 })
 
 test('a changed app icon sends both icon files, derived from the SVG, and not the screenshots that did not change', async () => {
