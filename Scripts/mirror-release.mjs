@@ -83,7 +83,7 @@ export function checkAppcast(xml, { version, host, dmgSize }) {
   if (!attribute(enclosure, 'sparkle:edSignature')) throw new Error('the appcast has no EdDSA signature')
 }
 
-/** The latest pointer's text for a version (the contract in landing-page's Implementation Decisions) */
+/** The latest pointer's text for a version (release-mirror::REQ-002/AC-03) */
 export function pointerText({ version, host, dmgSize }) {
   const pointer = {
     version,
