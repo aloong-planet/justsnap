@@ -1,6 +1,6 @@
 # Website assets
 
-JustSnap's website moves to the aloong-planet-home repository (`apps/justsnap/`), which builds and checks it. It takes two things from the app: its screenshots and its icon. They change there only through a pull request that this repository's command opens (aloong-planet-home `app-sites::REQ-004/AC-01`); nobody edits them in that repository by hand.
+JustSnap's website is moving to the aloong-planet-home repository (`apps/justsnap/`), which builds and checks it. It takes two things from the app: its screenshots and its icon. They change there only through a pull request that this repository's command opens (aloong-planet-home `app-sites::REQ-004/AC-01`); nobody edits them in that repository by hand.
 
 ## Until the deployment switches
 
@@ -23,7 +23,7 @@ The release script runs the command as its last step, once the release artifacts
 
 Run it also when a screenshot's views, the fixture text in `Sources/JustSnapSiteShots/ShotCopy.swift` or `Distribution/AppIcon.svg` change, without waiting for a release.
 
-It sends sixteen files under `apps/justsnap/public/` of the website repository: the fourteen screenshots `shots/<view>-<language>.png` (the views `hero`, `select`, `extract`, `translate`, `paste`, `history` and `providers`, each in `zh` and `en`) and the icon files `icon.svg` and `icon.png`. It clones the website repository into a temporary directory, writes them, checks that those are the only paths changed or staged, commits on the branch `assets/justsnap-<date>-<commit>`, pushes it and opens the pull request with `gh`, whose body names the commit of this repository the assets come from. When every file is already what the website has, it says so and opens nothing. A failed run keeps its clone and names it. The command never merges the pull request.
+It sends sixteen files under `apps/justsnap/public/` of the website repository: the fourteen screenshots `shots/<view>-<language>.png` (the views `hero`, `select`, `extract`, `translate`, `paste`, `history` and `providers`, each in `zh` and `en`) and the icon files `icon.svg` and `icon.png`. It clones the website repository into a temporary directory, writes them, checks that those are the only paths changed or staged, commits on the branch `assets/justsnap-<date>-<commit>` (with `-2`, `-3` and so on after it when the website repository already has that branch), pushes it and opens the pull request with `gh`, whose body names the commit of this repository the assets come from. When every file is already what the website has, it says so and opens nothing. A failed run keeps its clone and names it. The command never merges the pull request.
 
 It needs `git`, `gh` logged in with access to the website repository, `sips` (so it runs on macOS), and, to render the screenshots, the Swift toolchain. It reads `JUSTSNAP_SCRATCH_PATH` and `DEVELOPER_DIR` as the release script does.
 
@@ -41,4 +41,4 @@ The site's icon is `Distribution/AppIcon.svg` cropped to its tile, without the m
 
 ## An evidence run
 
-`--title <text>` replaces the pull request's title and `--note <text>` adds a line at the top of its body. They are for a run whose pull request is not meant to be merged, such as the one that shows the command works end to end: it says so in both, and the pull request is closed and its branch deleted at once.
+`--title <text>` replaces the pull request's title and `--note <text>` adds a line at the top of its body. They are for a run whose pull request is not meant to be merged, such as the one that shows the command works end to end: its text says so in both, and whoever runs it closes that pull request and deletes its branch at once: the command does neither.
